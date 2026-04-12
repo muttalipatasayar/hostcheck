@@ -8,7 +8,7 @@ from typing import Optional
 
 import dns.resolver
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/dns-history", tags=["dns-history"])
@@ -170,8 +170,11 @@ async def lookup_history(payload: DNSHistoryRequest):
     domain = re.sub(r'^https?://', '', domain).split('/')[0].split('?')[0]
 
     if not domain:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Domain boş olamaz")
+    if len(domain) > 253:
+        raise HTTPException(status_code=400, detail="Domain çok uzun")
+    if '\x00' in domain or '..' in domain:
+        raise HTTPException(status_code=400, detail="Geçersiz domain")
 
     loop = asyncio.get_event_loop()
 

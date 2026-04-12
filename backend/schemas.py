@@ -1,27 +1,27 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Any, Dict
 from datetime import datetime
 from models import TicketStatus, TicketPriority
 
 
 class TicketCreate(BaseModel):
-    customer_name: str
+    customer_name: str = Field(..., min_length=1, max_length=200)
     customer_email: EmailStr
-    domain: Optional[str] = None
-    server_ip: Optional[str] = None
-    subject: str
-    description: str
+    domain: Optional[str] = Field(None, max_length=253)
+    server_ip: Optional[str] = Field(None, max_length=45)
+    subject: str = Field(..., min_length=1, max_length=500)
+    description: str = Field(..., min_length=1, max_length=10000)
     priority: TicketPriority = TicketPriority.MEDIUM
-    category: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=100)
 
 
 class TicketUpdate(BaseModel):
     status: Optional[TicketStatus] = None
     priority: Optional[TicketPriority] = None
-    category: Optional[str] = None
-    notes: Optional[str] = None
-    domain: Optional[str] = None
-    server_ip: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=5000)
+    domain: Optional[str] = Field(None, max_length=253)
+    server_ip: Optional[str] = Field(None, max_length=45)
 
 
 class TicketResponse(BaseModel):

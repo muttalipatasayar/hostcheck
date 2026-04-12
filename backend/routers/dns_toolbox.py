@@ -1,4 +1,5 @@
 import asyncio
+import re
 import time
 from typing import Optional
 
@@ -266,13 +267,17 @@ async def _dkim_auto_discover(domain: str) -> tuple[list[DNSRecord], str, int] |
 @router.post("/query", response_model=DNSQueryResponse)
 async def dns_query(payload: DNSQueryRequest):
     domain = payload.domain.strip().lower()
-    domain = __import__('re').sub(r'^https?://', '', domain).split('/')[0]
+    domain = re.sub(r'^https?://', '', domain).split('/')[0].split('?')[0]
     rtype = payload.record_type.upper()
 
     if rtype not in SUPPORTED:
         raise HTTPException(status_code=400, detail=f"Desteklenmeyen kayıt tipi: {rtype}")
     if not domain:
         raise HTTPException(status_code=400, detail="Domain boş olamaz")
+    if len(domain) > 253:
+        raise HTTPException(status_code=400, detail="Domain çok uzun")
+    if '\x00' in domain or '..' in domain:
+        raise HTTPException(status_code=400, detail="Geçersiz domain")
 
     # ── DKIM — özel akış ──────────────────────────────────────────────────────
     if rtype == 'DKIM':

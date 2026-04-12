@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from rate_limiter import limiter
+from routers.quick_check import validate_domain
 
 router = APIRouter(prefix="/api/screenshot", tags=["screenshot"])
 
@@ -65,6 +66,9 @@ def _sync_screenshot(url: str) -> bytes:
 @router.get("/{domain:path}")
 @limiter.limit("15/minute")
 async def get_screenshot(request: Request, domain: str):
+    # SSRF koruması — geçersiz/dahili domain'leri reddet
+    domain = validate_domain(domain)
+
     # Cache'den dön
     cached = _CACHE.get(domain)
     if cached:

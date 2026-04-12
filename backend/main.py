@@ -1,7 +1,11 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 
 from database import engine, Base
@@ -16,16 +20,39 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="HostCheck API",
     description="Hosting Destek Otomasyon Paneli",
-    version="1.0.0"
+    version="1.0.0",
+    # Üretimde /docs ve /redoc'u kapat
+    docs_url="/docs" if os.getenv("ENV", "development") == "development" else None,
+    redoc_url=None,
 )
 
-# Rate limiter
+# ── Güvenlik başlıkları middleware ────────────────────────────────────────────
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── Rate limiter ──────────────────────────────────────────────────────────────
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# ── CORS — izin verilen originler .env'den okunur ─────────────────────────────
+
+_default_origins = "http://localhost:5173,http://localhost:3000"
+allowed_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", _default_origins).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],

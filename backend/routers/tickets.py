@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -6,7 +6,7 @@ import random
 import string
 
 from database import get_db
-from models import Ticket, TicketStatus
+from models import Ticket, TicketStatus, TicketPriority
 from schemas import TicketCreate, TicketUpdate, TicketResponse, TicketListItem
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
@@ -21,10 +21,18 @@ def generate_ticket_no():
 def list_tickets(
     status: Optional[str] = None,
     priority: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0, le=10000),
+    limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
+    valid_statuses = [s.value for s in TicketStatus]
+    valid_priorities = [p.value for p in TicketPriority]
+
+    if status and status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Geçersiz status. Kabul edilenler: {valid_statuses}")
+    if priority and priority not in valid_priorities:
+        raise HTTPException(status_code=400, detail=f"Geçersiz priority. Kabul edilenler: {valid_priorities}")
+
     query = db.query(Ticket)
     if status:
         query = query.filter(Ticket.status == status)
