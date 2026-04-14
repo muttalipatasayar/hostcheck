@@ -1,0 +1,536 @@
+[
+  {
+    "id": 1,
+    "title": "Başka müşteri numarasındaki alan adının yenilenmesi hk",
+    "content": "Konuyla ilgili .com uzantılı alan adları için geçerli süreç, hangi müşteri panelinde bulunuyorsa sahibi ve kullanım hakkı da onundur şeklinde bir kural mevcuttur.\nBir hizmetin süresi bitiminden önce 60 gün öncesinden bilgilendirme maillerini gönderiyor olup ve 48 saat öncesinden SMS olarak bilgilendirme yapmaktayız. Süresi bittiği günler sonrasında da bilgilendirmelerimizi sürekli gerçekleştirmekteyiz.\nBu konuyla ilgili alan adının bulunduğu müşteri paneli üzerinden yenileme gerçekleştirilmesi gerek olup ilgili müşterimiz yenileme yapmadığı durumda farklı bir işlemi ne yazık ki gerçekleştirememekteyiz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 2,
+    "title": "NS Güncellemesi yapılmış hızlandırılmasını isteyen müşteri hk",
+    "content": "Gerekli düzenlemeler, kayıtların tüm dünya üzerinde yayınlanması süreci olup bu sürece müdahalemiz ne yazık ki bulunmamaktadır. İlgili servislerin kayıtları görme ve yayınlama süreçleri kontrolümüz dışı bir durum olduğu için otomatik olarak bekleme süresi şeklinde gerçekleştirilmektedir. Kontrol sağladığımızda kayıtlarınızın oturmuş olduğunu görüntülemekteyiz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 3,
+    "title": "DNS Değiştirmek isteyen müşteri hk",
+    "content": "Hesabım > Hosting Yönetimi > Web Hosting Hesapları > Yönet > Diğer İşlemler > DNS Bölgeleri > ornekalanadi.com > Yönet",
+    "category": "Hosting"
+  },
+  {
+    "id": 4,
+    "title": "Talep çözümünden memnun kalıp teşekkür eden müşteri hk",
+    "content": "Zaman ayırarak bizlere dönüş yaptığınız için biz teşekkür ederiz. Natro olarak hizmet kalitemizi daha fazla iyileştirmek ve müşterilerimizin memnuniyeti adına değerli görüşlerinize de ayrıca önem veriyoruz.\nBu kapsamda “Müşteri Paneli Ana Sayfa > Destek İşlemleri > Destek Taleplerim > Tamamlanan Talepler” bölümünden “Talebiniz çözüldü mü?” Sorusuna “Evet” yanıtını vererek bu talebin sürecini değerlendirmenizi ve yorumunuzu iletmenizi rica ederiz.\nAyrıca dilerseniz almış olduğunuz hizmeti ve memnuniyetinizi Google üzerinden de paylaşabilirsiniz.https://g.page/r/CeJr4wyJksFlEAg/review linkinden forma ulaşabilirsiniz.\nDeğerli zamanınızı ayırdığınız ve değerlendirmeleri yaptığınız için tekrar teşekkür ederiz.",
+    "category": "SSL"
+  },
+  {
+    "id": 5,
+    "title": "TALEP",
+    "content": "alan adımın ücret iadesini istiyorum\nAlan adlarının kayıt ve silme işlemi sadece registry ve registrar firmalar tarafından yapılmaktadır.\nÜcret iadesi kapsamındaki Alan adı silme işlemi kotayla sınırlı ve sadece ilk 3 gün içinde yapmaktadırlar. Kota olduğu için kayıt firmaları silme yetkilerini sadece hukuki ve özel durumlarda kullanmak istiyorlar.\nSilme işleminde, alan adı için ödediğiniz ücretten \"her yıl başına 1$\" kesinti yapılarak kalan ücretin iadesini kabul ediyorsanız silme talebinizi yurt dışındaki Registry firmasına ileteceğiz. . Kabul edilmesi durumunda alan adınız silinecek ve kesinti dışındaki kalan ücret size iade edilecektir.\nTalebinize istinaden alan adı silme talebinizin kayıt otoritesine iletilmesini, kayıt otoritesinin silme işlemini onaylaması durumunda, alan adının silinmesini ve kesintilerden sonra kalan ücretin hesabınıza iadesini onaylamanız durumunda bilgi vermenizi rica ederiz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 6,
+    "title": "pro DNS  işlem yapma",
+    "content": "Alan Adı Yönetimi > Aktif Alan Adları > domain adınız > Yönet > Profesyonel DNS Servisi > Yönet",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 7,
+    "title": "Domain indirim talep eden müşteri",
+    "content": "Alan adları için yeni alımlarda zararına yenilemelerde ise düşük kâr marjları ile işlem sağlanmaktadır.\nBu nedenle alan adları olarak maalesef bir indirim yapamamaktayız.\nAnlayışınız ve iş birliğiniz için teşekkür eder, bilgilerinize sunarız.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 8,
+    "title": "Domain yenileme fiyat yüksek bulan müşteri",
+    "content": "Alan adı fiyatları firmadan firmaya göre, arka planda çeşitli birçok değerlendirme ve bütçe çalışmaları yapılarak düzenlenmektedir, bu nedenle fiyatlarda farklılıklar olabilmektedir.  Alan adlarının kayıt ve diğer işlemleri sadece registry ve registrar firmalar tarafından yapılmaktadır. İlgili firmaların, Türkiye'de bayiliğini yapmaktayız. Alan adı yeni kayıt fiyatları kampanyalı fiyatlar olup, ilk yıl için geçerlidir. Yenileme fiyatları yurtdışı alım fiyatlarının yüksek olması sebebi ile şuan bu şekilde listelenmektedir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 9,
+    "title": "Hostinge domain ekleme",
+    "content": "Hesabım > Hosting Yönetimi > Web Hosting Hesapları > Yönet > Web Alanı Yönetimi > Yeni Web Alanı Oluştur",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 10,
+    "title": "E posta Oluşturma",
+    "content": "hosting yönetimi >web hosting hesapları > yönet > E-Posta Sitesi Yönetimi > işlemler > eposta hesaplarını yönet",
+    "category": "Hosting"
+  },
+  {
+    "id": 11,
+    "title": "Web hosting alan adı ekleme",
+    "content": "hosting yönetimi >web hosting hesapları > yönet > Yeni Web Alanı Oluştur > Alan Adı ekle",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 12,
+    "title": "veri tabanı oluşturma",
+    "content": "Hesabım > Hosting Yönetimi > Web Hosting Hesapları > Yönet > Veritabanı Yönetimi> Yeni Veri tabanı Oluştur",
+    "category": "Hosting"
+  },
+  {
+    "id": 13,
+    "title": "Ücretsiz SSL kurulumu",
+    "content": "Konu ile ilgili olarak paketiniz içerisinde yer alan SSL hizmetini aktif etmek istediğinizde bu adımları takip ediniz: Müşteri paneli anasayfa > hesabım > hosting yönetimi > web hosting hesapları > yönet > web sitesi > ssl statik ip talebi > ssl sertifikasını aktifleştir. Butonunu tıklamanız durumunda ssl'niz ortalama 2/3 dakika içerisinde bekleyen SSL kısmında yer alacaktır. Ardından dilerseniz bizlere destek talebi oluşturmanız halinde ssl'niz tarafımızca kurulup teslim edilecektir.",
+    "category": "Hosting"
+  },
+  {
+    "id": 14,
+    "title": "Hosting yedekleme",
+    "content": "Natro hesabınıza giriş sağladıktan sonra  Hesabım > Hosting Yönetimi > Web Hosting Hesapları >Yönet > Web Alanı Yönetimi > Web alanı yazısına tıklayıp > Cpanel bağlan > Dosya yöneticisinden agrobay.com klasörüne dosyalarınızı yükleyebilirsiniz.\nVeritabanınız var ise Hosting Yönetimi > Web Hosting Hesapları >Yönet > Veritabanı Yönetiminde yeni veritabanı oluşturabilir veritabanınızı aktarabilirsiniz.\nAktarım işlemlerinden sonra yazılımınız üzerinde veritabanı bağlantılarını yapabilir, dosyalarınızı kontrol edebilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 15,
+    "title": "Hosting dns ayarları",
+    "content": "hosting yönetimi >web hosting hesapları > yönet >alanadı.com > web sitesi > DNS yönetim",
+    "category": "Hosting"
+  },
+  {
+    "id": 16,
+    "title": "web sitesi aktif müşteri site açılmama sorunu  cach sorunu",
+    "content": "NS adresi aktifleşmiştir. Web siteniz çalışmaktadır. Ekran görüntüsü ektedir. Kullandığınız tarayıcının geçmişini en baştan temizlemenizi öneririz. Önerilen işlemleri yaptıktan sonra modeminizi kapatıp 5 dakika sonra tekrar çalıştırabilirsiniz. Bazen modem de cache tutmaktadır.\nAşağıdaki linkten cach temizliğini adım adım uygulayabilirsiniz.\nhttps://www.natro.com/blog/cache-nedir-ve-ne-ise-yarar-cache-temizleme-nasil-yapilir/",
+    "category": "SSL"
+  },
+  {
+    "id": 17,
+    "title": "Domain ücret iadesi",
+    "content": "com.tr alan adları iade edilememektedir. com alan adı için üst kuruluşa talebinizi iletebiliriz.\nİade işlemi kesin yapılır diyemiyoruz. Üst kuruluş gerekli kontrolleri sağlaması durumunda talebinize olumlu veya olumsuz dönüş yapacaktır.\nİadenin olumlu olması durumunda alınan yıl başına 1$ kesinti ile iade talebinizi onaylarsanız talebinizi iletebiliriz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 18,
+    "title": "PRO DNS ALMAK İSTEYEN MÜŞTERİ",
+    "content": "Kontrol sağladığımızda hosting paketiniz bulunmadığı için kayıtlarınızın yönetimini Profesyonel DNS Servisi ile sağlayabilirsiniz, aylık 0.10 dolar ile siparişinizi oluşturmamı isterseniz yardımcı olabilirim.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 19,
+    "title": "ALAN ADI TRANSFERİ",
+    "content": "Alan Adı Yönetimi > Aktif Alan Adları > domain adınız > Yönet > Transfer > Transfer Et",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 20,
+    "title": "SPONSORLUK TALEBİ",
+    "content": "Sponsorluk talebi için bizimle iletişime geçtiğiniz için teşekkür ederiz.\nSponsorluk taleplerinizi https://forms.gle/9ifagXrtRKGuoJE4A adresindeki başvuru formunu doldurarak  iletebilirsiniz.\nBaşvuru formunu doldurmanızın ardından ilgili ekibimiz başvurunuzu değerlendirip, formdaki iletişim bilgilerinizden sizinle iletişime geçeceklerdir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 21,
+    "title": "BAĞLANTI GÜVENLİ DEĞİL UYARISI",
+    "content": "kostumbu.com için NS yönlendirmeleri tamamlanmış görünmektedir.\nWeb siteniz Bağlantınız gizli değil uyarısı vermektedir. Dilerseniz SSL sertifikası tanımlanabilir veya Hosting panel ayarlarınızdan HTTPS kısmını HTTP olarak ayarlamanız gerekmektedir.\nBilgilerinize sunarız.",
+    "category": "Hosting"
+  },
+  {
+    "id": 22,
+    "title": ".tr BAŞVURU KODU",
+    "content": "Alan Adı Yönetimi > Aktif Alan Adları > domain adınız > Yönet > Transfer > Transfer Et >.TR Alan Adı Başvuru Kodu > Başvuru Kodu Talep Et",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 23,
+    "title": "premium domain",
+    "content": "Premium Alan Adları (veya özel isimler listesi), kapsayıcı, hatırda kalıcı, Reklam/PR fırsatı sunan, Google aramalarında üst sırada çıkma olanağı tanıyan isimlerdir ve bu nedenle tercih edilmektedir.\nPremium isimler, uluslararası alan adı satışlarında normal alan adlarından farklı olarak fiyatlandırılmaktadır.\nNatro sorgulama ekranında premium domain sorgulaması yapılamadığı için ödeme alınmaktadır. Natro’da premium domain satışı bulunmadığı için, alım işlemi sağlandıktan sonra hata alınmakta olup, domain aktivasyonu gerçekleştirilememektedir. Bu durumda alan adı iptal edilerek, ücret iade edilmektedir.\nAşağıdaki linkten premium domain kontrolü yapılabilmektedir.\nhttps://www.domain.com/registration/?flow=domainDFE&tld=com&search=qrv.online#/domainDFE/1https://www.domain.com/registration/?flow=domainDFE&tld=com&search=qrv.online#/domainDFE/1",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 24,
+    "title": "co.uk",
+    "content": "gamehubstore.co.uk  alan adınızı tekrar aktif hale gelebilmesi için Alan adı yönetimi > Aktif alan adları > gamehubstore.co.uk > Yönet > Sahip bilgileri güncelle adımları ile bilgilerinizi güncellemenizi ve aşağıdaki ilgili belgeleri tarafımıza iletmenizi rica ederiz.\nİngiltere vatandaşı olmayan müşteriler için gerekli belgeler : proof of identity, e.g. driving licence, passport, national ID card\nİngiltere vatandaşı olan müşteriler için gerekli belgeler : national insurance card (for UK citizens),\nİngiltere'de firması var ise : official company letterhead, company stamp",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 25,
+    "title": "alan adı silme isteği olumsuz dönüş",
+    "content": "Değerli müşterimiz, Alan adı silme yetkisi sadece registry ve registrar firmalarda bulunmaktadır. Silme işlemini sınırlı süre içinde kotalı ve ücret alarak yapmaktadırlar.\nKota olduğu için Registry ve registrar firmalar silme kotalarını sadece hukuksal işlemlerde kullanmak istiyorlar.\nSilme ücretini kabul ettiğimizi ve alan adının silinme talebini ilettik ancak talebimiz kabul edilmedi.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 26,
+    "title": "Alan adı durdurulan müşteri hk",
+    "content": "Alan adınız ile ilgili yaptığımız incelemede, alan adınızın client hold statüsüne güncellendiğini tespit ettik. Bu kapsamda, konuya ilişkin kayıtlı mail adresinize, alan adınızın kayıt otoritesi tarafından bir mail gönderilmiş olması gerekmektedir. Kontrol sağlamanızı ve alan adınız ile ilgili süreçleri ilgili firma ile devam ettirmenizi rica ederiz",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 27,
+    "title": "Çerezlerden dolayı siparişi görememe",
+    "content": "Natro web sitemize giriş yaptığınızda çerezler kabul edilmediği için sepetiniz boş görünmektedir. Farklı bir tarayıcı ile Natro hesabınıza giriş yapıp çerezleri kabul ederek siparişinizi oluşturabilirsiniz.",
+    "category": "Genel"
+  },
+  {
+    "id": 28,
+    "title": "Alan adı ücret iadesinde olumsuz dönüş",
+    "content": "Alan adı ücret iadesi için yurt dışı kayıt firması ile iletişime geçilmiştir. İlgili firma olumsuz olarak dönüş yapmıştır. Üzülerek belirtmek isteriz ki ücret iadesi yapılamamaktadır.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 29,
+    "title": ".de NS kayıtları",
+    "content": "Kontrol sağladığımızda iletmiş olduğunuz NS kayıtları .de uzantılı alan adları için uygun değildir. Aşağıda yer alan bilgilere göre NS adreslerinizi yapılandırmanız durumunda güncelleme sağlayabilirsiniz. Aksi durumda ne yazık ki bir güncelleme gerçekleştirilemeyecektir.\nDenic'in .DE DNS bilgilerinin nasıl yapılandırılması gerektiği konusunda çok katı kuralları vardır. .DE uzantılı domainler özel DNS ayarları gerektirmektedir.\n.DE domain DNS adreslerinin DNS girilmeden önce DNS sunucu tarafında yapılandırılması gerekmektedir.\nDE uzantılı domain DNS yapılanmasında farklı düzenlemeleri vardır. Kaydedilen domainde en az 2 aktif farklı DNS tanımlı olması gereklidir. Her bir DNS bilgisine ait IP adresleri farklı 8li IP bloklarından oluşmalıdır.\nÖrnek: Name Server Faklı C klaslarda olmalıdır. Örneğin: ns1.natrohost.com 94.73.183.3 iken ns2.natrohost.com 89.19.5.105'dir.\nKullanmak istediğiniz DNS'in domain güncelleme veya domain için kabul edilip edilmeyeceğini görmek için DENIC'in NAST aracını kullanabilirsiniz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 30,
+    "title": "co.uk suspend ile gelen talep",
+    "content": ".co.uk alan adları Birleşik Krallık ülkelerinde faaliyet gösterilmesi halinde kullanılabilir. Bu bağlamda Birleşik Krallık ülkelerinde faaliyet yürüttüğünüze yönelik bir faaliyet belgesi veya kartvizit iletmeniz durumunda Yurt dışı register firmasına iletilecektir.\nALAN ADI alan adınızı tekrar aktif hale gelebilmesi için Alan adı yönetimi > Aktif alan adları > ALAN ADI > Yönet > Sahip bilgileri güncelle adımları ile bilgilerinizi güncellemenizi ve aşağıdaki ilgili belgeleri tarafımıza iletmenizi rica ederiz.\nİngiltere vatandaşı değilseniz için gerekli belgeler : proof of identity, e.g. driving licence, passport, national ID card\nİngiltere vatandaşıysanız için gerekli belgeler : national insurance card (for UK citizens),\nİngiltere'de firmasınız var ise : official company letterhead, company stamp",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 31,
+    "title": "Alan adı transfer süreci",
+    "content": "alpherahealth.com alan adınızın kayıtlı olduğu firmadan öncelikle transfer kilidini kaldırmanız gerekmektedir. Transfer kilidini kaldırdıktan sonra transfer kodu almanız gerekiyor. Aldığınız transfer kodunu aşağıdaki linkten alan adınız ve transfer kodunuzla transfer başlatabilirsiniz. com alan adları 11.99$+KDV ile transfer işlemini başlatabilirsiniz. Bu ücret sadece transfer ücreti değildir. Aynı zamanda alan adınız bir yıl yenilenmiş olacaktır. Com alan adları 5-7 gün içinde transfer işlemi tamamlanmaktadır.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 32,
+    "title": "Geç yenileme ücretine itiraz",
+    "content": "Alan adın geç yenileme ücreti natronun almış olduğu bir ücretlendirme değildir. com alan adları için yurt dışı kayıt firması tarafından tahsis edilmekteidr. Alan adınızın silinmesi sürecinde olduğu için Yurt dışı kayıtlı firmanın alan adının silinmemesi için aldığı geç yenileme ücretidir. Maalesef Natro olarak geç yenileme ücretine müdahale edememekteyiz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 33,
+    "title": "Dmarc kaydı",
+    "content": "Kayıt adı _dmarc.alanadi.com\nKayıt Türü TXT\nKayıt Değeri v=DMARC1; p=none; rua=mailto:dmarc-raporlari@alanadi.com",
+    "category": "E-posta"
+  },
+  {
+    "id": 34,
+    "title": "SSL indirme",
+    "content": "mail adresinize SSL doğrulama maili gönderildi. Maili onayladıktan 45 dakika sonra SSL yönetimi > Aktif ssl sertifikaları > alan adını > yönet > Hızlı işlemler > Sertifika indir bölümünden indirebilirsiniz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 35,
+    "title": "Natro KEP ADRESİ",
+    "content": "cizgitelekominikasyon@hs01.kep.tr",
+    "category": "E-posta"
+  },
+  {
+    "id": 36,
+    "title": "jetpress yedek alma",
+    "content": "Öncelikle FTP bağlantısı sağlayarak WP-CONTENT yedeğinizi almanız gerekmektedir. Veritabanı sunucusuna erişim sağlayarak veritabanı yedeğini de almanız gerekmektedir.\nFTP bilgilerinizi bilmiyorsanız Jetpress hosting paketlerinde WP Admin, FTP ve Veritabanı (DB) şifre bilgileri güvenlik nedeni ile sistem tarafından üretilerek müşterilerimizin Natro müşteri paneline kayıtlı mail adresine iletilmektedir.\nSisteme kayıtlı mail adresinize \"JetPress Hosting Hizmetiniz Aktifleştirilmiştir\" konu başlıklı mail gönderimi sağlanmıştır. Bu mail tarafınıza ulaşmadıysa veya içerisinde bulunan bilgiler ile erişim sağlayamıyorsanız şifrenizi sıfırlayabilirsiniz.\nSıfırlama işlemi için müşteri paneline erişim sağladıktan sonra Hesabım >  Wordpress Hesapları > JetpressPanel > İlgili Web Site > Ayarlar > Şifre Sıfırlama Onayı > Sıfırla butonu kullanabilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 37,
+    "title": "default web page standart yazısı",
+    "content": "cysaplast.com alan adınızın web site içeriği ile ilgili yaptığımız incelemede, web site içeriğinizin otomatik https olarak yönlendirildiği ve SSL sertifikanızın da olmamasından dolayı defaultwebpage hatasına düştüğü anlaşılmıştır. Kullanmış olduğunuz kodlama diline göre, .htaccess - web.config dosyası üzerinden otomatik https yönlendirmesini iptal edebilir yada SSL sertifikası satın alarak problemi çözebilirsiniz. Talep etmeniz halinde, ssl sertifikası siparişi eklenecektir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 38,
+    "title": "klasik asp bileşenleri",
+    "content": "Klasik ASP de yüklü (yüklü olmayanlarda yükleriz) bileşenler, Persist (ASPEmail, ASP upload, ASPjpeg)\nASP.NET Frameworkleri: ASP.NET 4.7, 4.0, 3.5, 3.0, 2.0 ve .NET Core--(net core güncellendikçe sunucuda yoksa son versiyonu yükleyebiliriz)\nMssql, MC access\nFSO, CDO",
+    "category": "Hosting"
+  },
+  {
+    "id": 39,
+    "title": "wordpress to many redirect hatası",
+    "content": "",
+    "category": "Hosting"
+  },
+  {
+    "id": 40,
+    "title": "PEM İSTEYEN MÜŞTERİYE CEVAP",
+    "content": "-İlettiğiniz CSR ile alacağımız CRT/CER dosyasını, sunucuda Key olmadan yükleyebilirsiniz. IIS da 'complete certificate request' kısmından işlemi gerçekleştirebilirsiniz.\n-Sertifikayı sunucuda yükledikten sonra başka bir sunucuya taşıyacaksanız;\n*Taşıyacağınız sunucu Windows ise KEY dosyasına ihtiyacınız yoktur.\n*Taşıyacağınız sunucu Linux ise KEY dosyasına ihtiyacınız yoktur.\nTaşıyacağınız sunucu Windows ise, CER/CRT nin kurulu olduğu sunucudan dışarı .pfx alınız ve taşıma yapacağınız sunucuya .pfx yükleyiniz.\nTaşıyacağınız sunucu Linux ise, CER/CRT nin kurulu olduğu sunucudan dışarı .pfx alınız ve convert ederek .pem e çevirip Linux sunucuda yükleyiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 41,
+    "title": "veri tabanı güncelleme",
+    "content": "MARİA DB GÜNCELLEME YAZISI\nCpanel sunucularımızda MariaDB güncellemesi planlı bir şekilde ve takvime uygun olarak yapılmaktadır.\nBu işlem yapılırken göz önünde bulundurulması gereken bir çok faktör vardır.\nSunucu yoğunluğu ve o sunucudaki sitelerin upgrade işlemi sonrası yaşayabileceği olumsuzluklar bunlardan bazılarıdır.\nŞimdiye kadar 5 farklı sunucumuzda bu kriterleri göz önünde bulundurarak upgrade işlemini gerçekleştirdik.\nDilerseniz takvime bağlı kalarak web sitenizin bulunduğu sunucuda ileride yapılması planlanan MariaDB güncellemesini bekleyebilir, dilerseniz web sitelerinizi MariaDB güncellemesi yapılmış sunucularımıza taşıyabilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 42,
+    "title": "TİME OUT HATASI ÇÖZÜMÜ",
+    "content": "RewriteRule .* - [E=noconntimeout:1]\nRewriteRule .* - [E=noabort:1]",
+    "category": "Hosting"
+  },
+  {
+    "id": 43,
+    "title": "Cron örnek kod",
+    "content": "Genel Örnek\n/usr/local/bin/php/home/u909808/public_html/path/to/cron/script\nDoman - specific örnek\n/usr/local/bin/ca-php56/home/u909808/domain_path/path/to/cron/script",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 44,
+    "title": "Cloudflare üzerinden SSL sertifikası aktif ettikten sonra, hata sayfasının açılması sorunu genellikle birkaç farklı sebepten kaynaklanabilir. Bu tür bir sorunla karşılaştığınızda, aşağıdaki adımları takip ederek çözüm bulabilirsiniz:",
+    "content": "1. DNS Ayarlarını Kontrol Edin\nCloudflare kullanıyorsanız, DNS ayarlarınızı kontrol etmeniz önemlidir. Domaininizin Cloudflare'da doğru şekilde yönlendirildiğinden emin olun.\nDNS Kayıtları: Cloudflare’daki DNS kayıtlarınızın, domain adınızın doğru IP adresine yönlendirildiğini doğrulayın. Genellikle, bu IP adresi Plesk sunucunuzun IP adresidir.\nCloudflare Proxy Durumu: Cloudflare’deki  A kaydınızın yanındaki bulut simgesinin turuncu mu yoksa gri mi olduğuna dikkat edin. Turuncu bulut (proxy etkin) ile gri bulut (proxy kapalı) arasındaki farkı anlamak önemlidir. Proxy'yi kapalı tutarak doğrudan IP adresinize yönlendirme yapabilirsiniz.\n2. Plesk Üzerindeki Web Sunucusu Ayarlarını Kontrol Edin\nPlesk panonuzda, SSL ayarlarınızın doğru yapılandırıldığından emin olun.\nWeb Sitesi Ayarları: Web sitenizin Plesk panelinde doğru şekilde yapılandırıldığını kontrol edin. Örneğin, SSL sertifikasının hangi domainler için geçerli olduğuna ve ilgili domainin SSL ile güvenli olduğuna emin olun.\nSSL Sertifikası: Plesk panelinizde, SSL sertifikasının doğru domain üzerinde kurulu olup olmadığını kontrol edin. Genellikle, domainlerinizi Domains kısmından yönetebilirsiniz ve her bir domain için uygun SSL sertifikası seçilmelidir.\n3. Cloudflare SSL/TLS Ayarlarını Kontrol Edin\nCloudflare panelinizde SSL/TLS ayarlarını gözden geçirin:\nSSL/TLS Seviye Ayarı: Cloudflare’ın SSL/TLS ayarını Full veya Full (strict) olarak yapılandırdığınızdan emin olun. Flexible seçeneği genellikle SSL hatalarına neden olabilir çünkü Cloudflare, sunucunuzla SSL üzerinden bağlantı kurmaz.\n4. Tarayıcı ve Ön Bellek Temizliği\nTarayıcı önbelleğinizi temizleyin veya başka bir tarayıcı veya gizli pencere kullanarak test edin. Ayrıca, DNS önbelleğini temizlemek de faydalı olabilir.\nDNS Önbelleğini Temizleme: Komut istemine veya terminale ipconfig /flushdns (Windows) veya sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder (macOS) komutlarını kullanarak DNS önbelleğinizi temizleyebilirsiniz.\n5. Cloudflare Cache Temizleme\nCloudflare üzerindeki önbelleği temizlemek de faydalı olabilir.\nCloudflare Cache Temizleme: Cloudflare paneline gidin ve Caching bölümünden Purge Everything seçeneği ile önbelleği temizleyin.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 45,
+    "title": "VARSAYILAN WORDPRESS .HTACCESS DOSYASI İÇERİĞİ",
+    "content": "# BEGIN WordPress\n<IfModule mod_rewrite.c>\nRewriteEngine On\nRewriteBase /\nRewriteRule ^index\\.php$ - [L]\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteCond %{REQUEST_FILENAME} !-d\nRewriteRule . /index.php [L]\n</IfModule>\n# END WordPress",
+    "category": "Hosting"
+  },
+  {
+    "id": 46,
+    "title": "VERİ TABANI BOYUTU 50 MB SINIR YÜKLEME PROBLEMİ",
+    "content": "Veritabanı yükleme limitiniz 50 mb olup, 50 mb üzerinden işlem yapmak istemeniz durumunda işlemlerinizi 3. parti uygulamalar ile sağlayabilirsiniz.\nUzaktan bağlantı sağlamadan önce internet çıkış ip adresinizi eklemeniz gerekmektedir.\nHesabım> Hosting Yönetimi >Web Hosting Hesapları> Yönet >Veritabanı Yönetimi > İşlemler > İp güncelle kısmından ekleyebilirsiniz.\nMySQL WorkBench\nhttps://dev.mysql.com/downloads/workbench/\nNavicat Lite\nhttp://navicat.com/en/download/navicat-for-mysql\nDBManager Freeware for MySQL\nhttp://www.dbtools.com.br/EN/downloads/downloads_file.php?file_id=4\nSQLyog MySQL GUI\nhttps://github.com/webyog/sqlyog-community/wiki/Downloads",
+    "category": "Hosting"
+  },
+  {
+    "id": 47,
+    "title": "varsayılan hdaccess kodu OSMAN",
+    "content": "# BEGIN WordPress\n<IfModule mod_rewrite.c>\nRewriteEngine On\nRewriteBase /\nRewriteRule ^index\\.php$ - [L]\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteCond %{REQUEST_FILENAME} !-d\nRewriteRule . /index.php [L]\n</IfModule>\n# END WordPress",
+    "category": "Hosting"
+  },
+  {
+    "id": 48,
+    "title": "Bir PHP oturumu session_start() işlev çağrısı tarafından oluşturuldu.",
+    "content": "belirtmiş olduğunuz hatanın çözümlemesi için öncelikle tüm eklentilerinizi devre dışı bırakmanız gerekmektedir. Eklentileri devre dışı bırakarak sorunun hangi eklentiden dolayı kaynaklandığını görebilirsiniz. Sorununuzun devam etmesi halinde aşağıdaki linki inceleyerek çözüm sağlayabilirsiniz. Bilginize sunarız.\nhttps://www.r10.net/php/2626878-merhabalar-wp-sitemde-kritik-php-sorunu.html",
+    "category": "Hosting"
+  },
+  {
+    "id": 49,
+    "title": "ht access dosyasına belirli iplerin dışındaki ipleri engelleme",
+    "content": "Order Deny,Allow\nDeny from all\nAllow from 192.168.1.100\nAllow from 203.0.113.0\nAçıklamalar:\nOrder Deny,Allow: Bu, önce engelleme (Deny) sonra izin verme (Allow) işlemlerinin uygulanacağını belirtir.\nDeny from all: Tüm IP adreslerinden gelen istekleri varsayılan olarak engeller.\nAllow from 192.168.1.100: Belirtilen IP adresine izin verir.\nBurada yer alan IP adresini kendi izin vermek istediğiniz IP adresleriyle değiştirin.\nAllow from 203.0.113.0: Birden fazla IP adresine izin vermek istiyorsanız, her bir IP adresini ayrı bir Allow from satırıyla ekleyebilirsiniz.\nBu kod, sadece belirtilen IP adreslerinin erişimine izin verir ve diğer tüm IP adreslerini engeller. .htaccess dosyanızı düzenlerken dikkatli olun, çünkü hatalı yapılandırmalar tüm siteye erişimi engelleyebilir.",
+    "category": "Hosting"
+  },
+  {
+    "id": 50,
+    "title": "HTTPS HTTP yönlendirmesi",
+    "content": "<If \"%{HTTPS} == 'on'\">\nRewriteEngine On\nRewriteRule (.*) http://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]\n</If>",
+    "category": "SSL"
+  },
+  {
+    "id": 51,
+    "title": "Paylaşımlı hostinglerde dosya barındırma",
+    "content": "Natroda bulunan hosting paketleri sadece web site dosyalarınızı barındırma hizmeti olarak kullanılması için sizlere sunulmuştur. Bu kapsamda, hosting paketlerimizin kişisel yedek saklanması (web siteniz ile ilgili dosyalar haricinde, barındıracağınız her türlü program yada özel yedek) yedek barındırılması için destek verilmemekte ve tespit edildiğinde sizlere uyarısı yapıldıktan sonra silinmektedir.",
+    "category": "Hosting"
+  },
+  {
+    "id": 52,
+    "title": "Birincil alan adını değiştirmek isteyen müşteri",
+    "content": "Birincil alan adını değiştirebilmek için hostingdeki tüm sitelerin dosyalarının ve veri tabanlarının yedeğini almanız gerekmektedir.\nYedekler alındıktan sonra tüm web siteleri silinmeli hangi alan adının birincil olmasını istiyorsanız onu ilk eklemelisiniz.\nDaha sonra site dosyalarınızı ekleyerek sitelerinizi aktif edebilirsiniz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 53,
+    "title": "Otomatik SSL kurulumu",
+    "content": "alan adınız için ücretsiz SSL hakkınız tanımlanmıştır. 20-45 dakika içinde otomatik kurulum gerçekleşecektir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 54,
+    "title": "veri tabanı ip ekleme",
+    "content": "Hesabım > Hosting Yönetimi > Web Hosting Hesapları > Yönet > Veri tabanı Yönetimi >İşlemler > İp güncelle bölümünden bilgisayarınızın ip adresini eklemenizi rica ederiz. 3. parti program olarak heidisql programını öneririz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 55,
+    "title": "jetpres s hosting silme",
+    "content": "Jetpress panel > Ayarlar >  Web sitesini sil butonunu tıklayarak alan adınızı hostingden silip tekrar oluşturabilirsiniz. Fakat bu işlemi yapmadan önce sitenizin e maillerinizin yedeklerinizi almayı unutmayınız.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 56,
+    "title": "Ücretsiz ssl tek yıl",
+    "content": "Sınırsız Pro hosting paketinde sadece ilk yıl bir alan adı için ücretsiz SSL tanımlanmaktadır. Sonraki yıllarda alan adlarınız için SSL satın alım işlemini tamamlayabilirsiniz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 57,
+    "title": "Alan adı farklı hosting paketinde",
+    "content": "alan adınız farklı bir müşteri panelinde hosting hesabına kayıtlı olarak görünmektedir. Dilerseniz hosting sahibi ile iletişime geçerek alan adınızı hosting paketinden kaldırabilir bu işlem yapıldıktan sonra sizler alan adınızı hosting paketinize ekleyebilirsiniz. Bu işlem yapılmadan önce yedeklerinizi almayı unutmayınız",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 58,
+    "title": "WP includes bozulurnca",
+    "content": "wp-includes dosyalarınız bozulduğu için güncel dosyalar eklendi. Böylece web siteniz aktif edilmiştir Ekran görüntüsü ektedir.",
+    "category": "Hosting"
+  },
+  {
+    "id": 59,
+    "title": "SİTE TAŞIMA",
+    "content": "Natro olarak site taşıma sürecimiz bulunmamaktadır. Site taşıma işlemlerini müşterilerimiz yapmaktadır. Web sitenizin dosyalarını veri tabanınızı ve maillerinizin yedeğini almayı unutmayınız. Bilgilerinize sunarız.",
+    "category": "Hosting"
+  },
+  {
+    "id": 60,
+    "title": "really simple ssl",
+    "content": "SSL yönlendirmeleri tamamlanamadığı için sitenizde görsellik sorunu mevcuttu. Really simple ssl eklentisi ile sorun çözüldü bilgilerinize sunarız.",
+    "category": "SSL"
+  },
+  {
+    "id": 61,
+    "title": "Default web page",
+    "content": "izmirneon.com için siteniz HTTPS üzerinden açılmaktadır. Fakat sizin SSL sertifikanız olmadığı için HTTPS üzerinden çalışmamaktadır.\nDilerseniz SSL sertifikası satın alabilirsiniz. Veya veri tabanınızda ya da htaccess dosyanızda HTTPS görünen bölümü HTTP olarak düzenleyebilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 62,
+    "title": ".bak dosyası yedek alma",
+    "content": "Detaylı Adımlar ve Görseller:\n1 SQL Server Management Studio'yu Açın ve Veritabanına Bağlanın:\nSSMS'yi başlatın ve sunucunuza bağlanın.\n2 Object Explorer'da Veritabanınızı Bulun:\nObject Explorer penceresinde, yedeklemek istediğiniz veritabanını bulun.\n3 Yedekleme İşlemini Başlatın:\nVeritabanı üzerinde sağ tıklayın ve Tasks menüsüne gidin, ardından Back Up... seçeneğine tıklayın.\n4 Yedekleme Ayarlarını Yapılandırın:\nBack Up Database penceresi açılacaktır.\nDestination bölümünde, yedekleme dosyasının nereye kaydedileceğini belirleyin. Mevcut hedefi kaldırabilir veya yeni bir hedef ekleyebilirsiniz.\nYeni bir hedef eklemek için Add... butonuna tıklayın.\n5 Yedekleme Hedefini Belirleyin:\nSelect Backup Destination penceresinde, yedekleme dosyasının tam yolunu ve adını belirtin (örneğin, C:\\Backups\\MyDatabase.bak), ardından OK butonuna tıklayın.\nAyarları kontrol ettikten sonra, OK butonuna tıklayarak yedekleme işlemini başlatın.\nİşlem tamamlandığında, yedekleme işleminin başarıyla tamamlandığına dair bir bildirim alacaksınız.",
+    "category": "Hosting"
+  },
+  {
+    "id": 63,
+    "title": "max_user_connections",
+    "content": "Hata hosting veya sunucu ile ilgili değildir. Bu uyarı MySQL veritabanına anlık 25 kullanıcı bağlanabilmektedir. Kullanılmayan sql sorgularınızı sonlandırmanız durumunda  sorunu giderebilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 64,
+    "title": "Pleskten Cpanele geçmek isteyen müşteri",
+    "content": "Mevcut sitenizin dosyalarının ve veri tabanının yedeğini aldıktan sonra  hosting yönetimi >web hosting hesapları > yönet > Web Alanı > web alanını sil butonunu tıklayıp alan adınızı hosting paketinizden silmeniz gerekiyor. Silme işlemi tamamlandıktan sonra hosting yönetimi >web hosting hesapları > yönet > Yeni Web Alanı Oluştur > Alan Adı ekle adımlarını takip ederek Cpanel seçip panelinizi oluşturabilirsiniz",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 65,
+    "title": "Belgeli SSL ara yanıt",
+    "content": "SSL aktivasyonu için yurt dışı firması ile iletişim halindeyiz. Bu işlem biraz zaman alabilir. İlgili firmadan onay aldıktan sonra sizleri bilgilendireceğiz.",
+    "category": "SSL"
+  },
+  {
+    "id": 66,
+    "title": "Standart maile dönüş yapmak isteyen müşteri",
+    "content": "Mail hizmetinde üst paketten alt pakete geçiş bulunmamaktadır. Bu işlemi yapabilmeniz için mailinizin yedeğini almanızı rica ederiz. Yedek aldıktan sonra mevcut mail adresinizi silip tekrar standart olarak oluşturabilirsiniz. Böylece mevcut mail adresinizi yüksek kota olmadan kullanabilirsiniz.",
+    "category": "E-posta"
+  },
+  {
+    "id": 67,
+    "title": "Admin uzatmalar link",
+    "content": "https://admin.natro.com/alanadi/Uzatmalar.asp",
+    "category": "SSL"
+  },
+  {
+    "id": 68,
+    "title": "Node js  React JS",
+    "content": "Paylaşımlı hosting paketlerimizde React js; Node.js, angular js ve vue.js, jquery desteği verilememektedir.  Dilerseniz sunucu kiralayarak projelerinizi çalıştırabilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 69,
+    "title": "Composer desteği",
+    "content": "Hosting paketlerimizde composer desteği mevcuttur.\nPHP Sürümünüzü 8.1'e alarak composer kullanabilirsiniz.\nFakat windows plesk / cPanel - linux paketlerinde composer için bir uygulama alanı bulunmamaktadır.\nWeb sitenizin eklenti olarak ihtiyacında composer kullanılmaktadır.",
+    "category": "Hosting"
+  },
+  {
+    "id": 70,
+    "title": ".Bak hazır yanıt",
+    "content": ".bak uzantılı yedek aktarımı güvenlik nedeniyle sistemimize gerçekleştirilememektedir. Aşağıda bulunan işlem adımları ile .script yedeği almanızı rica ederiz.\nhttps://blog.natro.com/mssql-database-generate-script-islemi-adim-1/\nhttps://blog.natro.com/mssql-script-import-islemi-adim-2/",
+    "category": "SSL"
+  },
+  {
+    "id": 71,
+    "title": "Mail hosting iç transfer",
+    "content": "Mail hostinginizi iç transfer ile farklı bir natro kullanıcısına transfer edebilirsiniz.\nHosting yönetimi > Mail hosting hesapleri > Yönet > Hızlı işlemler > İç transfer\nadımlarını takip ederek iç transfer işlemini başlatabilirsiniz. Sizin TC kimlik numaranızı ve transfer edeceğiniz kişinin müşteri numarasını yazmanı gerekiyor.\nSize gönderilen transfer mailini onayladıktan sonra transfer alacak kişinin hesabında\nHesabım > Müşteri paneli ana sayfa > Onay bekleyen iç transfer > onayla adımlarını takip ederek iç transfer işlemini 10-15 dakika içinde tamamlayabilirsiniz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 72,
+    "title": "Tracker Kullanan site",
+    "content": "Tarafımıza iletmiş olduğunuz bildirim doğrultusunda yapılan inceleme sonucunda, belirtilen takip edici (tracker) unsurların web sitenizde yer aldığı görülmektedir. Ancak, firmamız Natro yalnızca barındırma (hosting) hizmeti sunmakta olup, web sitenizin içeriğine, yapılandırmasına veya üçüncü parti servis entegrasyonlarına müdahil olmamaktadır.",
+    "category": "Hosting"
+  },
+  {
+    "id": 73,
+    "title": "TAKAL -- TAKIL TALEP YANIT",
+    "content": "14 Eylül 2022 Tarihinde belgesiz kayıt dönemi BTK TRABİS tarafından devreye alınmış olup, o tarihten sonra tahsisi kısıtlı (TAKAL VE TAKIL) alan adları dışındaki talepler anında onaylanabildiği için panelimizde bu şekilde bir bilgilendirme mevcuttur. Talep etmiş olduğunuz alan adı Trabis kurumunun tayin ettiği tahsisi kısıtlı alan adları içerisinde yer aldığı için evraksız tahsis edilememektedir. Alan adı yönetimi - bekleyen siparişler- belge gönder kısmındaki evrakları iletiyor olmanız gerekmektedir. Eğer bir kurum kimliğiniz bulunmuyor ve şahıs adına başvuru yapıyorsanız, tahsis formu ve talep etmiş olduğunuz alan adını hangi amaçla kullanacağınıza dair A4 kağıdına imzalı bir dilekçe yazıp iletirseniz başvurunuzu iletilen evrak üzerinden yapıp gelen sonuca göre tarafınıza bilgi verebiliriz.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 74,
+    "title": "mail alıp gönderme sorunu yaşayan müşteri",
+    "content": "mailinize mail alıp gönderme işlemi yapıldı. Başarılı bir şekilde mail alıp gönderme yapılabilmektedir. Ekran görüntüsü ektedir. Bilgilerinize sunarız.",
+    "category": "E-posta"
+  },
+  {
+    "id": 75,
+    "title": "windows 503 hatası app pool restart",
+    "content": "Anlık bu hatayı almalarının sebepleri de aşağıdaki gibidir.\nYüklü bir istek almaktan\nSunucu üzerinde bitmeyen istekler\nYazılım hatalarından oluşan error loglar\nRAM ve CPU yetersizliği\nYazılımdaki döngüsel hataların yarattığı sonsuz istekler",
+    "category": "Hosting"
+  },
+  {
+    "id": 76,
+    "title": "Suncu  sık kopma oluyorsa. Sunucuda sorun görünmüyorsa",
+    "content": "Task Manager’da    user    Administrator (30) bağlantısı görülüyor.  Buda;\nSunucuda çok sayıda açık / kopmamış RDP oturumu olduğunu gösterir. Bu durum şu sorunlara yol açabilir:\nRDP bağlantısı anında kopar\nFTP bağlantısı başlar ama hemen düşer\nSunucu CPU/RAM normal görünse bile\noturum (session) limiti dolduğu için yeni bağlantılar sağlıklı kurulamaz\nWindows Server’da özellikle aynı kullanıcı (Administrator) ile çok sayıda bağlantı ciddi sorun çıkarır;\nTüm RDP oturumlarını kapatın (Log off)\nTask Manager >> Users sekmesi\nDisconnected olanları log off edin\nMümkünse sunucuya reboot edin.  Son olarak  Event Viewer  >>  System LOG kayıtlarını incelemenizi   öneririz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 77,
+    "title": "Alan adı tehlikeli uyarısı",
+    "content": "Alan adınız ziyaret edildiğinde görünen “Tehlikeli Site” uyarısı, sunucu kaynaklı bir problemden değil, Google Safe Browsing sisteminin alan adını güvenlik listesine almış olmasından kaynaklanmaktadır. Yaşadığınız durum Natro kaynaklı değildir.\nYaptığımız kontrollerde:\n• Sunucu tarafında aktif bir zararlı yazılım tespit edilmemiştir.\n• Site içeriği şu anda temizdir.\n• Problem, alan adının daha önceki kullanımı veya geçmiş tarama kayıtları nedeniyle Google güvenlik önbelleğinde işaretlenmiş olmasından kaynaklanmaktadır.\nBu durumun çözümü için aşağıdaki adımlar uygulanacaktır:\n1. Alan adı Google Search Console’a eklemeniz gerekiyor.\n2. “Güvenlik Sorunları” bölümünden yeniden inceleme talebi gönderebilirsiniz.\n3. Google Safe Browsing sistemine manuel değerlendirme başvurusu yapabilirsiniz.\n4. Google’ın alan adını yeniden taraması beklenecektir.\nGenellikle bu süreç 24–72 saat içerisinde sonuçlanmakta ve herhangi bir zararlı içerik tespit edilmezse uyarı otomatik olarak kaldırılmaktadır.\nBu durum alan adının tamamen kapanması veya kalıcı bir ceza aldığı anlamına gelmez. Sadece güvenlik sisteminin yeniden değerlendirme sürecidir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 78,
+    "title": "CURL hazır yanıt",
+    "content": "Bu işlemler client tarafındaki güven deposunun güncellenmesi içindir.\n1. Hata Tanımı: cURL error 60 Nedir?\ncURL error 60: SSL certificate problem: unable to get local issuer certificate hatası, WordPress sisteminin güncelleme dosyasını indirirken gerekli SSL sertifikasını doğrulayamamasından kaynaklanır. Bu hata, güvenli bağlantının (HTTPS) kurulamadığını gösterir.\nGenellikle eski WordPress sürümlerinde bulunan ca-bundle.crt dosyasının güncel olmaması nedeniyle ortaya çıkar.\n2. Hatanın Teknik Sebebi Nedir?\nWordPress, güncelleme dosyalarını HTTPS protokolü ile indirir.\nİndirme sırasında, sunucu tarafında veya WordPress içerisinde bulunan sertifika listesi (CA bundle) güncel değilse doğrulama başarısız olur.\nBu durumda bağlantı kurulamaz ve \"SSL certificate problem\" hatası oluşur.\n3. Sorunun Çözümü İçin Ne Yapmak Gerekir?\n1. wordpress.org sitesinden en güncel WordPress sürümünü indirin.\n2. ZIP dosyasını açın ve wp-includes/certificates/ca-bundle.crt dosyasını bulun.\n3. Bu dosyayı FTP ya da dosya yöneticisi ile sitenizde aynı konumda bulunan eski dosya ile değiştirin.\n4. Daha sonra WordPress yönetim panelinden güncellemeyi tekrar başlatın.\nBu işlemler sonrası sertifika doğrulama sorunu ortadan kalkar ve güncelleme işlemi başarıyla tamamlanır.",
+    "category": "Hosting"
+  },
+  {
+    "id": 79,
+    "title": "200 gün SSL natroda ise",
+    "content": "SSL sertifikalarında teknik geçerlilik süresi, global güvenlik standartları kapsamında sertifika otoriteleri (CA) tarafından 200 güne düşürülmüştür. Bu nedenle her 200 günde bir yeniden kurulum (reissue) yapılması gerekir. Barındırma hizmetiniz Natro üzerindeyse bu işlem sizin adınıza otomatik olarak gerçekleştirilir.\nSSL sertifikaları eskiden olduğu gibi 1 yıllık olarak tanımlanmaya devam etmektedir. Ancak ilk 200 günlük sürenin ardından, sertifikanın kalan sürede kullanılabilmesi için yeniden kurulum (reissue) işlemi yapılır.\nBu süreç ek bir ücret gerektirmez. Satın aldığınız SSL hizmet süresi 1 yıl olarak devam eder ve herhangi bir hak veya süre kaybı yaşanmaz.",
+    "category": "SSL"
+  },
+  {
+    "id": 80,
+    "title": "200 gün SSL natroda değil ise",
+    "content": "SSL sertifikalarında teknik geçerlilik süresi, global güvenlik standartları kapsamında sertifika otoriteleri (CA) tarafından 200 güne düşürülmüştür. Bu nedenle her 200 günde bir yeniden kurulum (reissue) yapılması gerekir. Barındırma hizmetiniz Natro üzerindeyse bu işlem sizin adınıza otomatik olarak gerçekleştirilir.\nHizmetiniz farklı bir sağlayıcıdaysa reissue işleminin, ilk kurulumda olduğu gibi sizin tarafınızdan manuel olarak yapılması gerekmektedir.\nSSL sertifikaları eskiden olduğu gibi 1 yıllık olarak tanımlanmaya devam etmektedir. Ancak ilk 200 günlük sürenin ardından, sertifikanın kalan sürede kullanılabilmesi için yeniden kurulum (reissue) işlemi yapılır.\nBu süreç ek bir ücret gerektirmez. Satın aldığınız SSL hizmet süresi 1 yıl olarak devam eder ve herhangi bir hak veya süre kaybı yaşanmaz.",
+    "category": "SSL"
+  },
+  {
+    "id": 81,
+    "title": "Facebook bot engeli",
+    "content": "Yapılan kontrollerde, sunucu üzerinde aktif olarak çalışan Imunify güvenlik sistemi bulunmakla birlikte, tarafımızca gerçekleştirilen incelemelerde facebookexternalhit ve Facebot botlarına yönelik sistemsel bir engelleme kaydına rastlanmamıştır. Ayrıca daha önce belirtildiği üzere ModSecurity yapılandırması da devre dışı bırakılmış olmasına rağmen, ilettiğiniz 403 Response Code durumunun devam ettiği anlaşılmaktadır.\nKonunun daha detaylı ve sağlıklı şekilde incelenebilmesi adına, erişim denemesine ait aşağıdaki bilgileri bizimle paylaşmanızı rica ederiz:\nHata alınan işlem veya tarama zamanı\nİlgili response/error log kayıtlarının tam çıktısı\nErişim denemesini gerçekleştiren IP adresi\nMümkünse Facebook Sharing Debugger çıktısının tamamı\nVarsa ilgili tarih/saat bilgisi ile birlikte ek hata detayları\nBu bilgiler doğrultusunda, erişim talebinin uygulama seviyesinde mi, güvenlik katmanında mı ya da farklı bir yapılandırma nedeniyle mi 403 ile sonuçlandığı daha net olarak analiz edilebilecektir.",
+    "category": "Hosting"
+  },
+  {
+    "id": 82,
+    "title": "Sepetin boş görünmesi",
+    "content": "Natro web sitesine giriş yaptığınızda çerezleri kabul etmediğiniz için sepetiniz boş görünmektedir. Tarayıcı geçmişinizi temizleyerek çerezleri kabul etmeniz halinde sepetinizdeki ürünleri görebilirsiniz. Veya farklı bir tarayıcıdan natro hesabınıza giriş yaparak çerezleri kabul edip ürünlerinizi satın alabilirsiniz. Yaşadığınız sorun çerezlerle ilgilidir. Bilgilerinize sunarız.",
+    "category": "Genel"
+  },
+  {
+    "id": 83,
+    "title": "Ücetsiz SSL isteyen müşteriler",
+    "content": "Natro hosting paketlerinde  Lets Encrypt ücretsiz SSL hizmetimiz bulunmamaktadır. Dilerseniz vergiler dahil  …. TL ile SSL siparişinizi oluşturabilir ve SSL kurulumunuzu yapabiliriz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 84,
+    "title": "Redis veya Memcached",
+    "content": "Hosting sunucularımızda Litespeed cache alt yapısı mevcuttur. Redis ve Memcached php eklenditis olarak mevcut fakat sunucu alt yapısından bu yapı kullanılmamaktadır. Litespeed cache'i aktif olarak kullanabilirsiniz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 85,
+    "title": "Outlook mail kurulumu",
+    "content": "Sunucu bilgilerimiz aşağıdaki gibidir. Outlook üzerinden kullanıyorsanız mail ayarlarınızı düzenlemenizi rica ederiz. Ayrıca mail şifreniz uzun zamandır değiştirmediyseniz mail şifrenizi güncellemenizi öneririz.\nPop3 Gelen Sunucu Port Numarası: 995\nIMAP Gelen Sunucu Port Numarası: 993\nIMAP, Pop3: Giden Sunucu Port Numarası: 465\nIMAP, Pop3: Gelen ve Giden Sunucu Adı: mail.kurumsaleposta.com\nKullanıcı Adı: mail adresiniz\nSSL Tipi: SSL/TLS (Açık/Evet)\nPop3 Gelen Sunucu Port Numarası: 110\nIMAP Gelen Sunucu Port Numarası: 143\nIMAP, Pop3: Giden Sunucu Port Numarası: 587\nIMAP, Pop3: Gelen ve Giden Sunucu Adı: mail.kurumsaleposta.com\nKullanıcı Adı: mail adresiniz\nSSL Tipi: SSL/TLS (Kapalı/Hayır)\nGelen/giden sunucu isimlerinizi mail.alanadı olarak değil, mail.kurumsaleposta.com olarak yapılandırmanızı rica ederiz.\nhttps://www.natro.com/hemendestek/bilgibankasi/xmail-standart-veya-profesyonel-e-posta-hesabi-outlooka-nasil-kurulur\nDilerseniz +90 212 213 1213 çağrı merkezimizi arayabilir ve https://www.natro.com/tw üzerinden TeamViewer programını bilgisayarınıza indirebilirsiniz, TeamViewer  bağlantısı ile kurulum ayarlarınızın kontrollerini memnuniyetle sağlayabiliriz.\nBilgilerinize sunarız, iyi günler dileriz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 86,
+    "title": "TOPLU MAİL",
+    "content": "Aşağıdaki limitler doğrultusunda mail göndermeniz gerekmektedir.\nMail sunucularımız üzerinde tanımlanan tüm email hesaplarımız için saatlik gönderim limiti uygulaması bulunmaktadır.\nHer kullanıcı saatte 100 adet mail gönderimi sağlayabilir. Ancak bu gönderimi toplu şekilde tek seferde gönderimine müsaade edilmemektedir.\nGönderimlerinizi örneğin 5 er dakika ara ile maksimum 10 arlı gruplar halinde gerçekleştirebilirsiniz. 1 dakika'da en fazla aynı başlık / aynı içerik ile 20/25 adet.\nBelirtmek isteriz ki hizmetlerimiz arasında toplu mail gönderim hizmeti bulunmamaktadır.\nDakikada yalnızca 100 e-posta gönderilebilir (mail adresi bazlı)\nSaatte 250 e-posta gönderilebilir . (mail adresi bazlı)\nAlan adı bazlı günlük maksimum 1000 adet mail gönderilebilmektedir.",
+    "category": "Alan Adı"
+  },
+  {
+    "id": 87,
+    "title": "EPOSTA KİLİT AÇMA ÖN YAZISI",
+    "content": "Hesabınız spam aktiviteleri nedeniyle geçici olarak duraklatılmıştır. Spam yoluyla gönderilen mesajlar, mail sunucumuzda yoğunluğa sebep olmakta ve diğer kullanıcıların mail trafiğini olumsuz etkilemektedir. Bu durumu önlemek adına hesabınız geçici olarak kapatılmıştır.\nSpam aktivitelerini önlemek, hem sizin hem de diğer kullanıcıların deneyimini geliştirmek adına son derece önemlidir. Spam gönderiminin tekrarlanmaması için hesabınızı tekrar aktive etmeden önce aşağıdaki adımları takip etmenizi önemle tavsiye ederiz:\n1. Hesabınızı güvenlik açısından kontrol edin ve giriş bilgilerinizi güçlendiriniz.(Eposta Şifre Değiştirme İşlemi Yapınız)\n2. Hesabınıza erişimi olmayan üçüncü taraf uygulamaları veya hizmetleriyle hesaplarınızı entegre ederken dikkatli olunuz.\n3. İletişim listelerinizi ve iletişim bilgilerinizi güncel tutun. İzin almadan kişilerinize mesaj göndermekten kaçınınız.\n4. Bilgisayarınızı ve cihazınızı düzenli olarak güncelleyin ve güvenlik yazılımlarınızı güncel tutunuz. (Virüs Temizliği Yapnızı)\nHesabınızı tekrar aktive etmek için bu adımları takip edip, spam aktivitelerini önleme konusunda sorumluluk almanız gerektiğini unutmayınız. Hesabınızı tekrar aktive etmek için talepte bulunmak istiyorsanız, bu konuda sizinle iş birliği yapmaktan memnuniyet duyarız. Ancak, spam aktivitelerinin devam etmesi durumunda hesabınızın kalıcı olarak askıya alınabileceğini lütfen unutmayınız.\nİyi niyetli bir kullanıcı olarak, mail sunucumuzun güvenliğine ve verimliliğine katkıda bulunmanızı bekliyoruz.",
+    "category": "Hosting"
+  },
+  {
+    "id": 88,
+    "title": "SMTP Mail Ayarları",
+    "content": "Aşağıda bulunan bilgiler ile SMTP ayarlarınızı güncelleyip test edebilirsiniz.\n---SMTP SSL PASİF---\nSunucu Adresi; mail.kurumsaleposta.com\nSmtp Kullanıcı Adı: mail adresi\nSmtp Password: Mail adresinin şifresi\nPort numarası; 587\nSSL/TLS: Kapalı/Hayır\n---SMTP SSL AKTİF---\nSunucu Adresi; mail.kurumsaleposta.com\nSmtp Kullanıcı Adı: mail adresi\nSmtp Password: Mail adresinin şifresi\nPort numarası; 465\nSSL/TLS: Açık/Evet",
+    "category": "Hosting"
+  },
+  {
+    "id": 89,
+    "title": "Cloude Flare 522 Hatası",
+    "content": "522 hatası ile ilgili incelemeler tamamlandı. Sorun Natro kaynaklı olmayıp, Cloudflare CDN kaynaklı olduğunu tespit edildi.  Cloudflare üzerinden aşağıdaki ayarları yapabilirsiniz.\nAdım 1\ndomain.com > Caching > Cache Rules > Create Rule > \"RuleName\" Ekle | \"All İncoming Request\" Seç > Deploy\nAdım 2\ndomain.com > Caching > Configuration > Purge Everything",
+    "category": "Alan Adı"
+  }
+]

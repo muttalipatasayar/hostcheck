@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from database import engine, Base
 from rate_limiter import limiter
-from routers import tickets, checks, ai, quick_check, screenshot, ssl_tools, dns_toolbox, dns_history
+from routers import tickets, checks, ai, quick_check, screenshot, ssl_tools, dns_toolbox, dns_history, ssh
 
 load_dotenv()
 
@@ -66,6 +66,7 @@ app.include_router(screenshot.router)
 app.include_router(ssl_tools.router)
 app.include_router(dns_toolbox.router)
 app.include_router(dns_history.router)
+app.include_router(ssh.router)
 
 
 @app.get("/api/health")
