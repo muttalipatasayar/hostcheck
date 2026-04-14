@@ -8,6 +8,7 @@ import DNSHistory from './components/DNSHistory'
 import SSHAccess from './components/SSHAccess'
 import HazirYanitlar from './components/HazirYanitlar'
 import RDPAccess from './components/RDPAccess'
+import IPLookup from './components/IPLookup'
 
 export default function App() {
   const [view, setView] = useState('quick-check')
@@ -22,6 +23,7 @@ export default function App() {
       case 'dns-history':    return <DNSHistory />
       case 'ssh-access':     return <SSHAccess />
       case 'rdp-access':     return <RDPAccess />
+      case 'ip-lookup':      return <IPLookup />
       case 'hazir-yanitlar': return <HazirYanitlar />
       default:               return <QuickCheck />
     }

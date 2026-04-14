@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import {
-  ChevronRight, Server, Zap, Shield, Wrench, History, Terminal, MessageSquare, Monitor
+  ChevronRight, Server, Zap, Shield, Wrench, History, Terminal, MessageSquare, Monitor, Globe
 } from 'lucide-react'
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { id: 'dns-history',    label: 'DNS History',     icon: History       },
   { id: 'ssh-access',     label: 'SSH Erişimi',     icon: Terminal      },
   { id: 'rdp-access',     label: 'RDP Erişimi',     icon: Monitor       },
+  { id: 'ip-lookup',      label: 'IP Sorgulama',    icon: Globe         },
   { id: 'hazir-yanitlar', label: 'Hazır Yanıtlar',  icon: MessageSquare },
 ]
 
