@@ -67,7 +67,38 @@ def seed_if_empty(db: Session):
         ))
     db.commit()
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# ── Özel kategoriler — ÖNCE tanımlanmalı (/{yanit_id} önce eşleşmesin) ────────
+
+@router.get("/kategoriler", response_model=List[KategoriResponse])
+def list_kategoriler(db: Session = Depends(get_db)):
+    return db.query(HazirYanitKategori).order_by(HazirYanitKategori.id.asc()).all()
+
+
+@router.post("/kategoriler", response_model=KategoriResponse, status_code=201)
+def create_kategori(payload: KategoriCreate, db: Session = Depends(get_db)):
+    existing = db.query(HazirYanitKategori).filter(
+        HazirYanitKategori.name == payload.name
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Bu kategori zaten mevcut")
+    row = HazirYanitKategori(**payload.model_dump())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.delete("/kategoriler/{kategori_id}", status_code=204)
+def delete_kategori(kategori_id: int, db: Session = Depends(get_db)):
+    row = db.query(HazirYanitKategori).filter(
+        HazirYanitKategori.id == kategori_id
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Kategori bulunamadı")
+    db.delete(row)
+    db.commit()
+
+# ── Yanıtlar ──────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=List[YanitResponse])
 def list_yanitlar(db: Session = Depends(get_db)):
@@ -125,35 +156,3 @@ def increment_use(yanit_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(row)
     return row
-
-
-# ── Özel kategoriler ──────────────────────────────────────────────────────────
-
-@router.get("/kategoriler", response_model=List[KategoriResponse])
-def list_kategoriler(db: Session = Depends(get_db)):
-    return db.query(HazirYanitKategori).order_by(HazirYanitKategori.id.asc()).all()
-
-
-@router.post("/kategoriler", response_model=KategoriResponse, status_code=201)
-def create_kategori(payload: KategoriCreate, db: Session = Depends(get_db)):
-    existing = db.query(HazirYanitKategori).filter(
-        HazirYanitKategori.name == payload.name
-    ).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Bu kategori zaten mevcut")
-    row = HazirYanitKategori(**payload.model_dump())
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
-
-
-@router.delete("/kategoriler/{kategori_id}", status_code=204)
-def delete_kategori(kategori_id: int, db: Session = Depends(get_db)):
-    row = db.query(HazirYanitKategori).filter(
-        HazirYanitKategori.id == kategori_id
-    ).first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Kategori bulunamadı")
-    db.delete(row)
-    db.commit()

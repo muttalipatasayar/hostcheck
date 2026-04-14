@@ -68,14 +68,15 @@ export default function HazirYanitlar() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [rRes, kRes] = await Promise.all([
+      // Bağımsız istekler — biri hata verse diğeri yüklenmeye devam eder
+      const [rRes, kRes] = await Promise.allSettled([
         axios.get('/api/hazir-yanitlar'),
         axios.get('/api/hazir-yanitlar/kategoriler'),
       ])
-      setResponses(rRes.data)
-      setCustomCats(kRes.data)
+      if (rRes.status === 'fulfilled') setResponses(rRes.value.data)
+      if (kRes.status === 'fulfilled') setCustomCats(kRes.value.data)
     } catch {
-      // backend çalışmıyorsa sessizce geç
+      // beklenmedik hata
     } finally {
       setLoading(false)
     }
