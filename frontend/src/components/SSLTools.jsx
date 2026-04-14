@@ -25,7 +25,7 @@ function CopyButton({ text, size = 'sm' }) {
   }
   return (
     <button onClick={copy} className="btn-ghost text-label-md py-1 px-2 flex items-center gap-1.5">
-      {copied ? <><Check className="w-3.5 h-3.5" style={{ color: '#b1c6f9' }} />Kopyalandı</>
+      {copied ? <><Check className="w-3.5 h-3.5" style={{ color: '#4a6cf7' }} />Kopyalandı</>
                : <><Copy className="w-3.5 h-3.5" />Kopyala</>}
     </button>
   )
@@ -44,7 +44,7 @@ function PemBox({ label, value, onChange, placeholder, readOnly = false, rows = 
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>{label}</label>
+        <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>{label}</label>
         <div className="flex items-center gap-1">
           {value && <CopyButton text={value} />}
           {!readOnly && (
@@ -66,8 +66,8 @@ function PemBox({ label, value, onChange, placeholder, readOnly = false, rows = 
         className="w-full rounded-card px-4 py-3 font-mono text-xs outline-none resize-y"
         style={{
           background: '#0e1012',
-          color: readOnly ? '#8d9099' : '#c2c6d6',
-          border: '1px solid rgba(66,71,84,0.3)',
+          color: readOnly ? '#6b7388' : '#4a5068',
+          border: '1px solid rgba(0,6,30,0.09)',
           lineHeight: '1.6',
         }}
       />
@@ -79,8 +79,8 @@ function Field({ label, value, highlight }) {
   if (!value) return null
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="text-label-sm" style={{ color: '#424754' }}>{label}</p>
-      <p className="text-body-sm font-mono" style={{ color: highlight || '#e3e5ef' }}>{value}</p>
+      <p className="text-label-sm" style={{ color: '#9da5be' }}>{label}</p>
+      <p className="text-body-sm font-mono" style={{ color: highlight || '#1a1d2e' }}>{value}</p>
     </div>
   )
 }
@@ -98,14 +98,14 @@ const CERT_TYPE_META = {
   OV: {
     label: 'OV',
     full: 'Organization Validated',
-    color: '#adc6ff',
-    bg: 'rgba(173,198,255,0.12)',
+    color: '#3b7eff',
+    bg: 'rgba(59,127,255,0.10)',
     desc: 'Orta güven seviyesi. Kurum bilgileri doğrulanmış.',
   },
   DV: {
     label: 'DV',
     full: 'Domain Validated',
-    color: '#8d9099',
+    color: '#6b7388',
     bg: 'rgba(141,144,153,0.12)',
     desc: 'Temel güven. Yalnızca alan adı doğrulanmış.',
   },
@@ -127,7 +127,7 @@ function DaysGauge({ days, total }) {
         <svg width="96" height="96" style={{ transform: 'rotate(-90deg)' }}>
           {/* track */}
           <circle cx={C} cy={C} r={R} fill="none"
-            stroke="rgba(66,71,84,0.3)" strokeWidth={stroke} />
+            stroke="rgba(0,6,30,0.09)" strokeWidth={stroke} />
           {/* progress */}
           <circle cx={C} cy={C} r={R} fill="none"
             stroke={color} strokeWidth={stroke}
@@ -140,7 +140,7 @@ function DaysGauge({ days, total }) {
           <span className="font-bold" style={{ fontSize: 22, color, lineHeight: 1 }}>
             {days < 0 ? '0' : days > 999 ? '999+' : days}
           </span>
-          <span style={{ fontSize: 10, color: '#424754' }}>gün</span>
+          <span style={{ fontSize: 10, color: '#9da5be' }}>gün</span>
         </div>
       </div>
       <span className="text-label-sm font-medium" style={{ color }}>{label}</span>
@@ -156,7 +156,7 @@ function StatusBadge({ isActive, isTrusted, daysRemaining }) {
         <ShieldAlert className="w-5 h-5 flex-shrink-0" style={{ color: '#f5d37a' }} />
         <div>
           <p className="text-body-sm font-semibold" style={{ color: '#f5d37a' }}>Güvenilir Değil</p>
-          <p className="text-label-sm" style={{ color: '#8d9099' }}>Sertifika CA tarafından doğrulanamadı (self-signed veya hatalı zincir)</p>
+          <p className="text-label-sm" style={{ color: '#6b7388' }}>Sertifika CA tarafından doğrulanamadı (self-signed veya hatalı zincir)</p>
         </div>
       </div>
     )
@@ -168,7 +168,7 @@ function StatusBadge({ isActive, isTrusted, daysRemaining }) {
         <ShieldX className="w-5 h-5 flex-shrink-0" style={{ color: '#ffb4ab' }} />
         <div>
           <p className="text-body-sm font-semibold" style={{ color: '#ffb4ab' }}>Süresi Dolmuş</p>
-          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası geçerlilik süresi dolmuş, yenilenmesi gerekiyor</p>
+          <p className="text-label-sm" style={{ color: '#6b7388' }}>SSL sertifikası geçerlilik süresi dolmuş, yenilenmesi gerekiyor</p>
         </div>
       </div>
     )
@@ -180,7 +180,7 @@ function StatusBadge({ isActive, isTrusted, daysRemaining }) {
         <ShieldAlert className="w-5 h-5 flex-shrink-0" style={{ color: '#ffb4ab' }} />
         <div>
           <p className="text-body-sm font-semibold" style={{ color: '#ffb4ab' }}>Yakında Sona Eriyor</p>
-          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası {daysRemaining} gün içinde sona eriyor, yenilemeyi planlayın</p>
+          <p className="text-label-sm" style={{ color: '#6b7388' }}>SSL sertifikası {daysRemaining} gün içinde sona eriyor, yenilemeyi planlayın</p>
         </div>
       </div>
     )
@@ -192,7 +192,7 @@ function StatusBadge({ isActive, isTrusted, daysRemaining }) {
         <ShieldCheck className="w-5 h-5 flex-shrink-0" style={{ color: '#a8d5a2' }} />
         <div>
           <p className="text-body-sm font-semibold" style={{ color: '#a8d5a2' }}>Aktif ve Güvenilir</p>
-          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası geçerli, güvenilir CA tarafından imzalanmış</p>
+          <p className="text-label-sm" style={{ color: '#6b7388' }}>SSL sertifikası geçerli, güvenilir CA tarafından imzalanmış</p>
         </div>
       </div>
     )
@@ -232,9 +232,9 @@ function SSLChecker() {
       {/* Sorgu kutusu */}
       <div
         className="rounded-card p-5"
-        style={{ background: '#1a1c20' }}
+        style={{ background: '#ffffff' }}
       >
-        <p className="text-label-sm font-medium mb-4" style={{ color: '#8d9099' }}>
+        <p className="text-label-sm font-medium mb-4" style={{ color: '#6b7388' }}>
           SORGULANACAK ALAN ADI
         </p>
         <div className="flex gap-3 flex-wrap">
@@ -286,14 +286,14 @@ function SSLChecker() {
       {result && (
         <div
           className="rounded-card overflow-hidden"
-          style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.35)' }}
+          style={{ background: '#ffffff', border: '1px solid rgba(0,6,30,0.10)' }}
         >
           {/* ── Üst şerit ── */}
           <div
             className="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
             style={{
-              background: '#16181d',
-              borderBottom: '1px solid rgba(66,71,84,0.3)',
+              background: '#f7f8fc',
+              borderBottom: '1px solid rgba(0,6,30,0.09)',
             }}
           >
             <div className="flex items-center gap-3">
@@ -311,10 +311,10 @@ function SSLChecker() {
                 }
               </div>
               <div>
-                <p className="text-body-md font-semibold" style={{ color: '#e3e5ef' }}>
+                <p className="text-body-md font-semibold" style={{ color: '#1a1d2e' }}>
                   {result.common_name || result.domain}
                 </p>
-                <p className="text-label-sm font-mono" style={{ color: '#424754' }}>
+                <p className="text-label-sm font-mono" style={{ color: '#9da5be' }}>
                   {result.domain}:{result.port}
                 </p>
               </div>
@@ -360,14 +360,14 @@ function SSLChecker() {
                 {/* Progress bar */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik süresi</span>
-                    <span className="text-label-sm font-mono" style={{ color: '#8d9099' }}>
+                    <span className="text-label-sm" style={{ color: '#9da5be' }}>Geçerlilik süresi</span>
+                    <span className="text-label-sm font-mono" style={{ color: '#6b7388' }}>
                       {Math.max(0, Math.round((result.days_remaining / result.total_days) * 100))}%
                     </span>
                   </div>
                   <div
                     className="w-full rounded-full overflow-hidden"
-                    style={{ height: 6, background: 'rgba(66,71,84,0.4)' }}
+                    style={{ height: 6, background: 'rgba(0,6,30,0.12)' }}
                   >
                     <div
                       className="h-full rounded-full transition-all"
@@ -388,42 +388,42 @@ function SSLChecker() {
             </div>
 
             {/* Divider */}
-            <div style={{ borderTop: '1px solid rgba(66,71,84,0.25)' }} />
+            <div style={{ borderTop: '1px solid rgba(0,6,30,0.08)' }} />
 
             {/* Sertifika detayları */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
               {result.organization && (
                 <div className="flex items-start gap-2.5">
-                  <Building2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                  <Building2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#9da5be' }} />
                   <div>
-                    <p className="text-label-sm" style={{ color: '#424754' }}>Kuruluş (Organization)</p>
-                    <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>{result.organization}</p>
+                    <p className="text-label-sm" style={{ color: '#9da5be' }}>Kuruluş (Organization)</p>
+                    <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>{result.organization}</p>
                   </div>
                 </div>
               )}
 
               {result.issuer && (
                 <div className="flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                  <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#9da5be' }} />
                   <div>
-                    <p className="text-label-sm" style={{ color: '#424754' }}>Sertifika Yayımlayan</p>
-                    <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>{result.issuer}</p>
+                    <p className="text-label-sm" style={{ color: '#9da5be' }}>Sertifika Yayımlayan</p>
+                    <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>{result.issuer}</p>
                   </div>
                 </div>
               )}
 
               <div className="flex items-start gap-2.5">
-                <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#9da5be' }} />
                 <div>
-                  <p className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik Başlangıcı</p>
+                  <p className="text-label-sm" style={{ color: '#9da5be' }}>Geçerlilik Başlangıcı</p>
                   <p className="text-body-sm font-mono" style={{ color: '#c9cdd6' }}>{result.valid_from}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5">
-                <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#9da5be' }} />
                 <div>
-                  <p className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik Sonu</p>
+                  <p className="text-label-sm" style={{ color: '#9da5be' }}>Geçerlilik Sonu</p>
                   <p
                     className="text-body-sm font-mono"
                     style={{
@@ -448,14 +448,14 @@ function SSLChecker() {
                 <p className="text-label-sm font-semibold" style={{ color: typeMeta.color }}>
                   {typeMeta.label} — {typeMeta.full}
                 </p>
-                <p className="text-label-sm" style={{ color: '#8d9099' }}>{typeMeta.desc}</p>
+                <p className="text-label-sm" style={{ color: '#6b7388' }}>{typeMeta.desc}</p>
               </div>
             </div>
 
             {/* SAN listesi */}
             {result.san.length > 0 && (
               <div>
-                <p className="text-label-sm mb-2.5 flex items-center gap-1.5" style={{ color: '#424754' }}>
+                <p className="text-label-sm mb-2.5 flex items-center gap-1.5" style={{ color: '#9da5be' }}>
                   <Globe className="w-3.5 h-3.5" />
                   Subject Alternative Names ({result.san.length})
                 </p>
@@ -467,8 +467,8 @@ function SSLChecker() {
                       style={{
                         background: s.startsWith('*.')
                           ? 'rgba(212,168,255,0.1)'
-                          : '#282a2e',
-                        color: s.startsWith('*.') ? '#d4a8ff' : '#adc6ff',
+                          : '#f2f4fa',
+                        color: s.startsWith('*.') ? '#d4a8ff' : '#3b7eff',
                       }}
                     >
                       {s}
@@ -522,22 +522,22 @@ function CSRDecode() {
       </button>
 
       {result && (
-        <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+        <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
           {/* Başlık */}
           <div
             className="flex items-center gap-3 px-5 py-3.5"
-            style={{ borderBottom: '1px solid rgba(66,71,84,0.15)' }}
+            style={{ borderBottom: '1px solid rgba(0,6,30,0.05)' }}
           >
             {result.is_valid
-              ? <CheckCircle2 className="w-4 h-4" style={{ color: '#b1c6f9' }} />
+              ? <CheckCircle2 className="w-4 h-4" style={{ color: '#4a6cf7' }} />
               : <XCircle className="w-4 h-4" style={{ color: '#ffb4ab' }} />}
-            <p className="text-body-sm font-semibold" style={{ color: result.is_valid ? '#b1c6f9' : '#ffb4ab' }}>
+            <p className="text-body-sm font-semibold" style={{ color: result.is_valid ? '#4a6cf7' : '#ffb4ab' }}>
               {result.is_valid ? 'İmza Geçerli — CSR Doğrulandı' : 'İmza Geçersiz'}
             </p>
             {result.key_algorithm && (
               <span
                 className="ml-auto text-label-sm font-mono px-2 py-0.5 rounded"
-                style={{ background: 'rgba(173,198,255,0.1)', color: '#adc6ff' }}
+                style={{ background: 'rgba(59,127,255,0.09)', color: '#3b7eff' }}
               >
                 {result.key_algorithm} {result.key_size} bit
               </span>
@@ -546,7 +546,7 @@ function CSRDecode() {
 
           {/* Alanlar */}
           <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-            <Field label="Common Name (CN)" value={result.common_name} highlight="#e3e5ef" />
+            <Field label="Common Name (CN)" value={result.common_name} highlight="#1a1d2e" />
             <Field label="Organization (O)" value={result.organization} />
             <Field label="Organization Unit (OU)" value={result.organization_unit} />
             <Field label="Country (C)" value={result.country} />
@@ -558,11 +558,11 @@ function CSRDecode() {
 
           {result.san.length > 0 && (
             <div className="px-5 pb-5">
-              <p className="text-label-sm mb-2" style={{ color: '#424754' }}>Subject Alternative Names (SAN)</p>
+              <p className="text-label-sm mb-2" style={{ color: '#9da5be' }}>Subject Alternative Names (SAN)</p>
               <div className="flex flex-wrap gap-2">
                 {result.san.map((s, i) => (
                   <span key={i} className="text-label-md font-mono px-2 py-1 rounded"
-                    style={{ background: '#282a2e', color: '#adc6ff' }}>
+                    style={{ background: '#f2f4fa', color: '#3b7eff' }}>
                     {s}
                   </span>
                 ))}
@@ -622,9 +622,9 @@ function PFXConvert() {
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-card px-4 py-3 flex items-start gap-2"
-        style={{ background: 'rgba(173,198,255,0.06)' }}>
-        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#adc6ff' }} />
-        <p className="text-body-sm" style={{ color: '#8d9099' }}>
+        style={{ background: 'rgba(59,127,255,0.05)' }}>
+        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3b7eff' }} />
+        <p className="text-body-sm" style={{ color: '#6b7388' }}>
           Sertifika (CRT) + Private Key zorunludur. CA zinciri opsiyoneldir — CA olmadan da PFX oluşturulabilir.
         </p>
       </div>
@@ -637,7 +637,7 @@ function PFXConvert() {
         placeholder={'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----'} rows={5} />
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>
+        <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>
           PFX Şifresi (Opsiyonel)
         </label>
         <input
@@ -646,7 +646,7 @@ function PFXConvert() {
           onChange={e => setPassword(e.target.value)}
           placeholder="Boş bırakılırsa şifresiz oluşturulur"
           className="rounded-card px-4 py-2.5 text-body-sm outline-none w-full max-w-sm"
-          style={{ background: '#0e1012', color: '#e3e5ef', border: '1px solid rgba(66,71,84,0.3)' }}
+          style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
         />
       </div>
 
@@ -676,7 +676,7 @@ const EMPTY_FORM = {
 function CSRInputField({ label, value, onChange, placeholder, required, maxLength, mono }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>
+      <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>
         {label}{required && <span style={{ color: '#ffb4ab' }}> *</span>}
       </label>
       <input
@@ -686,7 +686,7 @@ function CSRInputField({ label, value, onChange, placeholder, required, maxLengt
         placeholder={placeholder}
         maxLength={maxLength}
         className={`rounded-card px-3 py-2 text-body-sm outline-none ${mono ? 'font-mono' : ''}`}
-        style={{ background: '#0e1012', color: '#e3e5ef', border: '1px solid rgba(66,71,84,0.3)' }}
+        style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
       />
       {hasTR(value || '') && (
         <p className="text-label-sm" style={{ color: '#ffb786' }}>
@@ -749,10 +749,10 @@ function CSRGenerate() {
         <CSRInputField label="Organization (Kurum Adı)" value={form.organization} onChange={set('organization')} placeholder="Şirket A.Ş." />
         <CSRInputField label="Organization Unit (Birim)" value={form.organization_unit} onChange={set('organization_unit')} placeholder="Bilgi İşlem" />
         <div className="flex flex-col gap-1.5">
-          <label className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>Ülke Kodu</label>
+          <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>Ülke Kodu</label>
           <input type="text" value={form.country} onChange={set('country')} maxLength={2}
             className="rounded-card px-3 py-2 text-body-sm font-mono outline-none uppercase"
-            style={{ background: '#0e1012', color: '#e3e5ef', border: '1px solid rgba(66,71,84,0.3)', maxWidth: '80px' }} />
+            style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)', maxWidth: '80px' }} />
         </div>
         <CSRInputField label="Şehir / İl" value={form.state} onChange={set('state')} placeholder="İstanbul" />
         <CSRInputField label="İlçe / Lokasyon" value={form.locality} onChange={set('locality')} placeholder="Kadıköy" />
@@ -761,7 +761,7 @@ function CSRGenerate() {
 
       {/* Key boyutu */}
       <div className="flex flex-col gap-2">
-        <p className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>Key Boyutu</p>
+        <p className="text-label-md font-medium" style={{ color: '#4a5068' }}>Key Boyutu</p>
         <div className="flex gap-2">
           {[2048, 4096].map(size => (
             <button key={size} onClick={() => setForm(f => ({ ...f, key_size: size }))}
@@ -774,9 +774,9 @@ function CSRGenerate() {
 
       {/* SAN */}
       <div className="flex flex-col gap-2">
-        <p className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>
+        <p className="text-label-md font-medium" style={{ color: '#4a5068' }}>
           Subject Alternative Names — SAN
-          <span className="text-label-sm font-normal ml-2" style={{ color: '#424754' }}>
+          <span className="text-label-sm font-normal ml-2" style={{ color: '#9da5be' }}>
             (CN otomatik eklenir, www.example.com gibi alt alan adları için kullanın)
           </span>
         </p>
@@ -785,7 +785,7 @@ function CSRGenerate() {
             onKeyDown={e => e.key === 'Enter' && addSan()}
             placeholder="www.example.com"
             className="flex-1 rounded-card px-3 py-2 text-body-sm font-mono outline-none"
-            style={{ background: '#0e1012', color: '#e3e5ef', border: '1px solid rgba(66,71,84,0.3)' }} />
+            style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }} />
           <button onClick={addSan} className="btn-ghost px-3">
             <Plus className="w-4 h-4" /> Ekle
           </button>
@@ -794,7 +794,7 @@ function CSRGenerate() {
           <div className="flex flex-wrap gap-2">
             {form.san_list.map((s, i) => (
               <span key={i} className="flex items-center gap-1.5 text-label-md font-mono px-2.5 py-1 rounded"
-                style={{ background: '#282a2e', color: '#adc6ff' }}>
+                style={{ background: '#f2f4fa', color: '#3b7eff' }}>
                 {s}
                 <button onClick={() => removeSan(i)} className="opacity-60 hover:opacity-100">
                   <X className="w-3 h-3" />
@@ -815,8 +815,8 @@ function CSRGenerate() {
         <div className="flex flex-col gap-4">
           <div className="rounded-card px-4 py-3 flex items-center gap-2"
             style={{ background: 'rgba(177,198,249,0.06)' }}>
-            <CheckCircle2 className="w-4 h-4" style={{ color: '#b1c6f9' }} />
-            <p className="text-body-sm" style={{ color: '#b1c6f9' }}>
+            <CheckCircle2 className="w-4 h-4" style={{ color: '#4a6cf7' }} />
+            <p className="text-body-sm" style={{ color: '#4a6cf7' }}>
               CSR ve Private Key başarıyla oluşturuldu. Private Key'i güvenli bir yerde saklayın!
             </p>
           </div>
@@ -825,10 +825,10 @@ function CSRGenerate() {
             onChange={() => {}} readOnly rows={10} />
 
           {/* Private Key — gizli, aç/kapat */}
-          <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+          <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
             <button onClick={() => setShowKey(v => !v)}
               className="flex items-center justify-between w-full px-4 py-3 text-left"
-              style={{ borderBottom: showKey ? '1px solid rgba(66,71,84,0.2)' : 'none' }}>
+              style={{ borderBottom: showKey ? '1px solid rgba(0,6,30,0.06)' : 'none' }}>
               <div className="flex items-center gap-2">
                 <Shield className="w-3.5 h-3.5" style={{ color: '#ffb786' }} />
                 <p className="text-label-md font-medium" style={{ color: '#ffb786' }}>
@@ -836,8 +836,8 @@ function CSRGenerate() {
                 </p>
               </div>
               {showKey
-                ? <ChevronUp className="w-4 h-4" style={{ color: '#424754' }} />
-                : <ChevronDown className="w-4 h-4" style={{ color: '#424754' }} />}
+                ? <ChevronUp className="w-4 h-4" style={{ color: '#9da5be' }} />
+                : <ChevronDown className="w-4 h-4" style={{ color: '#9da5be' }} />}
             </button>
             {showKey && (
               <div className="px-4 pb-4 pt-3">
@@ -877,26 +877,26 @@ export default function SSLTools() {
         <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 rounded-btn flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, rgba(173,198,255,0.2) 0%, rgba(77,142,255,0.15) 100%)' }}>
-            <Shield className="w-4 h-4" style={{ color: '#adc6ff' }} />
+            <Shield className="w-4 h-4" style={{ color: '#3b7eff' }} />
           </div>
-          <h1 className="text-headline-md font-semibold" style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}>
+          <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}>
             SSL Araçları
           </h1>
         </div>
-        <p className="text-body-md" style={{ color: '#8d9099' }}>
+        <p className="text-body-md" style={{ color: '#6b7388' }}>
           CSR çözümle · PFX dönüştür · CSR oluştur
         </p>
       </div>
 
       {/* Tabs */}
       <div className="px-8 pb-6">
-        <div className="flex gap-1 rounded-card p-1 w-fit" style={{ background: '#1a1c20' }}>
+        <div className="flex gap-1 rounded-card p-1 w-fit" style={{ background: '#ffffff' }}>
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className="flex items-center gap-2 px-4 py-2 rounded text-body-sm font-medium transition-all"
               style={{
-                background: tab === id ? '#282a2e' : 'transparent',
-                color: tab === id ? '#e3e5ef' : '#8d9099',
+                background: tab === id ? '#f2f4fa' : 'transparent',
+                color: tab === id ? '#1a1d2e' : '#6b7388',
               }}>
               <Icon className="w-3.5 h-3.5" />
               {label}

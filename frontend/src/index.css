@@ -14,8 +14,8 @@
   }
 
   body {
-    background-color: #111317;
-    color: #e3e5ef;
+    background-color: #f0f2f7;
+    color: #1a1d2e;
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.875rem;
     line-height: 1.5;
@@ -23,7 +23,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -34,31 +33,29 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #424754;
+    background: #cbd0e0;
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #8d9099;
+    background: #9da5be;
   }
 
-  /* Selection */
   ::selection {
-    background: rgba(173, 198, 255, 0.2);
-    color: #e3e5ef;
+    background: rgba(59, 127, 255, 0.15);
+    color: #1a1d2e;
   }
 }
 
 @layer components {
-  /* Primary button — gradient "lit from within" */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-btn font-medium text-primary-on text-body-md transition-all duration-200;
-    background: linear-gradient(135deg, #adc6ff 0%, #4d8eff 100%);
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-btn font-medium text-white text-body-md transition-all duration-200;
+    background: linear-gradient(135deg, #4d8eff 0%, #2563eb 100%);
   }
 
   .btn-primary:hover {
-    @apply shadow-primary-glow;
     filter: brightness(1.08);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
   }
 
   .btn-primary:disabled {
@@ -66,88 +63,88 @@
     box-shadow: none;
   }
 
-  /* Secondary button */
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-btn font-medium text-on-surface-variant text-body-md transition-all duration-200;
-    background: #333539;
-    border: 1px solid rgba(66, 71, 84, 0.15);
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-btn font-medium text-body-md transition-all duration-200;
+    background: #ffffff;
+    border: 1px solid rgba(0,6,30,0.12);
+    color: #4a5068;
   }
 
   .btn-secondary:hover {
-    background: #3d3f44;
-    color: #e3e5ef;
+    background: #f4f5fb;
+    color: #1a1d2e;
+    border-color: rgba(0,6,30,0.18);
   }
 
   .btn-secondary:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
 
-  /* Ghost button */
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-btn text-on-surface-variant text-body-md transition-all duration-150;
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-btn text-body-md transition-all duration-150;
+    color: #6b7388;
   }
 
   .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #e3e5ef;
+    background: rgba(0,6,30,0.05);
+    color: #1a1d2e;
   }
 
-  /* Input field */
   .input-field {
     @apply w-full px-3 py-2.5 rounded-btn text-body-md transition-all duration-150 outline-none;
-    background: #0d0f12;
-    border: none;
-    color: #e3e5ef;
+    background: #f0f2f8;
+    border: 1px solid rgba(0,6,30,0.08);
+    color: #1a1d2e;
   }
 
   .input-field::placeholder {
-    color: #8d9099;
+    color: #9da5be;
   }
 
   .input-field:focus {
-    border: 1px solid rgba(66, 71, 84, 0.4);
-    box-shadow: inset 0 0 0 2px rgba(173, 198, 255, 0.06);
+    border-color: rgba(59,127,255,0.4);
+    box-shadow: 0 0 0 3px rgba(59,127,255,0.08);
   }
 
-  /* Card / panel surface */
   .card {
     @apply rounded-card;
-    background: #1a1c20;
+    background: #ffffff;
+    border: 1px solid rgba(0,6,30,0.07);
   }
 
   .card-elevated {
-    @apply rounded-card shadow-ambient;
-    background: #282a2e;
+    @apply rounded-card;
+    background: #ffffff;
+    box-shadow: 0 2px 12px rgba(0,6,30,0.07);
   }
 
-  /* Status pill */
   .status-dot {
     @apply inline-block w-2 h-2 rounded-full;
   }
 
   .status-dot-healthy {
-    background: #b1c6f9;
-    box-shadow: 0 0 6px rgba(177, 198, 249, 0.5);
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34,197,94,0.4);
   }
 
   .status-dot-warning {
-    background: #ffb786;
-    box-shadow: 0 0 6px rgba(255, 183, 134, 0.4);
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245,158,11,0.4);
   }
 
   .status-dot-error {
-    background: #ffb4ab;
-    box-shadow: 0 0 6px rgba(255, 180, 171, 0.5);
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239,68,68,0.5);
   }
 
   .status-dot-pending {
-    background: #c2c6d6;
+    background: #9da5be;
   }
 
-  /* Log stream container */
+  /* Terminal/log area — stays dark for readability */
   .log-stream {
     @apply font-mono text-label-md overflow-y-auto;
-    background: #0d0f12;
+    background: #1a1d2e;
     color: #c2c6d6;
   }
 
@@ -159,145 +156,105 @@
   .log-line-active::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    left: 0; top: 0; bottom: 0;
     width: 2px;
-    background: #adc6ff;
-    box-shadow: 0 0 8px rgba(173, 198, 255, 0.6);
+    background: #3b7eff;
+    box-shadow: 0 0 8px rgba(59,127,255,0.4);
   }
 
-  /* Ghost border utility */
   .ghost-border {
-    border: 1px solid rgba(66, 71, 84, 0.15);
+    border: 1px solid rgba(0,6,30,0.07);
   }
 
-  /* Glassmorphism panel */
   .glass-panel {
-    background: rgba(51, 53, 57, 0.8);
+    background: rgba(255,255,255,0.88);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(0,6,30,0.08);
   }
 
-  /* Sidebar nav item */
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-btn text-on-surface-variant text-body-md transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-btn text-body-md transition-all duration-150 cursor-pointer;
+    color: #6b7388;
   }
 
   .nav-item:hover {
-    background: rgba(255, 255, 255, 0.04);
-    color: #e3e5ef;
+    background: rgba(0,6,30,0.04);
+    color: #1a1d2e;
   }
 
   .nav-item-active {
-    background: rgba(173, 198, 255, 0.1);
-    color: #adc6ff;
+    background: rgba(37,99,235,0.09);
+    color: #2563eb;
   }
 
-  /* Priority badge */
   .badge {
     @apply inline-flex items-center px-2 py-0.5 rounded text-label-sm font-medium;
   }
 
-  .badge-critical {
-    background: rgba(255, 180, 171, 0.12);
-    color: #ffb4ab;
-  }
+  .badge-critical { background: rgba(239,68,68,0.1);   color: #dc2626; }
+  .badge-high     { background: rgba(245,158,11,0.1);  color: #d97706; }
+  .badge-medium   { background: rgba(59,127,255,0.1);  color: #2563eb; }
+  .badge-low      { background: rgba(0,6,30,0.05);     color: #6b7388; }
+  .badge-open     { background: rgba(59,127,255,0.1);  color: #2563eb; }
+  .badge-in_progress { background: rgba(245,158,11,0.1); color: #d97706; }
+  .badge-resolved { background: rgba(34,197,94,0.1);   color: #16a34a; }
+  .badge-closed   { background: rgba(0,6,30,0.05);     color: #6b7388; }
 
-  .badge-high {
-    background: rgba(255, 183, 134, 0.12);
-    color: #ffb786;
-  }
-
-  .badge-medium {
-    background: rgba(173, 198, 255, 0.12);
-    color: #adc6ff;
-  }
-
-  .badge-low {
-    background: rgba(177, 198, 249, 0.08);
-    color: #c2c6d6;
-  }
-
-  /* Status badge */
-  .badge-open {
-    background: rgba(173, 198, 255, 0.12);
-    color: #adc6ff;
-  }
-
-  .badge-in_progress {
-    background: rgba(255, 183, 134, 0.12);
-    color: #ffb786;
-  }
-
-  .badge-resolved {
-    background: rgba(177, 198, 249, 0.1);
-    color: #b1c6f9;
-  }
-
-  .badge-closed {
-    background: rgba(141, 144, 153, 0.1);
-    color: #8d9099;
-  }
-
-  /* Divider — NO hr, use tonal spacing */
   .tonal-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(66, 71, 84, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(0,6,30,0.1), transparent);
   }
 
-  /* Check result row */
   .check-row {
     @apply flex items-start gap-3 py-3 px-4;
     transition: background 150ms ease;
   }
 
   .check-row:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(0,6,30,0.02);
   }
 
-  /* Animated spinner */
   .spinner {
     @apply inline-block w-4 h-4 rounded-full border-2 border-transparent animate-spin;
-    border-top-color: #adc6ff;
+    border-top-color: #3b7eff;
   }
 
-  /* Textarea */
   .textarea-field {
     @apply w-full px-3 py-2.5 rounded-btn text-body-md outline-none resize-none transition-all duration-150;
-    background: #0d0f12;
-    color: #e3e5ef;
-    border: none;
+    background: #f0f2f8;
+    color: #1a1d2e;
+    border: 1px solid rgba(0,6,30,0.08);
     min-height: 100px;
   }
 
   .textarea-field::placeholder {
-    color: #8d9099;
+    color: #9da5be;
   }
 
   .textarea-field:focus {
-    border: 1px solid rgba(66, 71, 84, 0.4);
-    box-shadow: inset 0 0 0 2px rgba(173, 198, 255, 0.06);
+    border-color: rgba(59,127,255,0.4);
+    box-shadow: 0 0 0 3px rgba(59,127,255,0.08);
   }
 }
 
 @layer utilities {
   .text-gradient-primary {
-    background: linear-gradient(135deg, #adc6ff 0%, #4d8eff 100%);
+    background: linear-gradient(135deg, #4d8eff 0%, #2563eb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .glow-primary {
-    box-shadow: 0 0 12px rgba(173, 198, 255, 0.3);
+    box-shadow: 0 0 12px rgba(59,127,255,0.25);
   }
 
-  .fade-in {
-    animation: fadeIn 0.2s ease-out;
-  }
-
-  .slide-up {
-    animation: slideUp 0.25s ease-out;
-  }
+  .fade-in        { animation: fadeIn  0.2s  ease-out; }
+  .slide-up       { animation: slideUp 0.25s ease-out; }
+  .animate-fade-in { animation: fadeIn 0.2s  ease-out; }
 }
+
+@keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+@keyframes glowPulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }

@@ -27,7 +27,7 @@ function CopyBtn({ text }) {
     <button
       onClick={copy}
       className="p-1 rounded opacity-50 hover:opacity-100 transition-opacity"
-      style={{ color: '#adc6ff' }}
+      style={{ color: '#3b7eff' }}
       title="Kopyala"
     >
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -38,18 +38,18 @@ function CopyBtn({ text }) {
 function InfoRow({ icon: Icon, label, value, mono, copy, color }) {
   if (!value) return null
   return (
-    <div className="flex items-start gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(66,71,84,0.15)' }}>
+    <div className="flex items-start gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(0,6,30,0.05)' }}>
       <div
         className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: 'rgba(173,198,255,0.07)' }}
+        style={{ background: 'rgba(59,127,255,0.06)' }}
       >
-        <Icon className="w-3.5 h-3.5" style={{ color: '#424754' }} />
+        <Icon className="w-3.5 h-3.5" style={{ color: '#9da5be' }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-label-sm" style={{ color: '#424754' }}>{label}</p>
+        <p className="text-label-sm" style={{ color: '#9da5be' }}>{label}</p>
         <p
           className={`text-body-sm font-medium mt-0.5 ${mono ? 'font-mono' : ''}`}
-          style={{ color: color || '#e3e5ef', wordBreak: 'break-all' }}
+          style={{ color: color || '#1a1d2e', wordBreak: 'break-all' }}
         >
           {value}
         </p>
@@ -64,8 +64,8 @@ const NETWORK_TAGS = [
     key: 'is_hosting',
     label: 'Datacenter / Hosting',
     icon: Server,
-    color: '#adc6ff',
-    bg: 'rgba(173,198,255,0.1)',
+    color: '#3b7eff',
+    bg: 'rgba(59,127,255,0.09)',
     border: 'rgba(173,198,255,0.2)',
     desc: 'Bu IP bir veri merkezi veya hosting firmasına ait',
   },
@@ -130,11 +130,11 @@ export default function IPLookup() {
           >
             <Globe className="w-4 h-4" style={{ color: '#a8d5a2' }} />
           </div>
-          <h1 className="text-headline-md font-semibold" style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}>
+          <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}>
             IP Sorgulama
           </h1>
         </div>
-        <p className="text-body-md" style={{ color: '#8d9099' }}>
+        <p className="text-body-md" style={{ color: '#6b7388' }}>
           IP adresi veya alan adı sorgula — firma, ülke, ASN ve ağ türü bilgisi
         </p>
       </div>
@@ -143,9 +143,9 @@ export default function IPLookup() {
       <div className="px-8 pb-6">
         <div
           className="flex items-center gap-3 rounded-card px-4 py-3"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#8d9099' }} />
+          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
           <input
             ref={inputRef}
             type="text"
@@ -154,13 +154,13 @@ export default function IPLookup() {
             onKeyDown={handleKey}
             placeholder="8.8.8.8 · 2001:4860:4860::8888 · example.com"
             className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#e3e5ef', caretColor: '#a8d5a2' }}
+            style={{ color: '#1a1d2e', caretColor: '#a8d5a2' }}
             autoFocus
             spellCheck={false}
           />
           {query && (
             <button onClick={() => { setQuery(''); setResult(null); setError('') }}
-              className="p-1 rounded hover:opacity-70" style={{ color: '#424754' }}>
+              className="p-1 rounded hover:opacity-70" style={{ color: '#9da5be' }}>
               <X className="w-4 h-4" />
             </button>
           )}
@@ -194,22 +194,22 @@ export default function IPLookup() {
       {/* ── Skeleton ───────────────────────────────────────────────────────── */}
       {loading && (
         <div className="px-8">
-          <div className="rounded-card overflow-hidden animate-pulse" style={{ background: '#1a1c20' }}>
+          <div className="rounded-card overflow-hidden animate-pulse" style={{ background: '#ffffff' }}>
             <div className="px-6 py-5 flex items-center gap-4"
-              style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}>
-              <div className="w-16 h-16 rounded-card" style={{ background: '#282a2e' }} />
+              style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}>
+              <div className="w-16 h-16 rounded-card" style={{ background: '#f2f4fa' }} />
               <div className="flex flex-col gap-2 flex-1">
-                <div className="h-5 w-40 rounded" style={{ background: '#282a2e' }} />
-                <div className="h-4 w-28 rounded" style={{ background: '#1e2128' }} />
+                <div className="h-5 w-40 rounded" style={{ background: '#f2f4fa' }} />
+                <div className="h-4 w-28 rounded" style={{ background: '#f0f2f8' }} />
               </div>
             </div>
             {[1,2,3,4,5].map(i => (
               <div key={i} className="flex items-center gap-3 px-6 py-3"
-                style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}>
-                <div className="w-7 h-7 rounded" style={{ background: '#282a2e' }} />
+                style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}>
+                <div className="w-7 h-7 rounded" style={{ background: '#f2f4fa' }} />
                 <div className="flex flex-col gap-1.5 flex-1">
-                  <div className="h-3 w-24 rounded" style={{ background: '#1e2128' }} />
-                  <div className="h-4 w-52 rounded" style={{ background: '#282a2e' }} />
+                  <div className="h-3 w-24 rounded" style={{ background: '#f0f2f8' }} />
+                  <div className="h-4 w-52 rounded" style={{ background: '#f2f4fa' }} />
                 </div>
               </div>
             ))}
@@ -224,17 +224,17 @@ export default function IPLookup() {
           {/* ── Hero card ── */}
           <div
             className="rounded-card overflow-hidden"
-            style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.35)' }}
+            style={{ background: '#ffffff', border: '1px solid rgba(0,6,30,0.10)' }}
           >
             {/* Top bar */}
             <div
               className="px-6 py-5 flex items-center gap-5 flex-wrap"
-              style={{ background: '#16181d', borderBottom: '1px solid rgba(66,71,84,0.25)' }}
+              style={{ background: '#f7f8fc', borderBottom: '1px solid rgba(0,6,30,0.08)' }}
             >
               {/* Flag + country */}
               <div
                 className="w-16 h-16 rounded-card flex items-center justify-center flex-shrink-0 text-4xl select-none"
-                style={{ background: '#111317' }}
+                style={{ background: '#f0f2f7' }}
                 title={result.country || ''}
               >
                 {flagEmoji(result.country_code)}
@@ -249,10 +249,10 @@ export default function IPLookup() {
                   <CopyBtn text={result.query} />
                 </div>
                 {/* Country */}
-                <p className="text-body-md font-medium" style={{ color: '#e3e5ef' }}>
+                <p className="text-body-md font-medium" style={{ color: '#1a1d2e' }}>
                   {result.country || '—'}
                   {result.city && (
-                    <span style={{ color: '#8d9099' }}> · {result.city}{result.region ? `, ${result.region}` : ''}</span>
+                    <span style={{ color: '#6b7388' }}> · {result.city}{result.region ? `, ${result.region}` : ''}</span>
                   )}
                 </p>
               </div>
@@ -291,7 +291,7 @@ export default function IPLookup() {
                 label="ASN"
                 value={result.asn ? `${result.asn}${result.asn_name ? '  —  ' + result.asn_name : ''}` : null}
                 mono
-                color="#adc6ff"
+                color="#3b7eff"
               />
               <InfoRow
                 icon={MapPin}
@@ -310,7 +310,7 @@ export default function IPLookup() {
                   label="Koordinat"
                   value={`${result.lat?.toFixed(4)}, ${result.lon?.toFixed(4)}`}
                   mono
-                  color="#424754"
+                  color="#9da5be"
                 />
               )}
             </div>
@@ -321,7 +321,7 @@ export default function IPLookup() {
             <div>
               <p
                 className="text-label-sm font-medium uppercase tracking-wider mb-2.5"
-                style={{ color: '#424754' }}
+                style={{ color: '#9da5be' }}
               >
                 Ağ Özellikleri
               </p>
@@ -345,7 +345,7 @@ export default function IPLookup() {
                       <p className="text-body-sm font-semibold" style={{ color: t.color }}>
                         {t.label}
                       </p>
-                      <p className="text-label-sm mt-0.5" style={{ color: '#8d9099' }}>
+                      <p className="text-label-sm mt-0.5" style={{ color: '#6b7388' }}>
                         {t.desc}
                       </p>
                     </div>
@@ -362,14 +362,14 @@ export default function IPLookup() {
               style={{ background: 'rgba(168,213,162,0.06)', border: '1px solid rgba(168,213,162,0.15)' }}
             >
               <Wifi className="w-4 h-4 flex-shrink-0" style={{ color: '#a8d5a2' }} />
-              <p style={{ color: '#8d9099' }}>
+              <p style={{ color: '#6b7388' }}>
                 Standart ev/ofis bağlantısı — VPN, proxy veya datacenter değil
               </p>
             </div>
           )}
 
           {/* Source note */}
-          <p className="text-label-sm flex items-center gap-1.5" style={{ color: '#282a2e' }}>
+          <p className="text-label-sm flex items-center gap-1.5" style={{ color: '#f2f4fa' }}>
             <Info className="w-3 h-3" />
             Veri kaynağı: ip-api.com
           </p>
@@ -385,10 +385,10 @@ export default function IPLookup() {
           >
             <Globe className="w-7 h-7 opacity-30" style={{ color: '#a8d5a2' }} />
           </div>
-          <p className="text-title-md font-medium mb-1" style={{ color: '#c2c6d6' }}>
+          <p className="text-title-md font-medium mb-1" style={{ color: '#4a5068' }}>
             IP adresi veya alan adı girin
           </p>
-          <p className="text-body-md text-center max-w-xs" style={{ color: '#8d9099' }}>
+          <p className="text-body-md text-center max-w-xs" style={{ color: '#6b7388' }}>
             Firma, ülke, şehir, ASN ve ağ türü bilgisi görüntülenir
           </p>
           {/* Quick examples */}
@@ -398,7 +398,7 @@ export default function IPLookup() {
                 key={ip}
                 onClick={() => { setQuery(ip); setTimeout(lookup, 50) }}
                 className="text-label-sm font-mono px-3 py-1.5 rounded-btn transition-colors"
-                style={{ background: '#1a1c20', color: '#8d9099', border: '1px solid rgba(66,71,84,0.3)' }}
+                style={{ background: '#ffffff', color: '#6b7388', border: '1px solid rgba(0,6,30,0.09)' }}
               >
                 {ip}
               </button>

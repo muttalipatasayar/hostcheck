@@ -33,17 +33,17 @@ export default function SSHAccess() {
   useEffect(() => {
     const xterm = new XTerm({
       theme: {
-        background: '#0d0f13',
-        foreground: '#e3e5ef',
-        cursor: '#adc6ff',
-        cursorAccent: '#0d0f13',
-        selectionBackground: 'rgba(173,198,255,0.25)',
-        black: '#1a1c20',
-        brightBlack: '#424754',
-        white: '#e3e5ef',
+        background: '#111520',
+        foreground: '#e8eaf4',
+        cursor: '#3b7eff',
+        cursorAccent: '#111520',
+        selectionBackground: 'rgba(59,127,255,0.25)',
+        black: '#1a1d2e',
+        brightBlack: '#6b7388',
+        white: '#e8eaf4',
         brightWhite: '#ffffff',
-        blue: '#adc6ff',
-        brightBlue: '#b1c6f9',
+        blue: '#3b7eff',
+        brightBlue: '#4a6cf7',
         cyan: '#7dd5f4',
         brightCyan: '#9eeaf9',
         green: '#a8d5a2',
@@ -196,13 +196,13 @@ export default function SSHAccess() {
               className="w-8 h-8 rounded-btn flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(173,198,255,0.2) 0%, rgba(77,142,255,0.15) 100%)' }}
             >
-              <Terminal className="w-4 h-4" style={{ color: '#adc6ff' }} />
+              <Terminal className="w-4 h-4" style={{ color: '#3b7eff' }} />
             </div>
-            <h1 className="text-headline-md font-semibold" style={{ color: '#e3e5ef' }}>
+            <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e' }}>
               SSH Terminal
             </h1>
           </div>
-          <p className="text-body-md pl-11" style={{ color: '#8d9099' }}>
+          <p className="text-body-md pl-11" style={{ color: '#6b7388' }}>
             {isConnected
               ? `${activeConn.username}@${activeConn.host}:${activeConn.port} — aktif oturum`
               : 'Sunucularınıza tarayıcı üzerinden SSH ile bağlanın.'}
@@ -228,14 +228,14 @@ export default function SSHAccess() {
       {/* ── Connection Form ───────────────────────────────────────────────────── */}
       {showForm && (
         <div className="px-8 pb-5 flex-shrink-0 overflow-y-auto">
-          <div className="rounded-card p-5" style={{ background: '#1a1c20' }}>
-            <p className="text-label-sm font-medium mb-4" style={{ color: '#8d9099' }}>
+          <div className="rounded-card p-5" style={{ background: '#ffffff' }}>
+            <p className="text-label-sm font-medium mb-4" style={{ color: '#6b7388' }}>
               BAĞLANTI BİLGİLERİ
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="col-span-2">
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
                   Sunucu (Host / IP)
                 </label>
                 <input
@@ -248,7 +248,7 @@ export default function SSHAccess() {
                 />
               </div>
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Port</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Port</label>
                 <input
                   type="number"
                   className="input-field w-full"
@@ -262,7 +262,7 @@ export default function SSHAccess() {
 
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Kullanıcı Adı</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Kullanıcı Adı</label>
                 <input
                   type="text"
                   className="input-field w-full"
@@ -274,7 +274,7 @@ export default function SSHAccess() {
                 />
               </div>
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Şifre</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Şifre</label>
                 <input
                   type="password"
                   className="input-field w-full"
@@ -313,7 +313,7 @@ export default function SSHAccess() {
             <div className="mt-5">
               <p
                 className="text-label-sm font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                style={{ color: '#424754' }}
+                style={{ color: '#9da5be' }}
               >
                 <Clock className="w-3.5 h-3.5" />
                 Son Bağlantılar
@@ -324,24 +324,24 @@ export default function SSHAccess() {
                     key={i}
                     onClick={() => setForm({ ...c, password: '' })}
                     className="group flex items-center gap-3 px-4 py-3 rounded-btn text-left w-full transition-colors"
-                    style={{ background: '#1a1c20' }}
+                    style={{ background: '#ffffff' }}
                   >
                     <div
                       className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(173,198,255,0.08)' }}
                     >
-                      <Terminal className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
+                      <Terminal className="w-3.5 h-3.5" style={{ color: '#3b7eff' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium truncate" style={{ color: '#e3e5ef' }}>
+                      <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>
                         {c.username}@{c.host}
                       </p>
-                      <p className="text-label-sm" style={{ color: '#424754' }}>port {c.port}</p>
+                      <p className="text-label-sm" style={{ color: '#9da5be' }}>port {c.port}</p>
                     </div>
                     <button
                       onClick={(e) => removeSaved(i, e)}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
-                      style={{ color: '#424754' }}
+                      style={{ color: '#9da5be' }}
                       title="Sil"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -359,7 +359,7 @@ export default function SSHAccess() {
         <div className="px-8 pb-4 flex-shrink-0">
           <div
             className="rounded-btn px-4 py-2.5 flex items-center gap-2.5 text-body-sm"
-            style={{ background: 'rgba(173,198,255,0.07)', border: '1px solid rgba(173,198,255,0.12)', color: '#adc6ff' }}
+            style={{ background: 'rgba(59,127,255,0.06)', border: '1px solid rgba(59,127,255,0.10)', color: '#3b7eff' }}
           >
             <PlugZap className="w-4 h-4 animate-pulse" />
             {form.username}@{form.host}:{form.port} — bağlanıyor…
@@ -378,7 +378,7 @@ export default function SSHAccess() {
         <div
           className="rounded-card overflow-hidden flex flex-col h-full"
           style={{
-            background: '#111317',
+            background: '#f0f2f7',
             border: '1px solid rgba(66,71,84,0.5)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}
@@ -414,7 +414,7 @@ export default function SSHAccess() {
                 maxWidth: '300px',
               }}
             >
-              <span className="font-bold" style={{ color: '#adc6ff', letterSpacing: '-0.5px' }}>{'>'}_</span>
+              <span className="font-bold" style={{ color: '#3b7eff', letterSpacing: '-0.5px' }}>{'>'}_</span>
               <span className="truncate">
                 {isConnected || isConnecting
                   ? `${activeConn.username || form.username}@${activeConn.host || form.host}:${activeConn.port || form.port}`
@@ -442,7 +442,7 @@ export default function SSHAccess() {
               <button
                 onClick={toggleFullscreen}
                 className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#8d9099' }}
+                style={{ color: '#6b7388' }}
                 title={isFullscreen ? 'Küçült' : 'Tam ekran'}
               >
                 {isFullscreen
@@ -454,7 +454,7 @@ export default function SSHAccess() {
               <button
                 onClick={disconnect}
                 className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#8d9099' }}
+                style={{ color: '#6b7388' }}
                 title="Kapat"
               >
                 <X className="w-3.5 h-3.5" />

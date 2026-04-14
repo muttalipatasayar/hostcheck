@@ -11,14 +11,14 @@ import axios from 'axios'
 // ── Kayıt tipleri ─────────────────────────────────────────────────────────────
 
 const RECORD_TYPES = [
-  { id: 'A',     label: 'A',     desc: 'IPv4 Adresi',              icon: Globe,       color: '#b1c6f9' },
-  { id: 'AAAA',  label: 'AAAA',  desc: 'IPv6 Adresi',              icon: Globe,       color: '#b1c6f9' },
-  { id: 'CNAME', label: 'CNAME', desc: 'Alias / Takma Ad',         icon: ChevronRight,color: '#adc6ff' },
+  { id: 'A',     label: 'A',     desc: 'IPv4 Adresi',              icon: Globe,       color: '#4a6cf7' },
+  { id: 'AAAA',  label: 'AAAA',  desc: 'IPv6 Adresi',              icon: Globe,       color: '#4a6cf7' },
+  { id: 'CNAME', label: 'CNAME', desc: 'Alias / Takma Ad',         icon: ChevronRight,color: '#3b7eff' },
   { id: 'MX',    label: 'MX',    desc: 'Mail Sunucusu',            icon: Mail,        color: '#c3b1e1' },
-  { id: 'NS',    label: 'NS',    desc: 'Ad Sunucusu',              icon: Server,      color: '#adc6ff' },
-  { id: 'TXT',   label: 'TXT',   desc: 'Metin Kaydı',             icon: FileText,    color: '#8d9099' },
-  { id: 'SOA',   label: 'SOA',   desc: 'Otorite Başlangıcı',       icon: Info,        color: '#8d9099' },
-  { id: 'PTR',   label: 'PTR',   desc: 'Ters DNS (IP girin)',       icon: RefreshCw,   color: '#8d9099' },
+  { id: 'NS',    label: 'NS',    desc: 'Ad Sunucusu',              icon: Server,      color: '#3b7eff' },
+  { id: 'TXT',   label: 'TXT',   desc: 'Metin Kaydı',             icon: FileText,    color: '#6b7388' },
+  { id: 'SOA',   label: 'SOA',   desc: 'Otorite Başlangıcı',       icon: Info,        color: '#6b7388' },
+  { id: 'PTR',   label: 'PTR',   desc: 'Ters DNS (IP girin)',       icon: RefreshCw,   color: '#6b7388' },
   { id: 'SPF',   label: 'SPF',   desc: 'Gönderici Politikası',     icon: Shield,      color: '#b1f9c2' },
   { id: 'DMARC', label: 'DMARC', desc: 'E-posta Kimlik Doğrulama', icon: Shield,      color: '#ffb786' },
   { id: 'DKIM',   label: 'DKIM',   desc: 'E-posta İmzası',      icon: Shield, color: '#f9d4b1' },
@@ -40,16 +40,16 @@ function CopyBtn({ text }) {
   return (
     <button onClick={copy}
       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-      style={{ color: '#424754' }}
+      style={{ color: '#9da5be' }}
       title="Kopyala">
-      {copied ? <Check className="w-3 h-3" style={{ color: '#b1c6f9' }} /> : <Copy className="w-3 h-3" />}
+      {copied ? <Check className="w-3 h-3" style={{ color: '#4a6cf7' }} /> : <Copy className="w-3 h-3" />}
     </button>
   )
 }
 
 function StatusBadge({ status }) {
   if (status === 'found')
-    return <span className="flex items-center gap-1 text-label-sm" style={{ color: '#b1c6f9' }}><CheckCircle2 className="w-3.5 h-3.5" />Bulundu</span>
+    return <span className="flex items-center gap-1 text-label-sm" style={{ color: '#4a6cf7' }}><CheckCircle2 className="w-3.5 h-3.5" />Bulundu</span>
   if (status === 'not_found')
     return <span className="flex items-center gap-1 text-label-sm" style={{ color: '#ffb786' }}><AlertTriangle className="w-3.5 h-3.5" />Kayıt Yok</span>
   return <span className="flex items-center gap-1 text-label-sm" style={{ color: '#ffb4ab' }}><XCircle className="w-3.5 h-3.5" />Hata</span>
@@ -63,14 +63,14 @@ function RecordRow({ record, rtype }) {
   return (
     <div
       className="group flex items-start gap-4 px-5 py-3.5 transition-colors"
-      style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}
+      style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}
       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.015)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
       {/* TTL */}
       <div className="flex-shrink-0 text-right" style={{ minWidth: '64px' }}>
         {record.ttl != null && (
-          <span className="text-label-sm font-mono" style={{ color: '#424754' }}>
+          <span className="text-label-sm font-mono" style={{ color: '#9da5be' }}>
             {record.ttl}s
           </span>
         )}
@@ -96,11 +96,11 @@ function RecordRow({ record, rtype }) {
 
       {/* Değer */}
       <div className="flex-1 min-w-0">
-        <p className="text-body-sm font-mono break-all" style={{ color: '#e3e5ef' }}>
+        <p className="text-body-sm font-mono break-all" style={{ color: '#1a1d2e' }}>
           {record.value}
         </p>
         {record.extra && (
-          <p className="text-label-sm mt-1 break-all" style={{ color: '#8d9099' }}>
+          <p className="text-label-sm mt-1 break-all" style={{ color: '#6b7388' }}>
             {record.extra}
           </p>
         )}
@@ -230,13 +230,13 @@ export default function DNSToolbox() {
         <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 rounded-btn flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, rgba(173,198,255,0.2) 0%, rgba(77,142,255,0.15) 100%)' }}>
-            <Wrench className="w-4 h-4" style={{ color: '#adc6ff' }} />
+            <Wrench className="w-4 h-4" style={{ color: '#3b7eff' }} />
           </div>
-          <h1 className="text-headline-md font-semibold" style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}>
+          <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}>
             DNS Toolbox
           </h1>
         </div>
-        <p className="text-body-md" style={{ color: '#8d9099' }}>
+        <p className="text-body-md" style={{ color: '#6b7388' }}>
           A · AAAA · CNAME · MX · NS · TXT · SOA · PTR · SPF · DMARC sorguları
         </p>
       </div>
@@ -244,8 +244,8 @@ export default function DNSToolbox() {
       {/* Arama */}
       <div className="px-8 pb-5 flex flex-col gap-3">
         {/* Input */}
-        <div className="flex items-center gap-3 rounded-card px-4 py-3" style={{ background: '#1a1c20' }}>
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#8d9099' }} />
+        <div className="flex items-center gap-3 rounded-card px-4 py-3" style={{ background: '#ffffff' }}>
+          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
           <input
             type="text"
             value={domain}
@@ -254,7 +254,7 @@ export default function DNSToolbox() {
             placeholder={selectedType === 'PTR' ? '8.8.8.8 — IP girin' : 'example.com'}
             autoFocus
             className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#e3e5ef', caretColor: '#adc6ff' }}
+            style={{ color: '#1a1d2e', caretColor: '#2d6be4' }}
           />
           <button onClick={() => query()} disabled={loading || !domain.trim()} className="btn-primary flex-shrink-0">
             {loading
@@ -266,9 +266,9 @@ export default function DNSToolbox() {
         {/* DKIM selector alanı */}
         {selectedType === 'DKIM' && (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-card px-3 py-2" style={{ background: '#1a1c20' }}>
+            <div className="flex items-center gap-2 rounded-card px-3 py-2" style={{ background: '#ffffff' }}>
               <span className="text-label-sm font-mono flex-shrink-0" style={{ color: '#f9d4b1' }}>selector</span>
-              <span className="text-label-sm" style={{ color: '#424754' }}>._domainkey.</span>
+              <span className="text-label-sm" style={{ color: '#9da5be' }}>._domainkey.</span>
               <input
                 type="text"
                 value={selector}
@@ -276,7 +276,7 @@ export default function DNSToolbox() {
                 onKeyDown={handleKey}
                 placeholder="ör: google, default, mail — boş bırakırsan otomatik arar"
                 className="bg-transparent outline-none text-body-sm font-mono"
-                style={{ color: '#e3e5ef', caretColor: '#f9d4b1', width: '320px' }}
+                style={{ color: '#1a1d2e', caretColor: '#f9d4b1', width: '320px' }}
               />
             </div>
           </div>
@@ -291,9 +291,9 @@ export default function DNSToolbox() {
               title={desc}
               className="px-3 py-1.5 rounded text-label-md font-mono font-semibold transition-all"
               style={{
-                background: selectedType === id ? 'rgba(173,198,255,0.15)' : 'rgba(255,255,255,0.04)',
-                color: selectedType === id ? '#adc6ff' : '#8d9099',
-                border: selectedType === id ? '1px solid rgba(173,198,255,0.3)' : '1px solid transparent',
+                background: selectedType === id ? 'rgba(59,127,255,0.12)' : 'rgba(0,6,30,0.03)',
+                color: selectedType === id ? '#3b7eff' : '#6b7388',
+                border: selectedType === id ? '1px solid rgba(59,127,255,0.25)' : '1px solid transparent',
               }}
             >
               {label}
@@ -307,13 +307,13 @@ export default function DNSToolbox() {
 
           {/* Loading skeleton */}
           {loading && (
-            <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+            <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
               {[1,2,3].map(i => (
                 <div key={i} className="flex items-center gap-4 px-5 py-3.5 animate-pulse"
-                  style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}>
-                  <div className="h-3 w-12 rounded" style={{ background: '#282a2e' }} />
-                  <div className="h-4 w-14 rounded" style={{ background: '#282a2e' }} />
-                  <div className="h-3 flex-1 rounded" style={{ background: '#1e2128' }} />
+                  style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}>
+                  <div className="h-3 w-12 rounded" style={{ background: '#f2f4fa' }} />
+                  <div className="h-4 w-14 rounded" style={{ background: '#f2f4fa' }} />
+                  <div className="h-3 flex-1 rounded" style={{ background: '#f0f2f8' }} />
                 </div>
               ))}
             </div>
@@ -323,17 +323,17 @@ export default function DNSToolbox() {
           {result && !loading && (
             <>
               <div className="flex items-center justify-between px-5 py-3.5 rounded-card"
-                style={{ background: '#1a1c20' }}>
+                style={{ background: '#ffffff' }}>
                 <div className="flex items-center gap-3">
                   {typeCfg && <typeCfg.icon className="w-4 h-4" style={{ color: typeCfg.color }} />}
-                  <p className="text-body-sm font-semibold" style={{ color: '#e3e5ef' }}>
+                  <p className="text-body-sm font-semibold" style={{ color: '#1a1d2e' }}>
                     {result.record_type} &nbsp;·&nbsp;
-                    <span className="font-mono" style={{ color: '#adc6ff' }}>{result.queried_domain}</span>
+                    <span className="font-mono" style={{ color: '#3b7eff' }}>{result.queried_domain}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   {result.query_ms && (
-                    <span className="flex items-center gap-1 text-label-sm font-mono" style={{ color: '#424754' }}>
+                    <span className="flex items-center gap-1 text-label-sm font-mono" style={{ color: '#9da5be' }}>
                       <Clock className="w-3 h-3" />{result.query_ms}ms
                     </span>
                   )}
@@ -343,16 +343,16 @@ export default function DNSToolbox() {
 
               {/* Kayıtlar */}
               {result.records.length > 0 ? (
-                <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+                <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
                   {/* Tablo başlığı */}
                   <div className="flex items-center gap-4 px-5 py-2"
-                    style={{ borderBottom: '1px solid rgba(66,71,84,0.2)', background: '#111317' }}>
-                    <span className="text-label-sm font-medium" style={{ color: '#424754', minWidth: '64px', textAlign: 'right' }}>TTL</span>
-                    <span className="text-label-sm font-medium" style={{ color: '#424754', minWidth: '52px' }}>Tip</span>
+                    style={{ borderBottom: '1px solid rgba(0,6,30,0.06)', background: '#f0f2f7' }}>
+                    <span className="text-label-sm font-medium" style={{ color: '#9da5be', minWidth: '64px', textAlign: 'right' }}>TTL</span>
+                    <span className="text-label-sm font-medium" style={{ color: '#9da5be', minWidth: '52px' }}>Tip</span>
                     {result.record_type === 'MX' && (
-                      <span className="text-label-sm font-medium" style={{ color: '#424754' }}>Öncelik</span>
+                      <span className="text-label-sm font-medium" style={{ color: '#9da5be' }}>Öncelik</span>
                     )}
-                    <span className="text-label-sm font-medium" style={{ color: '#424754' }}>Değer</span>
+                    <span className="text-label-sm font-medium" style={{ color: '#9da5be' }}>Değer</span>
                   </div>
                   {result.records.map((rec, i) => (
                     <RecordRow key={i} record={rec} rtype={result.record_type} />
@@ -360,10 +360,10 @@ export default function DNSToolbox() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 rounded-card"
-                  style={{ background: '#1a1c20' }}>
+                  style={{ background: '#ffffff' }}>
                   <AlertTriangle className="w-7 h-7 mb-3 opacity-40" style={{ color: '#ffb786' }} />
-                  <p className="text-body-sm font-medium" style={{ color: '#c2c6d6' }}>{result.message}</p>
-                  <p className="text-label-sm mt-1" style={{ color: '#424754' }}>
+                  <p className="text-body-sm font-medium" style={{ color: '#4a5068' }}>{result.message}</p>
+                  <p className="text-label-sm mt-1" style={{ color: '#9da5be' }}>
                     Sunucu: {result.nameservers.slice(0, 2).join(', ')}
                   </p>
                 </div>
@@ -377,20 +377,20 @@ export default function DNSToolbox() {
                       : result.record_type === 'SPF'    ? 'rgba(177,249,194,0.05)'
                       : result.record_type === 'DKIM'   ? 'rgba(249,212,177,0.06)'
                       : result.record_type === 'DNSSEC' ? 'rgba(177,249,224,0.06)'
-                      : 'rgba(173,198,255,0.06)',
+                      : 'rgba(59,127,255,0.05)',
                     border: `1px solid ${
                       result.record_type === 'DMARC'  ? 'rgba(255,183,134,0.15)'
                       : result.record_type === 'SPF'    ? 'rgba(177,249,194,0.15)'
                       : result.record_type === 'DKIM'   ? 'rgba(249,212,177,0.15)'
                       : result.record_type === 'DNSSEC' ? 'rgba(177,249,224,0.15)'
-                      : 'rgba(173,198,255,0.1)'}`,
+                      : 'rgba(59,127,255,0.09)'}`,
                   }}>
                   <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{
                     color: result.record_type === 'DMARC'  ? '#ffb786'
                       : result.record_type === 'SPF'    ? '#b1f9c2'
                       : result.record_type === 'DKIM'   ? '#f9d4b1'
                       : result.record_type === 'DNSSEC' ? '#b1f9e0'
-                      : '#adc6ff'
+                      : '#3b7eff'
                   }} />
                   <div>
                     <p className="text-label-sm font-semibold mb-1" style={{
@@ -398,11 +398,11 @@ export default function DNSToolbox() {
                         : result.record_type === 'SPF'    ? '#b1f9c2'
                         : result.record_type === 'DKIM'   ? '#f9d4b1'
                         : result.record_type === 'DNSSEC' ? '#b1f9e0'
-                        : '#adc6ff'
+                        : '#3b7eff'
                     }}>
                       {result.record_type} Analizi
                     </p>
-                    <p className="text-body-sm" style={{ color: '#c2c6d6', lineHeight: '1.7' }}>
+                    <p className="text-body-sm" style={{ color: '#4a5068', lineHeight: '1.7' }}>
                       {result.analysis}
                     </p>
                   </div>
@@ -415,11 +415,11 @@ export default function DNSToolbox() {
           {!result && !loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(173,198,255,0.06)' }}>
-                <Wrench className="w-7 h-7 opacity-30" style={{ color: '#adc6ff' }} />
+                style={{ background: 'rgba(59,127,255,0.05)' }}>
+                <Wrench className="w-7 h-7 opacity-30" style={{ color: '#3b7eff' }} />
               </div>
-              <p className="text-title-md font-medium mb-1" style={{ color: '#c2c6d6' }}>DNS Toolbox</p>
-              <p className="text-body-md text-center max-w-xs" style={{ color: '#8d9099' }}>
+              <p className="text-title-md font-medium mb-1" style={{ color: '#4a5068' }}>DNS Toolbox</p>
+              <p className="text-body-md text-center max-w-xs" style={{ color: '#6b7388' }}>
                 Alan adı ve kayıt tipini seçin, ardından Sorgula butonuna basın
               </p>
             </div>

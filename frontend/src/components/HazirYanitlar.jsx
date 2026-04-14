@@ -1,34 +1,38 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   MessageSquare, Search, Copy, Check, Pencil, Trash2, Plus, Star,
-  X, ChevronDown, ChevronUp, Download, Globe, Server, Shield,
-  Mail, Network, Database, Layers, AlertTriangle, Save, Hash,
-  Command, CornerDownLeft,
+  X, Download, Globe, Server, Shield, Mail, Network, Database,
+  Layers, AlertTriangle, Save, Hash, Tag, Eye,
 } from 'lucide-react'
 import defaultData from '../data/hazirYanitlar.json'
 
-// ─── Sabitler ─────────────────────────────────────────────────────────────────
+// ─── Storage ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'hazir_yanitlar_v3'
 const USAGE_KEY   = 'hazir_yanitlar_usage'
 const PINS_KEY    = 'hazir_yanitlar_pins'
+const CATS_KEY    = 'hazir_yanitlar_custom_cats'
 
-const CATEGORIES = [
-  { id: 'Tümü',       label: 'Tümü',       icon: Layers,       color: '#adc6ff' },
-  { id: 'Alan Adı',   label: 'Alan Adı',   icon: Globe,        color: '#adc6ff' },
-  { id: 'Hosting',    label: 'Hosting',    icon: Server,       color: '#a8d5a2' },
-  { id: 'SSL',        label: 'SSL',        icon: Shield,       color: '#7dd5f4' },
-  { id: 'E-posta',    label: 'E-posta',    icon: Mail,         color: '#f5d37a' },
-  { id: 'DNS',        label: 'DNS',        icon: Network,      color: '#d4a8ff' },
-  { id: 'Veritabanı', label: 'Veritabanı', icon: Database,     color: '#ffb4ab' },
-  { id: 'Genel',      label: 'Genel',      icon: MessageSquare, color: '#8d9099' },
+// ─── Kategoriler ──────────────────────────────────────────────────────────────
+
+const BUILT_IN_CATS = [
+  { id: 'Tümü',       label: 'Tümü',       icon: Layers,        color: '#3b7eff' },
+  { id: 'Alan Adı',   label: 'Alan Adı',   icon: Globe,         color: '#3b7eff' },
+  { id: 'Hosting',    label: 'Hosting',    icon: Server,        color: '#22c55e' },
+  { id: 'SSL',        label: 'SSL',        icon: Shield,        color: '#0ea5e9' },
+  { id: 'E-posta',    label: 'E-posta',    icon: Mail,          color: '#f59e0b' },
+  { id: 'DNS',        label: 'DNS',        icon: Network,       color: '#a855f7' },
+  { id: 'Veritabanı', label: 'Veritabanı', icon: Database,      color: '#ef4444' },
+  { id: 'Genel',      label: 'Genel',      icon: MessageSquare, color: '#6b7388' },
 ]
 
-const CAT_META = Object.fromEntries(CATEGORIES.map(c => [c.id, c]))
+// Renk döngüsü — özel kategoriler için
+const CAT_COLORS = [
+  '#3b7eff','#22c55e','#f59e0b','#a855f7',
+  '#ef4444','#0ea5e9','#ec4899','#14b8a6',
+]
 
 const trLower = s => s.toLocaleLowerCase('tr-TR')
-
-// ─── Storage ──────────────────────────────────────────────────────────────────
 
 const store = {
   load: (key, fb) => { try { return JSON.parse(localStorage.getItem(key)) ?? fb } catch { return fb } },
@@ -47,7 +51,7 @@ function Highlight({ text, query }) {
     <>
       {parts.map((p, i) =>
         i % 2 === 1
-          ? <mark key={i} style={{ background: 'rgba(245,211,122,0.25)', color: '#f5d37a', borderRadius: 2, padding: '0 1px' }}>{p}</mark>
+          ? <mark key={i} style={{ background: 'rgba(245,158,11,0.2)', color: '#d97706', borderRadius: 2, padding: '0 1px' }}>{p}</mark>
           : p
       )}
     </>
@@ -57,62 +61,83 @@ function Highlight({ text, query }) {
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
 
 export default function HazirYanitlar() {
-  const [responses, setResponses] = useState(() => store.load(STORAGE_KEY, defaultData))
-  const [usage,     setUsage]     = useState(() => store.load(USAGE_KEY, {}))
-  const [pins,      setPins]      = useState(() => new Set(store.load(PINS_KEY, [])))
+  const [responses,  setResponses]  = useState(() => store.load(STORAGE_KEY, defaultData))
+  const [usage,      setUsage]      = useState(() => store.load(USAGE_KEY, {}))
+  const [pins,       setPins]       = useState(() => new Set(store.load(PINS_KEY, [])))
+  const [customCats, setCustomCats] = useState(() => store.load(CATS_KEY, []))
 
-  const [activeCat, setActiveCat] = useState('Tümü')
-  const [query,     setQuery]     = useState('')
-  const [copiedId,  setCopiedId]  = useState(null)
-  const [expandedId, setExpandedId] = useState(null)
-  const [modal,     setModal]     = useState(null)
+  const [activeCat,   setActiveCat]   = useState('Tümü')
+  const [query,       setQuery]       = useState('')
+  const [detailId,    setDetailId]    = useState(null)
+  const [copiedId,    setCopiedId]    = useState(null)
+  const [modal,       setModal]       = useState(null)
+  const [addCatMode,  setAddCatMode]  = useState(false)
+  const [newCatName,  setNewCatName]  = useState('')
 
-  const searchRef = useRef(null)
+  const searchRef  = useRef(null)
+  const newCatRef  = useRef(null)
 
-  // "/" kısayol tuşu → aramaya odaklan
+  // Tüm kategoriler = sabit + özel
+  const allCats = useMemo(() => [
+    ...BUILT_IN_CATS,
+    ...customCats.map(c => ({ id: c.id, label: c.label, icon: Tag, color: c.color, custom: true })),
+  ], [customCats])
+
+  const CAT_META = useMemo(() => Object.fromEntries(allCats.map(c => [c.id, c])), [allCats])
+
+  // "/" kısayol tuşu
   useEffect(() => {
-    const handler = e => {
-      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-        e.preventDefault()
-        searchRef.current?.focus()
+    const h = e => {
+      if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) {
+        e.preventDefault(); searchRef.current?.focus()
       }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
   }, [])
 
-  // ── Türev veri ────────────────────────────────────────────────────────────
+  // Yeni kategori inputu açıldığında odaklan
+  useEffect(() => {
+    if (addCatMode) newCatRef.current?.focus()
+  }, [addCatMode])
+
+  // Kategori sayıları
   const catCounts = useMemo(() => {
     const m = {}
     responses.forEach(r => { m[r.category] = (m[r.category] || 0) + 1 })
     return m
   }, [responses])
 
+  // FİLTRELEME: Arama varsa KATEGORİ FİLTRESİNİ GÖRMEZ — tüm yanıtlarda arar
   const filtered = useMemo(() => {
-    let list = activeCat === 'Tümü' ? [...responses] : responses.filter(r => r.category === activeCat)
-    if (query.trim()) {
-      const q = trLower(query.trim())
-      list = list.filter(r => trLower(r.title).includes(q) || trLower(r.content).includes(q))
+    const q = trLower(query.trim())
+    if (q) {
+      return responses.filter(r =>
+        trLower(r.title).includes(q) ||
+        trLower(r.content).includes(q) ||
+        trLower(r.category).includes(q)
+      )
     }
-    return list
+    if (activeCat === 'Tümü') return [...responses]
+    return responses.filter(r => r.category === activeCat)
   }, [responses, activeCat, query])
 
-  // Gruplandırılmış görünüm (Tümü + arama yok)
+  // Gruplandırılmış görünüm (Tümü seçili + arama yok)
   const grouped = useMemo(() => {
     if (activeCat !== 'Tümü' || query.trim()) return null
     const pinned = filtered.filter(r => pins.has(r.id))
     const byCat = {}
-    CATEGORIES.filter(c => c.id !== 'Tümü').forEach(c => {
+    allCats.filter(c => c.id !== 'Tümü').forEach(c => {
       const items = filtered.filter(r => r.category === c.id && !pins.has(r.id))
       if (items.length) byCat[c.id] = items
     })
     return { pinned, byCat }
-  }, [filtered, activeCat, query, pins])
+  }, [filtered, activeCat, query, pins, allCats])
 
   // ── Mutators ──────────────────────────────────────────────────────────────
+
   const saveResponses = useCallback(next => {
-    setResponses(next)
-    store.save(STORAGE_KEY, next)
+    setResponses(next); store.save(STORAGE_KEY, next)
   }, [])
 
   const handleSave = useCallback((form, id = null) => {
@@ -125,23 +150,22 @@ export default function HazirYanitlar() {
 
   const handleDelete = useCallback(id => {
     saveResponses(responses.filter(r => r.id !== id))
-  }, [responses, saveResponses])
+    if (detailId === id) setDetailId(null)
+  }, [responses, saveResponses, detailId])
 
   const handleCopy = useCallback(r => {
     navigator.clipboard.writeText(r.content).then(() => {
       setCopiedId(r.id)
       setTimeout(() => setCopiedId(null), 1800)
       const next = { ...usage, [r.id]: (usage[r.id] || 0) + 1 }
-      setUsage(next)
-      store.save(USAGE_KEY, next)
+      setUsage(next); store.save(USAGE_KEY, next)
     })
   }, [usage])
 
   const handlePin = useCallback(id => {
     const next = new Set(pins)
     next.has(id) ? next.delete(id) : next.add(id)
-    setPins(next)
-    store.save(PINS_KEY, [...next])
+    setPins(next); store.save(PINS_KEY, [...next])
   }, [pins])
 
   const handleExport = useCallback(() => {
@@ -151,199 +175,259 @@ export default function HazirYanitlar() {
     URL.revokeObjectURL(url)
   }, [responses])
 
-  const pinCount = [...pins].filter(id => responses.some(r => r.id === id)).length
+  const handleAddCat = useCallback(() => {
+    const name = newCatName.trim()
+    if (!name || allCats.some(c => trLower(c.id) === trLower(name))) return
+    const color = CAT_COLORS[customCats.length % CAT_COLORS.length]
+    const next = [...customCats, { id: name, label: name, color }]
+    setCustomCats(next); store.save(CATS_KEY, next)
+    setNewCatName(''); setAddCatMode(false)
+  }, [newCatName, allCats, customCats])
 
-  // Ortak kart props'ları
-  const cardProps = r => ({
-    r,
-    isCopied:   copiedId  === r.id,
-    isPinned:   pins.has(r.id),
-    isExpanded: expandedId === r.id,
-    useCount:   usage[r.id] || 0,
+  const handleDeleteCat = useCallback(id => {
+    const next = customCats.filter(c => c.id !== id)
+    setCustomCats(next); store.save(CATS_KEY, next)
+    if (activeCat === id) setActiveCat('Tümü')
+  }, [customCats, activeCat])
+
+  const pinCount        = [...pins].filter(id => responses.some(r => r.id === id)).length
+  const detailResponse  = detailId ? responses.find(r => r.id === detailId) : null
+
+  // Kart için ortak prop fabrikası
+  const mkCard = r => ({
+    r, catMeta: CAT_META,
+    isCopied: copiedId === r.id,
+    isPinned: pins.has(r.id),
+    useCount: usage[r.id] || 0,
     query,
+    onClick:  () => setDetailId(r.id),
     onCopy:   () => handleCopy(r),
     onPin:    () => handlePin(r.id),
     onEdit:   () => setModal({ mode: 'edit', response: r }),
     onDelete: () => handleDelete(r.id),
-    onToggleExpand: () => setExpandedId(expandedId === r.id ? null : r.id),
   })
 
   return (
     <>
       <div className="flex h-full overflow-hidden">
 
-        {/* ═══ SOL SIDEBAR ════════════════════════════════════════════════ */}
-        <aside
-          className="flex flex-col w-56 flex-shrink-0 h-full"
-          style={{ background: '#1a1c20', borderRight: '1px solid rgba(66,71,84,0.35)' }}
-        >
+        {/* ═══ SOL SIDEBAR ════════════════════════════════════════════ */}
+        <aside className="flex flex-col w-56 flex-shrink-0 h-full"
+          style={{ background: '#ffffff', borderRight: '1px solid rgba(0,6,30,0.08)' }}>
+
           {/* Başlık */}
           <div className="px-4 pt-5 pb-3 flex-shrink-0">
             <div className="flex items-center gap-2 mb-0.5">
               <div className="w-6 h-6 rounded flex items-center justify-center"
-                style={{ background: 'rgba(245,211,122,0.15)' }}>
-                <MessageSquare className="w-3.5 h-3.5" style={{ color: '#f5d37a' }} />
+                style={{ background: 'rgba(245,158,11,0.12)' }}>
+                <MessageSquare className="w-3.5 h-3.5" style={{ color: '#d97706' }} />
               </div>
-              <p className="text-body-sm font-semibold" style={{ color: '#e3e5ef' }}>Hazır Yanıtlar</p>
+              <p className="text-body-sm font-semibold" style={{ color: '#1a1d2e' }}>Hazır Yanıtlar</p>
             </div>
-            <p className="text-label-sm pl-8" style={{ color: '#424754' }}>
+            <p className="text-label-sm pl-8" style={{ color: '#9da5be' }}>
               {responses.length} yanıt{pinCount > 0 ? ` · ${pinCount} sabitlenmiş` : ''}
             </p>
           </div>
 
-          {/* Arama */}
+          {/* Arama — tüm kategorilerde arar */}
           <div className="px-3 pb-3 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-                style={{ color: '#424754' }} />
+                style={{ color: '#9da5be' }} />
               <input
                 ref={searchRef}
                 type="text"
-                className="input-field w-full text-body-sm"
-                style={{ paddingLeft: '2rem', paddingRight: query ? '2rem' : '2.5rem' }}
-                placeholder="Ara…"
+                className="w-full text-body-sm outline-none rounded-btn py-2 pr-8"
+                style={{ paddingLeft: '2rem', background: '#f0f2f8', border: '1px solid rgba(0,6,30,0.08)', color: '#1a1d2e' }}
+                placeholder="Tümünde ara…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
               />
               {query
                 ? <button onClick={() => setQuery('')}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70"
-                    style={{ color: '#424754' }}>
+                    style={{ color: '#9da5be' }}>
                     <X className="w-3.5 h-3.5" />
                   </button>
-                : <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-label-sm px-1 py-0.5 rounded pointer-events-none"
-                    style={{ background: 'rgba(66,71,84,0.4)', color: '#424754', fontSize: 10 }}>
-                    /
-                  </kbd>
+                : <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-label-sm px-1 py-0.5 rounded"
+                    style={{ background: 'rgba(0,6,30,0.06)', color: '#9da5be', fontSize: 10 }}>/</kbd>
               }
             </div>
           </div>
 
           {/* Kategoriler */}
           <nav className="flex-1 overflow-y-auto px-2 pb-2">
-            <p className="px-2 pt-1 pb-1.5 text-label-sm font-medium uppercase tracking-wider"
-              style={{ color: '#424754' }}>
-              Kategoriler
-            </p>
-            {CATEGORIES.map(({ id, label, icon: Icon, color }) => {
+            <div className="flex items-center justify-between px-2 pt-1 pb-1.5">
+              <p className="text-label-sm font-medium uppercase tracking-wider" style={{ color: '#9da5be' }}>
+                Kategoriler
+              </p>
+              <button
+                onClick={() => { setAddCatMode(v => !v); setNewCatName('') }}
+                className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-80"
+                style={{ background: addCatMode ? 'rgba(37,99,235,0.1)' : 'rgba(0,6,30,0.06)', color: addCatMode ? '#2563eb' : '#6b7388' }}
+                title="Yeni kategori ekle"
+              >
+                {addCatMode ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+              </button>
+            </div>
+
+            {allCats.map(({ id, label, icon: Icon, color, custom }) => {
               const count    = id === 'Tümü' ? responses.length : (catCounts[id] || 0)
-              const isActive = activeCat === id
-              if (count === 0 && id !== 'Tümü') return null
+              const isActive = activeCat === id && !query
+              if (count === 0 && id !== 'Tümü' && !custom) return null
               return (
-                <button
-                  key={id}
-                  onClick={() => { setActiveCat(id); setQuery('') }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-btn text-left mb-0.5 transition-all"
-                  style={isActive
-                    ? { background: `${color}15`, color }
-                    : { color: '#8d9099' }}
-                >
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="flex-1 text-body-sm font-medium">{label}</span>
-                  <span className="text-label-sm px-1.5 py-0.5 rounded tabular-nums"
+                <div key={id} className="group/catrow flex items-center mb-0.5">
+                  <button
+                    onClick={() => { setActiveCat(id); setQuery('') }}
+                    className="flex-1 flex items-center gap-2.5 px-2.5 py-2 rounded-btn text-left transition-all"
                     style={isActive
-                      ? { background: `${color}22`, color }
-                      : { background: 'rgba(66,71,84,0.35)', color: '#424754' }}>
-                    {count}
-                  </span>
-                </button>
+                      ? { background: `${color}15`, color }
+                      : { color: '#6b7388' }}
+                  >
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="flex-1 text-body-sm font-medium truncate">{label}</span>
+                    <span className="text-label-sm px-1.5 py-0.5 rounded tabular-nums"
+                      style={isActive
+                        ? { background: `${color}22`, color }
+                        : { background: 'rgba(0,6,30,0.06)', color: '#9da5be' }}>
+                      {count}
+                    </span>
+                  </button>
+                  {custom && (
+                    <button
+                      onClick={() => handleDeleteCat(id)}
+                      className="opacity-0 group-hover/catrow:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded hover:opacity-60 ml-0.5 flex-shrink-0"
+                      style={{ color: '#9da5be' }}
+                      title="Kategoriyi sil"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               )
             })}
+
+            {/* Yeni kategori ekleme formu */}
+            {addCatMode && (
+              <div className="mt-1 px-1">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    ref={newCatRef}
+                    type="text"
+                    className="flex-1 text-body-sm rounded-btn px-2.5 py-1.5 outline-none"
+                    style={{ background: '#f0f2f8', border: '1px solid rgba(0,6,30,0.1)', color: '#1a1d2e' }}
+                    placeholder="Kategori adı…"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleAddCat()
+                      if (e.key === 'Escape') { setAddCatMode(false); setNewCatName('') }
+                    }}
+                    maxLength={30}
+                  />
+                  <button
+                    onClick={handleAddCat}
+                    disabled={!newCatName.trim()}
+                    className="w-7 h-7 rounded-btn flex items-center justify-center transition-colors disabled:opacity-40"
+                    style={{ background: 'rgba(37,99,235,0.1)', color: '#2563eb' }}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </nav>
 
           {/* Alt butonlar */}
           <div className="px-3 py-3 flex-shrink-0 flex flex-col gap-2"
-            style={{ borderTop: '1px solid rgba(66,71,84,0.35)' }}>
-            <button
-              onClick={() => setModal({ mode: 'add' })}
-              className="btn-primary w-full flex items-center justify-center gap-2 text-body-sm"
-            >
+            style={{ borderTop: '1px solid rgba(0,6,30,0.08)' }}>
+            <button onClick={() => setModal({ mode: 'add' })}
+              className="btn-primary w-full flex items-center justify-center gap-2 text-body-sm">
               <Plus className="w-4 h-4" />
               Yeni Yanıt
             </button>
-            <button
-              onClick={handleExport}
-              className="btn-ghost w-full flex items-center justify-center gap-2 text-label-sm"
-            >
+            <button onClick={handleExport}
+              className="btn-ghost w-full flex items-center justify-center gap-2 text-label-sm">
               <Download className="w-3.5 h-3.5" />
               Dışa Aktar
             </button>
           </div>
         </aside>
 
-        {/* ═══ İÇERİK ALANI ═══════════════════════════════════════════════ */}
+        {/* ═══ İÇERİK ALANI ═══════════════════════════════════════════ */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* Üst bar */}
           <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between"
-            style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}>
+            style={{ background: '#ffffff', borderBottom: '1px solid rgba(0,6,30,0.08)' }}>
             <div className="flex items-center gap-2.5">
-              {activeCat !== 'Tümü' && (() => {
+              {!query && activeCat !== 'Tümü' && (() => {
                 const m = CAT_META[activeCat]
                 const Icon = m?.icon
                 return Icon ? <Icon className="w-4 h-4" style={{ color: m.color }} /> : null
               })()}
-              <h2 className="text-headline-md font-semibold" style={{ color: '#e3e5ef' }}>
+              <h2 className="text-headline-md font-semibold" style={{ color: '#1a1d2e' }}>
                 {query
-                  ? `"${query}" için sonuçlar`
+                  ? `"${query}" sonuçları`
                   : activeCat === 'Tümü' ? 'Tüm Yanıtlar' : activeCat}
               </h2>
               <span className="text-label-sm px-2 py-0.5 rounded tabular-nums"
-                style={{ background: 'rgba(66,71,84,0.4)', color: '#8d9099' }}>
+                style={{ background: 'rgba(0,6,30,0.06)', color: '#6b7388' }}>
                 {filtered.length}
               </span>
+              {query && (
+                <span className="text-label-sm" style={{ color: '#9da5be' }}>
+                  tüm kategorilerde
+                </span>
+              )}
             </div>
-
             <div className="flex items-center gap-2">
-              {/* Arama var + temizle */}
               {query && (
                 <button onClick={() => setQuery('')}
                   className="btn-ghost flex items-center gap-1.5 text-label-sm">
                   <X className="w-3.5 h-3.5" /> Temizle
                 </button>
               )}
-              {/* Hızlı ekle */}
               <button onClick={() => setModal({ mode: 'add' })}
                 className="btn-ghost flex items-center gap-1.5 text-body-sm">
-                <Plus className="w-4 h-4" />
-                Yeni
+                <Plus className="w-4 h-4" /> Yeni
               </button>
             </div>
           </div>
 
-          {/* Klavye ipucu — sadece boştayken */}
-          {!query && filtered.length > 0 && (
-            <div className="px-6 py-1.5 flex-shrink-0 flex items-center gap-3"
-              style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}>
-              <span className="flex items-center gap-1 text-label-sm" style={{ color: '#2c2e34' }}>
-                <kbd className="px-1.5 py-0.5 rounded text-label-sm"
-                  style={{ background: 'rgba(66,71,84,0.3)', color: '#424754' }}>/</kbd>
-                Ara
-              </span>
-              <span className="flex items-center gap-1 text-label-sm" style={{ color: '#2c2e34' }}>
-                <Copy className="w-3 h-3" style={{ color: '#2c2e34' }} />
-                Karta tıkla → kopyala
-              </span>
-            </div>
-          )}
-
           {/* Kart listesi */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {filtered.length === 0 ? (
-              <EmptyState query={query} onClear={() => setQuery('')} />
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'rgba(0,6,30,0.04)' }}>
+                  <Search className="w-6 h-6 opacity-20" style={{ color: '#1a1d2e' }} />
+                </div>
+                <p className="text-title-md font-medium mb-1" style={{ color: '#1a1d2e' }}>
+                  {query ? 'Sonuç bulunamadı' : 'Bu kategoride yanıt yok'}
+                </p>
+                <p className="text-body-md" style={{ color: '#6b7388' }}>
+                  {query
+                    ? `"${query}" ile eşleşen yanıt bulunamadı`
+                    : 'Yeni Yanıt butonuyla ekleyebilirsiniz'}
+                </p>
+                {query && (
+                  <button onClick={() => setQuery('')} className="mt-4 btn-ghost text-body-sm">
+                    Aramayı temizle
+                  </button>
+                )}
+              </div>
             ) : grouped ? (
-              // ── Kategorilere göre gruplandırılmış ──
               <GroupedContent
                 grouped={grouped}
-                cardProps={cardProps}
+                catMeta={CAT_META}
+                mkCard={mkCard}
               />
             ) : (
-              // ── Düz liste (kategori seçili veya arama var) ──
               <div className="flex flex-col gap-2">
                 {filtered.map(r => (
-                  <ResponseCard
-                    key={r.id}
-                    {...cardProps(r)}
+                  <ResponseCard key={r.id}
+                    {...mkCard(r)}
                     showCategory={activeCat === 'Tümü' || !!query}
                   />
                 ))}
@@ -353,12 +437,29 @@ export default function HazirYanitlar() {
         </div>
       </div>
 
-      {/* ═══ MODAL ════════════════════════════════════════════════════════ */}
+      {/* ═══ DETAY MODALİ ════════════════════════════════════════════ */}
+      {detailResponse && (
+        <DetailModal
+          r={detailResponse}
+          catMeta={CAT_META}
+          isCopied={copiedId === detailResponse.id}
+          isPinned={pins.has(detailResponse.id)}
+          useCount={usage[detailResponse.id] || 0}
+          onClose={() => setDetailId(null)}
+          onCopy={() => handleCopy(detailResponse)}
+          onPin={() => handlePin(detailResponse.id)}
+          onEdit={() => { setDetailId(null); setModal({ mode: 'edit', response: detailResponse }) }}
+          onDelete={() => handleDelete(detailResponse.id)}
+        />
+      )}
+
+      {/* ═══ EKLE / DÜZENLE MODALİ ═══════════════════════════════════ */}
       {modal && (
         <ResponseModal
           mode={modal.mode}
           initialData={modal.mode === 'edit' ? modal.response : null}
-          onSave={(form) => handleSave(form, modal.mode === 'edit' ? modal.response.id : null)}
+          categories={allCats.filter(c => c.id !== 'Tümü')}
+          onSave={form => handleSave(form, modal.mode === 'edit' ? modal.response.id : null)}
           onClose={() => setModal(null)}
         />
       )}
@@ -368,32 +469,25 @@ export default function HazirYanitlar() {
 
 // ─── Gruplandırılmış içerik ───────────────────────────────────────────────────
 
-function GroupedContent({ grouped, cardProps }) {
+function GroupedContent({ grouped, catMeta, mkCard }) {
   const { pinned, byCat } = grouped
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Sabitlenmiş */}
       {pinned.length > 0 && (
         <section>
-          <SectionHeader icon={Star} label="Sabitlenmiş" count={pinned.length} color="#f5d37a" />
+          <SectionHeader icon={Star} label="Sabitlenmiş" count={pinned.length} color="#f59e0b" />
           <div className="flex flex-col gap-2">
-            {pinned.map(r => (
-              <ResponseCard key={r.id} {...cardProps(r)} showCategory />
-            ))}
+            {pinned.map(r => <ResponseCard key={r.id} {...mkCard(r)} showCategory />)}
           </div>
         </section>
       )}
-
-      {/* Kategoriler */}
       {Object.entries(byCat).map(([catId, items]) => {
-        const meta = CAT_META[catId]
-        if (!meta) return null
+        const meta = catMeta[catId]; if (!meta) return null
         return (
           <section key={catId}>
             <SectionHeader icon={meta.icon} label={catId} count={items.length} color={meta.color} />
             <div className="flex flex-col gap-2">
-              {items.map(r => <ResponseCard key={r.id} {...cardProps(r)} />)}
+              {items.map(r => <ResponseCard key={r.id} {...mkCard(r)} />)}
             </div>
           </section>
         )
@@ -406,156 +500,130 @@ function SectionHeader({ icon: Icon, label, count, color }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <Icon className="w-3.5 h-3.5" style={{ color, ...(label === 'Sabitlenmiş' ? { fill: color } : {}) }} />
-      <span className="text-label-sm font-semibold uppercase tracking-wider" style={{ color }}>
-        {label}
-      </span>
-      <span className="text-label-sm tabular-nums" style={{ color: `${color}80` }}>({count})</span>
-      <div className="flex-1 h-px ml-1" style={{ background: `${color}20` }} />
+      <span className="text-label-sm font-semibold uppercase tracking-wider" style={{ color }}>{label}</span>
+      <span className="text-label-sm tabular-nums" style={{ color: `${color}99` }}>({count})</span>
+      <div className="flex-1 h-px ml-1" style={{ background: `${color}25` }} />
     </div>
   )
 }
 
-// ─── Kart bileşeni ────────────────────────────────────────────────────────────
+// ─── Yanıt kartı ─────────────────────────────────────────────────────────────
 
 function ResponseCard({
-  r, isCopied, isPinned, isExpanded, useCount, showCategory, query,
-  onCopy, onPin, onEdit, onDelete, onToggleExpand,
+  r, catMeta, isCopied, isPinned, useCount, showCategory, query,
+  onClick, onCopy, onPin, onEdit, onDelete,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const color   = CAT_META[r.category]?.color ?? '#8d9099'
-  const isLong  = r.content.length > 220
-  const preview = r.content.slice(0, 300)
-
-  const handleCardClick = () => {
-    if (confirmDelete) return
-    onCopy()
-  }
+  const color   = catMeta[r.category]?.color ?? '#6b7388'
+  const preview = r.content.slice(0, 180)
+  const isLong  = r.content.length > 180
 
   return (
     <article
-      onClick={handleCardClick}
-      className="group relative rounded-card overflow-hidden transition-all cursor-pointer select-none"
+      onClick={() => { if (!confirmDelete) onClick() }}
+      className="group relative rounded-card overflow-hidden transition-all cursor-pointer"
       style={{
-        background:   isCopied ? `${color}08` : '#1a1c20',
-        border:       `1px solid ${isCopied ? color + '45' : 'rgba(66,71,84,0.22)'}`,
-        borderLeft:   `3px solid ${isCopied ? color : color + '60'}`,
-        boxShadow:    isCopied ? `0 0 0 1px ${color}20` : 'none',
+        background: '#ffffff',
+        border:     `1px solid ${isCopied ? color + '55' : 'rgba(0,6,30,0.08)'}`,
+        borderLeft: `3px solid ${isCopied ? color : color + '50'}`,
+        boxShadow:  '0 1px 3px rgba(0,6,30,0.05)',
       }}
-      onMouseEnter={e => { if (!isCopied && !confirmDelete) e.currentTarget.style.borderLeftColor = color }}
-      onMouseLeave={e => { if (!isCopied) e.currentTarget.style.borderLeftColor = color + '60' }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderLeftColor = color
+        e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,6,30,0.09)'
+        e.currentTarget.style.transform = 'translateY(-1px)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderLeftColor = isCopied ? color : color + '50'
+        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,6,30,0.05)'
+        e.currentTarget.style.transform = ''
+      }}
     >
       <div className="px-4 py-3">
-        {/* ── Başlık satırı ── */}
+        {/* Başlık satırı */}
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {isPinned && <Star className="w-3 h-3 flex-shrink-0" style={{ color: '#f5d37a', fill: '#f5d37a' }} />}
-            <h3 className="text-body-sm font-semibold leading-snug" style={{ color: '#e3e5ef' }}>
+            {isPinned && <Star className="w-3 h-3 flex-shrink-0" style={{ color: '#f59e0b', fill: '#f59e0b' }} />}
+            <h3 className="text-body-sm font-semibold leading-snug" style={{ color: '#1a1d2e' }}>
               <Highlight text={r.title} query={query} />
             </h3>
           </div>
-
-          {/* Eylem butonları — hover'da görünür */}
+          {/* Hover'da görünen eylem butonları */}
           {!confirmDelete && (
-            <div
-              className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={e => e.stopPropagation()}
-            >
-              <IconBtn onClick={onPin} title={isPinned ? 'Sabitlemeyi kaldır' : 'Sabitle'}
-                color={isPinned ? '#f5d37a' : '#424754'}>
-                <Star className="w-3.5 h-3.5" style={isPinned ? { fill: '#f5d37a' } : {}} />
-              </IconBtn>
-              <IconBtn onClick={onEdit} title="Düzenle" color="#424754">
+            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={e => e.stopPropagation()}>
+              <ActionBtn onClick={e => { e.stopPropagation(); onCopy() }} title="Hızlı kopyala" color="#6b7388">
+                <Copy className="w-3.5 h-3.5" />
+              </ActionBtn>
+              <ActionBtn onClick={e => { e.stopPropagation(); onPin() }}
+                title={isPinned ? 'Sabitlemeyi kaldır' : 'Sabitle'}
+                color={isPinned ? '#f59e0b' : '#6b7388'}>
+                <Star className="w-3.5 h-3.5" style={isPinned ? { fill: '#f59e0b' } : {}} />
+              </ActionBtn>
+              <ActionBtn onClick={e => { e.stopPropagation(); onEdit() }} title="Düzenle" color="#6b7388">
                 <Pencil className="w-3.5 h-3.5" />
-              </IconBtn>
-              <IconBtn onClick={() => setConfirmDelete(true)} title="Sil" color="#424754">
+              </ActionBtn>
+              <ActionBtn onClick={e => { e.stopPropagation(); setConfirmDelete(true) }} title="Sil" color="#6b7388">
                 <Trash2 className="w-3.5 h-3.5" />
-              </IconBtn>
+              </ActionBtn>
             </div>
           )}
         </div>
 
         {/* Kategori badge */}
         {showCategory && (
-          <span className="inline-block text-label-sm px-2 py-0.5 rounded mb-2"
-            style={{ background: `${color}18`, color }}>
+          <span className="inline-block text-label-sm px-2 py-0.5 rounded mb-2 font-medium"
+            style={{ background: `${color}15`, color }}>
             {r.category}
           </span>
         )}
 
-        {/* İçerik önizleme */}
-        <div
-          className="text-body-sm select-text"
-          style={{
-            color: '#6b7280',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            maxHeight: isExpanded ? 'none' : '4.8em',  // ~3 satır
-            overflow: isExpanded ? 'visible' : 'hidden',
-          }}
-          onClick={e => { if (isExpanded || !isLong) return; e.stopPropagation(); onToggleExpand() }}
-        >
-          {query
-            ? <Highlight text={isExpanded ? r.content : preview} query={query} />
-            : (isExpanded ? r.content : preview)
-          }
-        </div>
+        {/* İçerik önizleme — 3 satır */}
+        <p className="text-body-sm" style={{
+          color: '#6b7388', lineHeight: '1.6',
+          display: '-webkit-box', WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          <Highlight text={preview + (isLong ? '…' : '')} query={query} />
+        </p>
 
-        {/* Alt satır */}
+        {/* Alt bilgi */}
         <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-2.5">
-            {isLong && (
-              <button
-                onClick={e => { e.stopPropagation(); onToggleExpand() }}
-                className="flex items-center gap-1 text-label-sm transition-opacity hover:opacity-80"
-                style={{ color: '#424754' }}
-              >
-                {isExpanded
-                  ? <><ChevronUp className="w-3 h-3" />Daralt</>
-                  : <><ChevronDown className="w-3 h-3" />Tamamını Gör</>
-                }
-              </button>
-            )}
+          <div className="flex items-center gap-3">
             {useCount > 0 && (
-              <span className="flex items-center gap-1 text-label-sm" style={{ color: '#2c2e34' }}>
+              <span className="flex items-center gap-1 text-label-sm" style={{ color: '#9da5be' }}>
                 <Hash className="w-3 h-3" />{useCount}
               </span>
             )}
+            <span className="flex items-center gap-1 text-label-sm opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: '#9da5be' }}>
+              <Eye className="w-3 h-3" />Görüntüle
+            </span>
           </div>
-
-          {/* Kopyala göstergesi */}
-          {isCopied
-            ? <span className="flex items-center gap-1 text-label-sm font-medium animate-fade-in" style={{ color }}>
-                <Check className="w-3.5 h-3.5" />Kopyalandı!
-              </span>
-            : <span className="flex items-center gap-1 text-label-sm opacity-0 group-hover:opacity-40 transition-opacity"
-                style={{ color: '#8d9099' }}>
-                <Copy className="w-3 h-3" />Kopyala
-              </span>
-          }
+          {isCopied && (
+            <span className="flex items-center gap-1 text-label-sm font-medium animate-fade-in" style={{ color: '#16a34a' }}>
+              <Check className="w-3.5 h-3.5" />Kopyalandı!
+            </span>
+          )}
         </div>
 
         {/* Silme onayı */}
         {confirmDelete && (
-          <div
-            className="mt-3 flex items-center gap-2 px-3 py-2.5 rounded-btn"
-            style={{ background: 'rgba(255,180,171,0.08)', border: '1px solid rgba(255,180,171,0.2)' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ffb4ab' }} />
-            <p className="text-label-sm flex-1" style={{ color: '#ffb4ab' }}>
-              Bu yanıtı silmek istediğinizden emin misiniz?
-            </p>
-            <button
-              onClick={() => { onDelete(); setConfirmDelete(false) }}
-              className="text-label-sm px-2.5 py-1 rounded font-medium"
-              style={{ background: 'rgba(255,180,171,0.2)', color: '#ffb4ab' }}
-            >Sil</button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-label-sm px-2.5 py-1 rounded font-medium"
-              style={{ background: 'rgba(255,255,255,0.05)', color: '#8d9099' }}
-            >İptal</button>
+          <div className="mt-3 flex items-center gap-2 px-3 py-2.5 rounded-btn"
+            style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+            onClick={e => e.stopPropagation()}>
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#dc2626' }} />
+            <p className="text-label-sm flex-1" style={{ color: '#dc2626' }}>Silinsin mi?</p>
+            <button onClick={e => { e.stopPropagation(); onDelete() }}
+              className="text-label-sm font-semibold px-2 py-1 rounded"
+              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+              Sil
+            </button>
+            <button onClick={e => { e.stopPropagation(); setConfirmDelete(false) }}
+              className="text-label-sm px-2 py-1 rounded"
+              style={{ color: '#6b7388' }}>
+              İptal
+            </button>
           </div>
         )}
       </div>
@@ -563,55 +631,21 @@ function ResponseCard({
   )
 }
 
-// ─── Küçük ikon buton ─────────────────────────────────────────────────────────
-
-function IconBtn({ onClick, title, color, children }) {
+function ActionBtn({ onClick, title, color, children }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
-      className="p-1.5 rounded transition-colors hover:opacity-80"
-      style={{ color }}
-    >
+    <button onClick={onClick} title={title}
+      className="p-1.5 rounded transition-colors hover:opacity-70"
+      style={{ color }}>
       {children}
     </button>
   )
 }
 
-// ─── Boş durum ────────────────────────────────────────────────────────────────
+// ─── Detay modalı ─────────────────────────────────────────────────────────────
 
-function EmptyState({ query, onClear }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-        style={{ background: 'rgba(66,71,84,0.2)' }}>
-        <Search className="w-6 h-6 opacity-30" style={{ color: '#8d9099' }} />
-      </div>
-      <p className="text-body-md font-medium" style={{ color: '#424754' }}>
-        {query ? `"${query}" için yanıt bulunamadı` : 'Bu kategoride henüz yanıt yok'}
-      </p>
-      {query && (
-        <button onClick={onClear} className="btn-ghost text-body-sm">
-          Aramayı temizle
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ─── Modal (Ekle / Düzenle) ───────────────────────────────────────────────────
-
-const EMPTY_FORM = { title: '', content: '', category: 'Genel' }
-
-function ResponseModal({ mode, initialData, onSave, onClose }) {
-  const isEdit = mode === 'edit'
-  const [form,   setForm]   = useState(isEdit
-    ? { title: initialData.title, content: initialData.content, category: initialData.category }
-    : EMPTY_FORM)
-  const [errors, setErrors] = useState({})
-  const titleRef = useRef(null)
-
-  useEffect(() => { setTimeout(() => titleRef.current?.focus(), 50) }, [])
+function DetailModal({ r, catMeta, isCopied, isPinned, useCount, onClose, onCopy, onPin, onEdit, onDelete }) {
+  const color = catMeta[r.category]?.color ?? '#6b7388'
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     const h = e => { if (e.key === 'Escape') onClose() }
@@ -619,144 +653,190 @@ function ResponseModal({ mode, initialData, onSave, onClose }) {
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
-  const validate = () => {
-    const e = {}
-    if (!form.title.trim())   e.title   = 'Başlık zorunludur.'
-    if (!form.content.trim()) e.content = 'İçerik zorunludur.'
-    setErrors(e)
-    return !Object.keys(e).length
-  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,6,30,0.4)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}>
+      <div
+        className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-xl overflow-hidden animate-slide-up"
+        style={{
+          background: '#ffffff',
+          boxShadow: '0 24px 64px rgba(0,6,30,0.18)',
+          borderTop: `4px solid ${color}`,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-5 flex-shrink-0"
+          style={{ borderBottom: '1px solid rgba(0,6,30,0.08)' }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-label-sm px-2 py-0.5 rounded font-medium"
+                  style={{ background: `${color}15`, color }}>
+                  {r.category}
+                </span>
+                {isPinned && (
+                  <span className="flex items-center gap-1 text-label-sm" style={{ color: '#f59e0b' }}>
+                    <Star className="w-3 h-3" style={{ fill: '#f59e0b' }} />
+                    Sabitlenmiş
+                  </span>
+                )}
+                {useCount > 0 && (
+                  <span className="flex items-center gap-1 text-label-sm" style={{ color: '#9da5be' }}>
+                    <Hash className="w-3 h-3" />{useCount} kez kullanıldı
+                  </span>
+                )}
+              </div>
+              <h2 className="text-title-lg font-semibold leading-snug" style={{ color: '#1a1d2e' }}>
+                {r.title}
+              </h2>
+            </div>
+            <button onClick={onClose}
+              className="p-2 rounded-btn transition-colors flex-shrink-0 hover:opacity-70"
+              style={{ color: '#9da5be', background: 'rgba(0,6,30,0.05)' }}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-  const handleSubmit = () => { if (validate()) onSave(form) }
+        {/* İçerik — scroll edilebilir */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <p className="text-body-md whitespace-pre-wrap leading-relaxed select-text"
+            style={{ color: '#3d4257', lineHeight: '1.8' }}>
+            {r.content}
+          </p>
+        </div>
 
-  const cats = CATEGORIES.filter(c => c.id !== 'Tümü')
+        {/* Eylemler */}
+        <div className="px-6 py-4 flex-shrink-0 flex items-center justify-between flex-wrap gap-3"
+          style={{ borderTop: '1px solid rgba(0,6,30,0.08)', background: '#f8f9fc' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={onPin}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-btn text-body-sm transition-colors"
+              style={isPinned
+                ? { background: 'rgba(245,158,11,0.1)', color: '#d97706' }
+                : { background: 'rgba(0,6,30,0.05)', color: '#6b7388' }}>
+              <Star className="w-3.5 h-3.5" style={isPinned ? { fill: '#d97706' } : {}} />
+              {isPinned ? 'Sabitleme kaldır' : 'Sabitle'}
+            </button>
+            <button onClick={onEdit}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-btn text-body-sm transition-colors"
+              style={{ background: 'rgba(0,6,30,0.05)', color: '#6b7388' }}>
+              <Pencil className="w-3.5 h-3.5" />
+              Düzenle
+            </button>
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-btn text-body-sm transition-colors"
+                style={{ background: 'rgba(0,6,30,0.05)', color: '#9da5be' }}>
+                <Trash2 className="w-3.5 h-3.5" />Sil
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button onClick={onDelete}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-btn text-body-sm"
+                  style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+                  <AlertTriangle className="w-3.5 h-3.5" />Evet, sil
+                </button>
+                <button onClick={() => setConfirmDelete(false)}
+                  className="px-3 py-2 rounded-btn text-body-sm"
+                  style={{ color: '#6b7388' }}>
+                  İptal
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button onClick={onCopy}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-btn font-semibold text-body-md transition-all"
+            style={isCopied
+              ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a' }
+              : {
+                  background: 'linear-gradient(135deg, #4d8eff 0%, #2563eb 100%)',
+                  color: '#ffffff',
+                  boxShadow: '0 3px 10px rgba(37,99,235,0.3)',
+                }}>
+            {isCopied
+              ? <><Check className="w-4 h-4" />Kopyalandı!</>
+              : <><Copy className="w-4 h-4" />Kopyala</>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Ekle / Düzenle modalı ────────────────────────────────────────────────────
+
+function ResponseModal({ mode, initialData, categories, onSave, onClose }) {
+  const [title,    setTitle]    = useState(initialData?.title    ?? '')
+  const [content,  setContent]  = useState(initialData?.content  ?? '')
+  const [category, setCategory] = useState(initialData?.category ?? (categories[0]?.id ?? 'Genel'))
+
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
+  const canSave = title.trim() && content.trim()
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)' }}
-      onMouseDown={e => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full max-w-2xl flex flex-col rounded-card"
-        style={{
-          background: '#1e2025',
-          border: '1px solid rgba(66,71,84,0.55)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.65)',
-          maxHeight: '90vh',
-        }}
-      >
-        {/* Başlık */}
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(66,71,84,0.35)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-btn flex items-center justify-center"
-              style={{ background: isEdit ? 'rgba(173,198,255,0.12)' : 'rgba(168,213,162,0.12)' }}>
-              {isEdit
-                ? <Pencil className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
-                : <Plus   className="w-3.5 h-3.5" style={{ color: '#a8d5a2' }} />}
-            </div>
-            <h2 className="text-body-md font-semibold" style={{ color: '#e3e5ef' }}>
-              {isEdit ? 'Yanıtı Düzenle' : 'Yeni Yanıt Ekle'}
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:opacity-70" style={{ color: '#8d9099' }} title="Kapat (Esc)">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,6,30,0.4)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}>
+      <div className="w-full max-w-lg rounded-xl overflow-hidden animate-slide-up"
+        style={{ background: '#ffffff', boxShadow: '0 24px 64px rgba(0,6,30,0.18)' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: '1px solid rgba(0,6,30,0.08)' }}>
+          <h2 className="text-title-md font-semibold" style={{ color: '#1a1d2e' }}>
+            {mode === 'add' ? 'Yeni Yanıt Ekle' : 'Yanıtı Düzenle'}
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded hover:opacity-70" style={{ color: '#9da5be' }}>
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Gövde */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-
-          {/* Başlık alanı */}
+        {/* Form */}
+        <div className="px-6 py-5 flex flex-col gap-4">
           <div>
-            <label className="text-label-sm font-medium mb-1.5 block" style={{ color: '#8d9099' }}>
-              Başlık <span style={{ color: '#ffb4ab' }}>*</span>
-            </label>
-            <input
-              ref={titleRef}
-              type="text"
-              className="input-field w-full"
-              placeholder="Yanıt başlığını girin…"
-              value={form.title}
-              onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setErrors(v => ({ ...v, title: '' })) }}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              style={errors.title ? { borderColor: 'rgba(255,180,171,0.5)' } : {}}
-            />
-            {errors.title && (
-              <p className="text-label-sm mt-1 flex items-center gap-1" style={{ color: '#ffb4ab' }}>
-                <AlertTriangle className="w-3 h-3" />{errors.title}
-              </p>
-            )}
+            <label className="text-label-sm font-medium block mb-1.5" style={{ color: '#6b7388' }}>Başlık</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+              className="input-field" placeholder="Yanıt başlığı…" maxLength={120} />
           </div>
-
-          {/* Kategori */}
           <div>
-            <label className="text-label-sm font-medium mb-2 block" style={{ color: '#8d9099' }}>Kategori</label>
-            <div className="flex flex-wrap gap-2">
-              {cats.map(c => {
-                const isSelected = form.category === c.id
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, category: c.id }))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label-sm font-medium transition-all"
-                    style={isSelected
-                      ? { background: `${c.color}20`, color: c.color, border: `1px solid ${c.color}50` }
-                      : { background: 'rgba(66,71,84,0.25)', color: '#8d9099', border: '1px solid rgba(66,71,84,0.4)' }
-                    }
-                  >
-                    <c.icon className="w-3 h-3" />
-                    {c.label}
-                  </button>
-                )
-              })}
-            </div>
+            <label className="text-label-sm font-medium block mb-1.5" style={{ color: '#6b7388' }}>Kategori</label>
+            <select value={category} onChange={e => setCategory(e.target.value)}
+              className="input-field" style={{ cursor: 'pointer' }}>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
           </div>
-
-          {/* İçerik */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-label-sm font-medium" style={{ color: '#8d9099' }}>
-                İçerik <span style={{ color: '#ffb4ab' }}>*</span>
-              </label>
-              <span className="text-label-sm" style={{ color: '#424754' }}>{form.content.length} karakter</span>
-            </div>
-            <textarea
-              className="input-field w-full font-mono text-body-sm"
-              placeholder="Yanıt metnini buraya yazın…"
-              value={form.content}
-              onChange={e => { setForm(f => ({ ...f, content: e.target.value })); setErrors(v => ({ ...v, content: '' })) }}
-              rows={10}
-              style={{
-                resize: 'vertical', minHeight: '180px',
-                ...(errors.content ? { borderColor: 'rgba(255,180,171,0.5)' } : {}),
-              }}
-            />
-            {errors.content && (
-              <p className="text-label-sm mt-1 flex items-center gap-1" style={{ color: '#ffb4ab' }}>
-                <AlertTriangle className="w-3 h-3" />{errors.content}
-              </p>
-            )}
+            <label className="text-label-sm font-medium block mb-1.5" style={{ color: '#6b7388' }}>İçerik</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)}
+              className="textarea-field" placeholder="Hazır yanıt metni…"
+              style={{ minHeight: 140 }} />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderTop: '1px solid rgba(66,71,84,0.35)' }}>
-          <p className="text-label-sm flex items-center gap-1" style={{ color: '#2c2e34' }}>
-            <kbd className="px-1.5 py-0.5 rounded text-label-sm"
-              style={{ background: 'rgba(66,71,84,0.3)', color: '#424754' }}>Esc</kbd>
-            ile kapatın
-          </p>
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="btn-ghost">İptal</button>
-            <button onClick={handleSubmit} className="btn-primary flex items-center gap-2">
-              <Save className="w-4 h-4" />
-              {isEdit ? 'Kaydet' : 'Yanıt Ekle'}
-            </button>
-          </div>
+        <div className="px-6 py-4 flex items-center justify-end gap-3"
+          style={{ borderTop: '1px solid rgba(0,6,30,0.08)', background: '#f8f9fc' }}>
+          <button onClick={onClose} className="btn-ghost">İptal</button>
+          <button
+            onClick={() => canSave && onSave({ title: title.trim(), content: content.trim(), category })}
+            disabled={!canSave}
+            className="btn-primary flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {mode === 'add' ? 'Ekle' : 'Kaydet'}
+          </button>
         </div>
       </div>
     </div>

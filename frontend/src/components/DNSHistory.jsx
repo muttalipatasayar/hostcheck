@@ -33,8 +33,8 @@ export default function DNSHistory() {
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#e3e5ef' }}>DNS History</h1>
-        <p className="text-sm" style={{ color: '#8d9099' }}>
+        <h1 className="text-2xl font-bold mb-1" style={{ color: '#1a1d2e' }}>DNS History</h1>
+        <p className="text-sm" style={{ color: '#6b7388' }}>
           Alan adı kayıt tarihi, registrar bilgisi ve NS sunucu geçmişi
         </p>
       </div>
@@ -45,7 +45,7 @@ export default function DNSHistory() {
           <div className="relative flex-1">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-              style={{ color: '#8d9099' }}
+              style={{ color: '#6b7388' }}
             />
             <input
               type="text"
@@ -54,9 +54,9 @@ export default function DNSHistory() {
               placeholder="example.com"
               className="w-full pl-9 pr-4 py-2.5 rounded-btn text-sm outline-none"
               style={{
-                background: '#1a1c20',
+                background: '#ffffff',
                 border: '1px solid rgba(66,71,84,0.5)',
-                color: '#e3e5ef',
+                color: '#1a1d2e',
               }}
               autoFocus
             />
@@ -65,7 +65,7 @@ export default function DNSHistory() {
             type="submit"
             disabled={loading || !domain.trim()}
             className="px-5 py-2.5 rounded-btn text-sm font-medium transition-opacity disabled:opacity-50"
-            style={{ background: '#adc6ff', color: '#002e6a' }}
+            style={{ background: '#3b7eff', color: '#002e6a' }}
           >
             {loading ? 'Sorgulanıyor…' : 'Sorgula'}
           </button>
@@ -95,21 +95,21 @@ function ResultPanel({ data }) {
       {/* Domain header */}
       <div
         className="px-5 py-4 rounded-card flex items-center gap-3"
-        style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.3)' }}
+        style={{ background: '#ffffff', border: '1px solid rgba(0,6,30,0.09)' }}
       >
         <div
           className="w-9 h-9 rounded-btn flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(173,198,255,0.1)' }}
+          style={{ background: 'rgba(59,127,255,0.09)' }}
         >
-          <Server className="w-4 h-4" style={{ color: '#adc6ff' }} />
+          <Server className="w-4 h-4" style={{ color: '#3b7eff' }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base truncate" style={{ color: '#e3e5ef' }}>{data.domain}</p>
-          <p className="text-xs" style={{ color: '#8d9099' }}>{data.message}</p>
+          <p className="font-semibold text-base truncate" style={{ color: '#1a1d2e' }}>{data.domain}</p>
+          <p className="text-xs" style={{ color: '#6b7388' }}>{data.message}</p>
         </div>
         {data.has_api_key
-          ? <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(177,198,249,0.1)', color: '#b1c6f9' }}>SecurityTrails</span>
-          : <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(66,71,84,0.3)', color: '#8d9099' }}>Temel mod</span>
+          ? <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(177,198,249,0.1)', color: '#4a6cf7' }}>SecurityTrails</span>
+          : <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(0,6,30,0.09)', color: '#6b7388' }}>Temel mod</span>
         }
       </div>
 
@@ -119,19 +119,19 @@ function ResultPanel({ data }) {
           icon={<Clock className="w-4 h-4" />}
           label="İlk Kayıt"
           value={data.created_at ?? '—'}
-          color="#b1c6f9"
+          color="#4a6cf7"
         />
         <InfoCard
           icon={<Shield className="w-4 h-4" />}
           label="Bitiş Tarihi"
           value={data.expires_at ?? '—'}
-          color="#b1c6f9"
+          color="#4a6cf7"
         />
         <InfoCard
           icon={<Building2 className="w-4 h-4" />}
           label="Registrar"
           value={data.registrar ?? '—'}
-          color="#b1c6f9"
+          color="#4a6cf7"
           truncate
         />
       </div>
@@ -144,7 +144,7 @@ function ResultPanel({ data }) {
               <span
                 key={i}
                 className="text-xs px-3 py-1.5 rounded-btn font-mono"
-                style={{ background: 'rgba(177,198,249,0.1)', color: '#b1c6f9', border: '1px solid rgba(177,198,249,0.15)' }}
+                style={{ background: 'rgba(177,198,249,0.1)', color: '#4a6cf7', border: '1px solid rgba(177,198,249,0.15)' }}
               >
                 {ns}
               </span>
@@ -159,7 +159,7 @@ function ResultPanel({ data }) {
           {!data.has_api_key && (
             <div
               className="flex items-center gap-2 text-xs px-3 py-2 rounded mb-3"
-              style={{ background: 'rgba(66,71,84,0.3)', color: '#8d9099' }}
+              style={{ background: 'rgba(0,6,30,0.09)', color: '#6b7388' }}
             >
               <Info className="w-3.5 h-3.5 flex-shrink-0" />
               Tam NS geçmişi için SecurityTrails API anahtarı gereklidir. Şu an yalnızca mevcut NS gösteriliyor.
@@ -180,15 +180,15 @@ function InfoCard({ icon, label, value, color, truncate }) {
   return (
     <div
       className="px-4 py-3 rounded-card flex flex-col gap-1"
-      style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.3)' }}
+      style={{ background: '#ffffff', border: '1px solid rgba(0,6,30,0.09)' }}
     >
-      <div className="flex items-center gap-1.5 text-xs mb-0.5" style={{ color: '#8d9099' }}>
+      <div className="flex items-center gap-1.5 text-xs mb-0.5" style={{ color: '#6b7388' }}>
         <span style={{ color }}>{icon}</span>
         {label}
       </div>
       <p
         className={`text-sm font-medium ${truncate ? 'truncate' : ''}`}
-        style={{ color: '#e3e5ef' }}
+        style={{ color: '#1a1d2e' }}
         title={truncate ? value : undefined}
       >
         {value}
@@ -201,11 +201,11 @@ function Section({ title, icon, children }) {
   return (
     <div
       className="px-5 py-4 rounded-card"
-      style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.3)' }}
+      style={{ background: '#ffffff', border: '1px solid rgba(0,6,30,0.09)' }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <span style={{ color: '#adc6ff' }}>{icon}</span>
-        <h2 className="text-sm font-semibold" style={{ color: '#e3e5ef' }}>{title}</h2>
+        <span style={{ color: '#3b7eff' }}>{icon}</span>
+        <h2 className="text-sm font-semibold" style={{ color: '#1a1d2e' }}>{title}</h2>
       </div>
       {children}
     </div>
@@ -222,31 +222,31 @@ function NSEntry({ entry, isLast }) {
         <div
           className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
           style={{
-            background: entry.is_current ? '#b1c6f9' : 'rgba(66,71,84,0.6)',
-            border: entry.is_current ? '2px solid rgba(177,198,249,0.4)' : '2px solid rgba(66,71,84,0.4)',
+            background: entry.is_current ? '#4a6cf7' : 'rgba(66,71,84,0.6)',
+            border: entry.is_current ? '2px solid rgba(177,198,249,0.4)' : '2px solid rgba(0,6,30,0.12)',
           }}
         />
         {!isLast && (
-          <div className="flex-1 w-px mt-1" style={{ background: 'rgba(66,71,84,0.4)', minHeight: 16 }} />
+          <div className="flex-1 w-px mt-1" style={{ background: 'rgba(0,6,30,0.12)', minHeight: 16 }} />
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 pb-4">
         <div className="flex items-center gap-2 flex-wrap mb-1.5">
-          <span className="text-xs" style={{ color: '#8d9099' }}>
+          <span className="text-xs" style={{ color: '#6b7388' }}>
             {entry.first_seen} — {entry.last_seen}
           </span>
           {entry.is_current && (
             <span
               className="text-xs px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(177,198,249,0.12)', color: '#b1c6f9' }}
+              style={{ background: 'rgba(177,198,249,0.12)', color: '#4a6cf7' }}
             >
               Güncel
             </span>
           )}
           {entry.organizations.length > 0 && (
-            <span className="text-xs" style={{ color: '#8d9099' }}>
+            <span className="text-xs" style={{ color: '#6b7388' }}>
               · {entry.organizations.join(', ')}
             </span>
           )}
@@ -258,7 +258,7 @@ function NSEntry({ entry, isLast }) {
             <span
               key={i}
               className="text-xs font-mono px-2 py-1 rounded inline-block w-fit"
-              style={{ background: 'rgba(66,71,84,0.3)', color: '#c4c7cf' }}
+              style={{ background: 'rgba(0,6,30,0.09)', color: '#c4c7cf' }}
             >
               {ns}
             </span>
@@ -267,7 +267,7 @@ function NSEntry({ entry, isLast }) {
             <button
               onClick={() => setExpanded(v => !v)}
               className="flex items-center gap-1 text-xs mt-0.5 w-fit"
-              style={{ color: '#8d9099' }}
+              style={{ color: '#6b7388' }}
             >
               {expanded
                 ? <><ChevronUp className="w-3 h-3" /> Gizle</>

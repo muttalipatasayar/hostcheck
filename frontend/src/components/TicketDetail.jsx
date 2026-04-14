@@ -31,14 +31,14 @@ function PriorityBadge({ priority }) {
 function MetaItem({ icon: Icon, label, value, mono }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-label-sm" style={{ color: '#424754' }}>{label}</p>
+      <p className="text-label-sm" style={{ color: '#9da5be' }}>{label}</p>
       <div className="flex items-center gap-1.5">
-        <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8d9099' }} />
+        <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#6b7388' }} />
         <p
           className={mono ? 'text-label-md font-mono' : 'text-body-sm'}
-          style={{ color: '#c2c6d6' }}
+          style={{ color: '#4a5068' }}
         >
-          {value || <span style={{ color: '#424754' }}>—</span>}
+          {value || <span style={{ color: '#9da5be' }}>—</span>}
         </p>
       </div>
     </div>
@@ -112,7 +112,7 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-3">
           <div className="spinner w-6 h-6" />
-          <p className="text-body-md" style={{ color: '#8d9099' }}>Yükleniyor...</p>
+          <p className="text-body-md" style={{ color: '#6b7388' }}>Yükleniyor...</p>
         </div>
       </div>
     )
@@ -128,8 +128,8 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
           <ArrowLeft className="w-4 h-4" />
           Talepler
         </button>
-        <span style={{ color: '#424754' }}>/</span>
-        <p className="text-body-sm font-mono" style={{ color: '#8d9099' }}>
+        <span style={{ color: '#9da5be' }}>/</span>
+        <p className="text-body-sm font-mono" style={{ color: '#6b7388' }}>
           {ticket.ticket_no}
         </p>
         <div className="flex-1" />
@@ -141,24 +141,24 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
         {/* Title + status */}
         <div
           className="rounded-card px-6 py-5"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h1
                 className="text-title-lg font-semibold mb-1"
-                style={{ color: '#e3e5ef' }}
+                style={{ color: '#1a1d2e' }}
               >
                 {ticket.subject}
               </h1>
               <div className="flex items-center gap-4">
-                <p className="text-label-md" style={{ color: '#8d9099' }}>
+                <p className="text-label-md" style={{ color: '#6b7388' }}>
                   {format(new Date(ticket.created_at), "d MMMM yyyy, HH:mm", { locale: tr })}
                 </p>
                 {ticket.category && (
                   <span
                     className="text-label-sm px-2 py-0.5 rounded"
-                    style={{ background: 'rgba(173,198,255,0.08)', color: '#adc6ff' }}
+                    style={{ background: 'rgba(173,198,255,0.08)', color: '#3b7eff' }}
                   >
                     {ticket.category}
                   </span>
@@ -171,7 +171,7 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
               {editingStatus ? (
                 <div
                   className="absolute right-0 top-0 z-10 rounded-card overflow-hidden shadow-float py-1"
-                  style={{ background: '#282a2e', minWidth: '140px' }}
+                  style={{ background: '#f2f4fa', minWidth: '140px' }}
                 >
                   {Object.entries(STATUS_LABELS).map(([val, label]) => (
                     <button
@@ -179,8 +179,8 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
                       onClick={() => updateStatus(val)}
                       disabled={saving}
                       className="flex items-center w-full px-4 py-2.5 text-left text-body-sm transition-colors"
-                      style={{ color: ticket.status === val ? '#adc6ff' : '#c2c6d6' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#333539'}
+                      style={{ color: ticket.status === val ? '#3b7eff' : '#4a5068' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#e8eaf3'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {label}
@@ -190,7 +190,7 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
                   <button
                     onClick={() => setEditingStatus(false)}
                     className="flex items-center gap-2 w-full px-4 py-2 text-body-sm"
-                    style={{ color: '#8d9099' }}
+                    style={{ color: '#6b7388' }}
                   >
                     <X className="w-3.5 h-3.5" /> İptal
                   </button>
@@ -210,7 +210,7 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
           {/* Meta grid */}
           <div
             className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 mt-5 pt-5"
-            style={{ borderTop: '1px solid rgba(66,71,84,0.2)' }}
+            style={{ borderTop: '1px solid rgba(0,6,30,0.06)' }}
           >
             <MetaItem icon={User} label="Müşteri" value={ticket.customer_name} />
             <MetaItem icon={Mail} label="E-posta" value={ticket.customer_email} mono />
@@ -222,14 +222,14 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
         {/* Description */}
         <div
           className="rounded-card px-6 py-5"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
-          <p className="text-label-sm font-medium mb-3" style={{ color: '#424754' }}>
+          <p className="text-label-sm font-medium mb-3" style={{ color: '#9da5be' }}>
             MÜŞTERİ AÇIKLAMASI
           </p>
           <p
             className="text-body-md whitespace-pre-wrap"
-            style={{ color: '#c2c6d6', lineHeight: '1.7' }}
+            style={{ color: '#4a5068', lineHeight: '1.7' }}
           >
             {ticket.description}
           </p>
@@ -250,15 +250,15 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
         {/* Internal notes */}
         <div
           className="rounded-card overflow-hidden"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
           <div
             className="flex items-center justify-between px-5 py-4"
-            style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}
+            style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}
           >
             <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4" style={{ color: '#adc6ff' }} />
-              <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
+              <Tag className="w-4 h-4" style={{ color: '#3b7eff' }} />
+              <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>
                 Dahili Notlar
               </p>
             </div>
@@ -298,7 +298,7 @@ export default function TicketDetail({ ticketId, onBack, onTicketUpdated }) {
             ) : (
               <p
                 className="text-body-md whitespace-pre-wrap"
-                style={{ color: notes ? '#c2c6d6' : '#424754' }}
+                style={{ color: notes ? '#4a5068' : '#9da5be' }}
               >
                 {notes || 'Henüz not eklenmemiş. Düzenle butonuna tıklayın.'}
               </p>

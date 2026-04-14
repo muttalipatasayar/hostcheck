@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
   healthy: {
     icon: CheckCircle2,
     dotClass: 'status-dot-healthy',
-    color: '#b1c6f9',
+    color: '#4a6cf7',
     label: 'Sağlıklı',
   },
   error: {
@@ -37,7 +37,7 @@ const STATUS_CONFIG = {
   skipped: {
     icon: Minus,
     dotClass: 'status-dot-pending',
-    color: '#8d9099',
+    color: '#6b7388',
     label: 'Atlandı',
   },
 }
@@ -54,25 +54,25 @@ function CheckRow({ result }) {
         className="w-8 h-8 rounded-btn flex items-center justify-center flex-shrink-0"
         style={{ background: 'rgba(173, 198, 255, 0.06)' }}
       >
-        <CheckIcon className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
+        <CheckIcon className="w-3.5 h-3.5" style={{ color: '#3b7eff' }} />
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
+          <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>
             {result.check_type}
           </p>
           {result.value && (
             <code
               className="text-label-sm font-mono px-1.5 py-0.5 rounded"
-              style={{ background: '#282a2e', color: '#c2c6d6' }}
+              style={{ background: '#f2f4fa', color: '#4a5068' }}
             >
               {result.value}
             </code>
           )}
         </div>
-        <p className="text-label-md" style={{ color: '#8d9099' }}>
+        <p className="text-label-md" style={{ color: '#6b7388' }}>
           {result.message}
         </p>
       </div>
@@ -80,7 +80,7 @@ function CheckRow({ result }) {
       {/* Latency */}
       {result.latency_ms != null && (
         <div className="flex-shrink-0 text-right">
-          <p className="text-label-sm font-mono" style={{ color: '#424754' }}>
+          <p className="text-label-sm font-mono" style={{ color: '#9da5be' }}>
             {result.latency_ms < 1000
               ? `${result.latency_ms.toFixed(0)}ms`
               : `${(result.latency_ms / 1000).toFixed(2)}s`}
@@ -151,21 +151,21 @@ export default function CheckResults({ ticket, onResultsSaved }) {
   return (
     <div
       className="rounded-card overflow-hidden"
-      style={{ background: '#1a1c20' }}
+      style={{ background: '#ffffff' }}
     >
       {/* Panel header */}
       <div
         className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}
+        style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}
       >
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-4 h-4" style={{ color: '#adc6ff' }} />
+          <ShieldCheck className="w-4 h-4" style={{ color: '#3b7eff' }} />
           <div>
-            <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
+            <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>
               Otomatik Kontroller
             </p>
             {results && (
-              <p className="text-label-sm mt-0.5" style={{ color: '#8d9099' }}>
+              <p className="text-label-sm mt-0.5" style={{ color: '#6b7388' }}>
                 {results.length} kontrol tamamlandı
               </p>
             )}
@@ -203,7 +203,7 @@ export default function CheckResults({ ticket, onResultsSaved }) {
       {/* No target warning */}
       {!hasTarget && (
         <div className="px-5 py-4">
-          <p className="text-body-sm" style={{ color: '#8d9099' }}>
+          <p className="text-body-sm" style={{ color: '#6b7388' }}>
             Kontrol çalıştırmak için talep detaylarında domain veya sunucu IP'si ekleyin.
           </p>
         </div>
@@ -214,10 +214,10 @@ export default function CheckResults({ ticket, onResultsSaved }) {
         <div className="flex flex-col">
           {[1, 2, 3].map(i => (
             <div key={i} className="check-row animate-pulse">
-              <div className="w-8 h-8 rounded-btn" style={{ background: '#282a2e' }} />
+              <div className="w-8 h-8 rounded-btn" style={{ background: '#f2f4fa' }} />
               <div className="flex-1 flex flex-col gap-1.5">
-                <div className="h-3 rounded w-20" style={{ background: '#282a2e' }} />
-                <div className="h-3 rounded w-48" style={{ background: '#1e2128' }} />
+                <div className="h-3 rounded w-20" style={{ background: '#f2f4fa' }} />
+                <div className="h-3 rounded w-48" style={{ background: '#f0f2f8' }} />
               </div>
             </div>
           ))}
@@ -229,7 +229,7 @@ export default function CheckResults({ ticket, onResultsSaved }) {
         <>
           <div className="flex flex-col">
             {results.map((r, i) => (
-              <div key={i} style={{ borderBottom: i < results.length - 1 ? '1px solid rgba(66,71,84,0.1)' : 'none' }}>
+              <div key={i} style={{ borderBottom: i < results.length - 1 ? '1px solid rgba(0,6,30,0.04)' : 'none' }}>
                 <CheckRow result={r} />
               </div>
             ))}
@@ -239,10 +239,10 @@ export default function CheckResults({ ticket, onResultsSaved }) {
           {summary && (
             <div
               className="px-5 py-3"
-              style={{ borderTop: '1px solid rgba(66,71,84,0.2)', background: '#111317' }}
+              style={{ borderTop: '1px solid rgba(0,6,30,0.06)', background: '#f0f2f7' }}
             >
-              <p className="text-label-md" style={{ color: '#c2c6d6' }}>
-                <span style={{ color: '#adc6ff', fontWeight: 500 }}>Özet: </span>
+              <p className="text-label-md" style={{ color: '#4a5068' }}>
+                <span style={{ color: '#3b7eff', fontWeight: 500 }}>Özet: </span>
                 {summary}
               </p>
             </div>
@@ -253,11 +253,11 @@ export default function CheckResults({ ticket, onResultsSaved }) {
       {/* Empty state */}
       {!loading && !results && hasTarget && (
         <div className="py-10 text-center px-5">
-          <Play className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: '#c2c6d6' }} />
-          <p className="text-body-md mb-1" style={{ color: '#c2c6d6' }}>
+          <Play className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: '#4a5068' }} />
+          <p className="text-body-md mb-1" style={{ color: '#4a5068' }}>
             Kontroller henüz çalıştırılmadı
           </p>
-          <p className="text-label-md" style={{ color: '#8d9099' }}>
+          <p className="text-label-md" style={{ color: '#6b7388' }}>
             DNS, HTTP, SSL ve ping kontrollerini otomatik çalıştırmak için butona tıklayın
           </p>
         </div>

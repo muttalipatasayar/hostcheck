@@ -30,10 +30,12 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#111317' }}>
-      <Sidebar activeView={view} onNavigate={navigate} />
+    <div className="flex h-screen overflow-hidden" style={{ background: '#f0f2f7' }}>
+      <div style={{ borderRight: '1px solid rgba(0,6,30,0.09)', flexShrink: 0 }}>
+        <Sidebar activeView={view} onNavigate={navigate} />
+      </div>
 
-      <main className="flex-1 overflow-y-auto" style={{ background: '#111317' }}>
+      <main className="flex-1 overflow-y-auto" style={{ background: '#f0f2f7' }}>
         <div className="h-full animate-fade-in" key={view}>
           {renderContent()}
         </div>
@@ -43,14 +45,15 @@ export default function App() {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: '#282a2e',
-            color: '#e3e5ef',
-            border: '1px solid rgba(66,71,84,0.3)',
-            borderRadius: '0.375rem',
+            background: '#ffffff',
+            color: '#1a1d2e',
+            border: '1px solid rgba(0,6,30,0.1)',
+            borderRadius: '0.5rem',
             fontSize: '0.875rem',
+            boxShadow: '0 4px 16px rgba(0,6,30,0.1)',
           },
-          success: { iconTheme: { primary: '#b1c6f9', secondary: '#002e6a' } },
-          error:   { iconTheme: { primary: '#ffb4ab', secondary: '#410002' } },
+          success: { iconTheme: { primary: '#16a34a', secondary: '#ffffff' } },
+          error:   { iconTheme: { primary: '#dc2626', secondary: '#ffffff' } },
           duration: 3000,
         }}
       />

@@ -9,17 +9,17 @@ function StatCard({ label, value, sub, accent }) {
   return (
     <div
       className="rounded-card px-5 py-4 flex flex-col gap-1"
-      style={{ background: '#1a1c20' }}
+      style={{ background: '#ffffff' }}
     >
-      <p className="text-label-md" style={{ color: '#8d9099' }}>{label}</p>
+      <p className="text-label-md" style={{ color: '#6b7388' }}>{label}</p>
       <p
         className="text-headline-lg font-semibold"
-        style={{ color: accent || '#e3e5ef', letterSpacing: '-0.015em' }}
+        style={{ color: accent || '#1a1d2e', letterSpacing: '-0.015em' }}
       >
         {value}
       </p>
       {sub && (
-        <p className="text-label-sm" style={{ color: '#424754' }}>{sub}</p>
+        <p className="text-label-sm" style={{ color: '#9da5be' }}>{sub}</p>
       )}
     </div>
   )
@@ -53,11 +53,11 @@ export default function Dashboard({ tickets, onNavigate }) {
       <div>
         <h1
           className="text-headline-md font-semibold"
-          style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}
+          style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}
         >
           Dashboard
         </h1>
-        <p className="text-body-md mt-1" style={{ color: '#8d9099' }}>
+        <p className="text-body-md mt-1" style={{ color: '#6b7388' }}>
           {format(new Date(), "d MMMM yyyy, EEEE", { locale: tr })}
         </p>
       </div>
@@ -68,13 +68,13 @@ export default function Dashboard({ tickets, onNavigate }) {
           label="Toplam Talep"
           value={stats.total}
           sub="Tüm zamanlar"
-          accent="#e3e5ef"
+          accent="#1a1d2e"
         />
         <StatCard
           label="Açık"
           value={stats.open}
           sub="Yanıt bekliyor"
-          accent="#adc6ff"
+          accent="#3b7eff"
         />
         <StatCard
           label="İşlemde"
@@ -95,23 +95,23 @@ export default function Dashboard({ tickets, onNavigate }) {
         {/* Recent tickets */}
         <div
           className="lg:col-span-3 rounded-card p-5"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-title-md font-medium" style={{ color: '#e3e5ef' }}>
+            <h2 className="text-title-md font-medium" style={{ color: '#1a1d2e' }}>
               Son Talepler
             </h2>
             <button
               onClick={() => onNavigate('tickets')}
               className="text-label-md transition-colors"
-              style={{ color: '#adc6ff' }}
+              style={{ color: '#3b7eff' }}
             >
               Tümünü gör →
             </button>
           </div>
 
           {recentTickets.length === 0 ? (
-            <div className="py-8 text-center" style={{ color: '#8d9099' }}>
+            <div className="py-8 text-center" style={{ color: '#6b7388' }}>
               <Ticket className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-body-md">Henüz talep yok</p>
             </div>
@@ -123,21 +123,21 @@ export default function Dashboard({ tickets, onNavigate }) {
                   onClick={() => onNavigate('ticket-detail', ticket.id)}
                   className="flex items-center gap-4 py-3 px-3 rounded-btn text-left transition-all duration-150 group"
                   style={{ background: 'transparent' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#282a2e'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f2f4fa'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <StatusDot status={ticket.status} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-body-sm font-medium truncate" style={{ color: '#e3e5ef' }}>
+                    <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>
                       {ticket.subject}
                     </p>
-                    <p className="text-label-sm truncate" style={{ color: '#8d9099' }}>
+                    <p className="text-label-sm truncate" style={{ color: '#6b7388' }}>
                       {ticket.customer_name} · {ticket.ticket_no}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <PriorityBadge priority={ticket.priority} />
-                    <p className="text-label-sm" style={{ color: '#424754' }}>
+                    <p className="text-label-sm" style={{ color: '#9da5be' }}>
                       {format(new Date(ticket.created_at), 'dd.MM HH:mm')}
                     </p>
                   </div>
@@ -150,17 +150,17 @@ export default function Dashboard({ tickets, onNavigate }) {
         {/* Urgent tickets */}
         <div
           className="lg:col-span-2 rounded-card p-5"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
           <div className="flex items-center gap-2 mb-5">
             <AlertCircle className="w-4 h-4" style={{ color: '#ffb4ab' }} />
-            <h2 className="text-title-md font-medium" style={{ color: '#e3e5ef' }}>
+            <h2 className="text-title-md font-medium" style={{ color: '#1a1d2e' }}>
               Acil Talepler
             </h2>
           </div>
 
           {urgentTickets.length === 0 ? (
-            <div className="py-8 text-center" style={{ color: '#8d9099' }}>
+            <div className="py-8 text-center" style={{ color: '#6b7388' }}>
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-body-md">Acil talep yok</p>
             </div>
@@ -171,20 +171,20 @@ export default function Dashboard({ tickets, onNavigate }) {
                   key={ticket.id}
                   onClick={() => onNavigate('ticket-detail', ticket.id)}
                   className="flex flex-col gap-1.5 p-3 rounded-btn text-left transition-all duration-150"
-                  style={{ background: '#282a2e' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#333539'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#282a2e'}
+                  style={{ background: '#f2f4fa' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e8eaf3'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#f2f4fa'}
                 >
                   <div className="flex items-center justify-between">
                     <PriorityBadge priority={ticket.priority} />
-                    <p className="text-label-sm" style={{ color: '#8d9099' }}>
+                    <p className="text-label-sm" style={{ color: '#6b7388' }}>
                       {ticket.ticket_no}
                     </p>
                   </div>
-                  <p className="text-body-sm font-medium line-clamp-2" style={{ color: '#e3e5ef' }}>
+                  <p className="text-body-sm font-medium line-clamp-2" style={{ color: '#1a1d2e' }}>
                     {ticket.subject}
                   </p>
-                  <p className="text-label-sm" style={{ color: '#8d9099' }}>
+                  <p className="text-label-sm" style={{ color: '#6b7388' }}>
                     {ticket.customer_name}
                     {ticket.domain && ` · ${ticket.domain}`}
                   </p>

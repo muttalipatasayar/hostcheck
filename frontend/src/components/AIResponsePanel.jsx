@@ -63,25 +63,25 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
   return (
     <div
       className="rounded-card overflow-hidden flex flex-col"
-      style={{ background: '#1a1c20' }}
+      style={{ background: '#ffffff' }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}
+        style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-7 h-7 rounded-btn flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, rgba(173,198,255,0.2) 0%, rgba(77,142,255,0.15) 100%)' }}
           >
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
+            <Sparkles className="w-3.5 h-3.5" style={{ color: '#3b7eff' }} />
           </div>
           <div>
-            <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
+            <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>
               AI Yanıt Üretici
             </p>
-            <p className="text-label-sm mt-0.5" style={{ color: '#8d9099' }}>
+            <p className="text-label-sm mt-0.5" style={{ color: '#6b7388' }}>
               claude-sonnet-4 · Türkçe kurumsal yanıt
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
           {response && (
             <button onClick={copyToClipboard} className="btn-ghost">
               {copied
-                ? <><Check className="w-3.5 h-3.5" style={{ color: '#b1c6f9' }} /> Kopyalandı</>
+                ? <><Check className="w-3.5 h-3.5" style={{ color: '#4a6cf7' }} /> Kopyalandı</>
                 : <><Copy className="w-3.5 h-3.5" /> Kopyala</>
               }
             </button>
@@ -114,13 +114,13 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
       </div>
 
       {/* Optional context */}
-      <div style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}>
+      <div style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}>
         <button
           onClick={() => setShowContext(!showContext)}
           className="flex items-center gap-2 w-full px-5 py-2.5 text-left transition-colors"
-          style={{ color: '#8d9099' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#c2c6d6'}
-          onMouseLeave={e => e.currentTarget.style.color = '#8d9099'}
+          style={{ color: '#6b7388' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#4a5068'}
+          onMouseLeave={e => e.currentTarget.style.color = '#6b7388'}
         >
           <ChevronDown
             className="w-3.5 h-3.5 transition-transform"
@@ -148,7 +148,7 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
           <div className="flex flex-col gap-3 p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="spinner" />
-              <p className="text-body-sm" style={{ color: '#8d9099' }}>
+              <p className="text-body-sm" style={{ color: '#6b7388' }}>
                 Yanıt üretiliyor...
               </p>
             </div>
@@ -158,7 +158,7 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
                 key={i}
                 className="h-3.5 rounded animate-pulse"
                 style={{
-                  background: '#282a2e',
+                  background: '#f2f4fa',
                   width: i % 3 === 0 ? '60%' : i % 2 === 0 ? '85%' : '100%'
                 }}
               />
@@ -175,7 +175,7 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
               <div
                 className="absolute left-0 top-0 bottom-0 w-0.5 rounded"
                 style={{
-                  background: 'linear-gradient(180deg, #adc6ff 0%, rgba(173,198,255,0.1) 100%)',
+                  background: 'linear-gradient(180deg, #3b7eff 0%, rgba(59,127,255,0.09) 100%)',
                   boxShadow: '0 0 8px rgba(173,198,255,0.4)',
                 }}
               />
@@ -183,7 +183,7 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
                 <pre
                   className="text-body-md whitespace-pre-wrap"
                   style={{
-                    color: '#e3e5ef',
+                    color: '#1a1d2e',
                     fontFamily: 'inherit',
                     lineHeight: '1.7',
                   }}
@@ -199,12 +199,12 @@ export default function AIResponsePanel({ ticket, onResponseSaved }) {
               className="w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center"
               style={{ background: 'rgba(173, 198, 255, 0.06)' }}
             >
-              <Sparkles className="w-6 h-6 opacity-30" style={{ color: '#adc6ff' }} />
+              <Sparkles className="w-6 h-6 opacity-30" style={{ color: '#3b7eff' }} />
             </div>
-            <p className="text-body-md font-medium mb-1" style={{ color: '#c2c6d6' }}>
+            <p className="text-body-md font-medium mb-1" style={{ color: '#4a5068' }}>
               Yanıt henüz üretilmedi
             </p>
-            <p className="text-label-md" style={{ color: '#8d9099' }}>
+            <p className="text-label-md" style={{ color: '#6b7388' }}>
               Kontrol sonuçlarını çalıştırdıktan sonra AI yanıt üretmek daha doğru
               ve bağlama uygun sonuçlar verir.
             </p>

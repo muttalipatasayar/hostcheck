@@ -64,11 +64,11 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
           <div>
             <h1
               className="text-headline-md font-semibold"
-              style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}
+              style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}
             >
               Destek Talepleri
             </h1>
-            <p className="text-body-md mt-1" style={{ color: '#8d9099' }}>
+            <p className="text-body-md mt-1" style={{ color: '#6b7388' }}>
               {tickets.length} talep · {tickets.filter(t => t.status === 'open').length} açık
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
           <div className="relative flex-1 max-w-xs">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-              style={{ color: '#8d9099' }}
+              style={{ color: '#6b7388' }}
             />
             <input
               type="text"
@@ -98,7 +98,7 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="input-field w-auto pr-8"
-            style={{ background: '#0d0f12', color: '#c2c6d6', cursor: 'pointer' }}
+            style={{ background: '#eaedf5', color: '#4a5068', cursor: 'pointer' }}
           >
             <option value="all">Tüm Durumlar</option>
             <option value="open">Açık</option>
@@ -111,7 +111,7 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
             className="input-field w-auto pr-8"
-            style={{ background: '#0d0f12', color: '#c2c6d6', cursor: 'pointer' }}
+            style={{ background: '#eaedf5', color: '#4a5068', cursor: 'pointer' }}
           >
             <option value="all">Tüm Öncelikler</option>
             <option value="critical">Kritik</option>
@@ -127,33 +127,33 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
         {loading ? (
           <div className="py-20 text-center">
             <div className="spinner mx-auto mb-3" />
-            <p className="text-body-md" style={{ color: '#8d9099' }}>Yükleniyor...</p>
+            <p className="text-body-md" style={{ color: '#6b7388' }}>Yükleniyor...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
-            <Ticket className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: '#c2c6d6' }} />
-            <p className="text-title-md font-medium mb-1" style={{ color: '#c2c6d6' }}>
+            <Ticket className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: '#4a5068' }} />
+            <p className="text-title-md font-medium mb-1" style={{ color: '#4a5068' }}>
               {search || statusFilter !== 'all' || priorityFilter !== 'all'
                 ? 'Filtrelerle eşleşen talep bulunamadı'
                 : 'Henüz talep yok'}
             </p>
-            <p className="text-body-md" style={{ color: '#8d9099' }}>
+            <p className="text-body-md" style={{ color: '#6b7388' }}>
               {!search && statusFilter === 'all' && priorityFilter === 'all' && 'Yeni bir talep oluşturun'}
             </p>
           </div>
         ) : (
           /* Table-like layout */
-          <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+          <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
             {/* Column headers */}
             <div
               className="grid gap-4 px-4 py-3 border-b"
               style={{
                 gridTemplateColumns: '1fr 180px 100px 90px 110px 24px',
-                borderColor: 'rgba(66,71,84,0.2)'
+                borderColor: 'rgba(0,6,30,0.06)'
               }}
             >
               {['Konu / Müşteri', 'Domain', 'Durum', 'Öncelik', 'Tarih', ''].map(col => (
-                <p key={col} className="text-label-sm font-medium" style={{ color: '#424754' }}>
+                <p key={col} className="text-label-sm font-medium" style={{ color: '#9da5be' }}>
                   {col}
                 </p>
               ))}
@@ -169,17 +169,17 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
                   background: 'transparent',
                   borderBottom: i < filtered.length - 1 ? '1px solid rgba(66,71,84,0.12)' : 'none',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#282a2e'}
+                onMouseEnter={e => e.currentTarget.style.background = '#f2f4fa'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 {/* Subject + customer */}
                 <div className="flex items-center gap-3 min-w-0">
                   <StatusDot status={ticket.status} />
                   <div className="min-w-0">
-                    <p className="text-body-sm font-medium truncate" style={{ color: '#e3e5ef' }}>
+                    <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>
                       {ticket.subject}
                     </p>
-                    <p className="text-label-sm truncate mt-0.5" style={{ color: '#8d9099' }}>
+                    <p className="text-label-sm truncate mt-0.5" style={{ color: '#6b7388' }}>
                       {ticket.customer_name} · {ticket.ticket_no}
                     </p>
                   </div>
@@ -187,8 +187,8 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
 
                 {/* Domain */}
                 <div className="flex items-center">
-                  <p className="text-label-md font-mono truncate" style={{ color: '#c2c6d6' }}>
-                    {ticket.domain || <span style={{ color: '#424754' }}>—</span>}
+                  <p className="text-label-md font-mono truncate" style={{ color: '#4a5068' }}>
+                    {ticket.domain || <span style={{ color: '#9da5be' }}>—</span>}
                   </p>
                 </div>
 
@@ -204,7 +204,7 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
 
                 {/* Date */}
                 <div className="flex items-center">
-                  <p className="text-label-md" style={{ color: '#8d9099' }}>
+                  <p className="text-label-md" style={{ color: '#6b7388' }}>
                     {format(new Date(ticket.created_at), 'dd.MM.yy HH:mm')}
                   </p>
                 </div>
@@ -213,7 +213,7 @@ export default function TicketList({ tickets, onSelect, onNewTicket, loading }) 
                 <div className="flex items-center justify-end">
                   <ChevronRight
                     className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5"
-                    style={{ color: '#424754' }}
+                    style={{ color: '#9da5be' }}
                   />
                 </div>
               </button>

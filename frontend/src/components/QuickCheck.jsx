@@ -9,26 +9,26 @@ import toast from 'react-hot-toast'
 import axios from 'axios'
 
 const STATUS_CONFIG = {
-  healthy: { icon: CheckCircle2, color: '#b1c6f9', dot: 'status-dot-healthy', label: 'Sağlıklı' },
+  healthy: { icon: CheckCircle2, color: '#4a6cf7', dot: 'status-dot-healthy', label: 'Sağlıklı' },
   warning: { icon: AlertTriangle, color: '#ffb786', dot: 'status-dot-warning', label: 'Uyarı' },
   error:   { icon: XCircle,       color: '#ffb4ab', dot: 'status-dot-error',   label: 'Hata' },
-  info:    { icon: Info,           color: '#adc6ff', dot: 'status-dot-pending', label: 'Bilgi' },
+  info:    { icon: Info,           color: '#3b7eff', dot: 'status-dot-pending', label: 'Bilgi' },
 }
 
 // EPP domain status kodları — label + renk
 const EPP_STATUS = {
   ok:                           { label: 'Aktif',                       color: '#a8d5a2', bg: 'rgba(168,213,162,0.12)' },
   active:                       { label: 'Aktif',                       color: '#a8d5a2', bg: 'rgba(168,213,162,0.12)' },
-  clienttransferprohibited:     { label: 'Transfer Kilitli',            color: '#adc6ff', bg: 'rgba(173,198,255,0.1)'  },
-  servertransferprohibited:     { label: 'Transfer Kilitli (Kayıt Kur.)', color: '#adc6ff', bg: 'rgba(173,198,255,0.1)' },
+  clienttransferprohibited:     { label: 'Transfer Kilitli',            color: '#3b7eff', bg: 'rgba(59,127,255,0.09)'  },
+  servertransferprohibited:     { label: 'Transfer Kilitli (Kayıt Kur.)', color: '#3b7eff', bg: 'rgba(59,127,255,0.09)' },
   clienthold:                   { label: 'Askıda — DNS Yok!',           color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
   serverhold:                   { label: 'Askıda (Sunucu Engeli)',      color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
   pendingtransfer:              { label: 'Transfer Bekliyor',           color: '#f5d37a', bg: 'rgba(245,211,122,0.1)'  },
   pendingdelete:                { label: 'Silinme Bekliyor',            color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
   redemptionperiod:             { label: 'Kurtarma Sürecinde',          color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
-  clientdeleteprohibited:       { label: 'Silme Kilitli',               color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
-  serverdeleteprohibited:       { label: 'Silme Kilitli (Kayıt Kur.)', color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
-  clientupdateprohibited:       { label: 'Güncelleme Kilitli',          color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
+  clientdeleteprohibited:       { label: 'Silme Kilitli',               color: '#6b7388', bg: 'rgba(141,144,153,0.1)'  },
+  serverdeleteprohibited:       { label: 'Silme Kilitli (Kayıt Kur.)', color: '#6b7388', bg: 'rgba(141,144,153,0.1)'  },
+  clientupdateprohibited:       { label: 'Güncelleme Kilitli',          color: '#6b7388', bg: 'rgba(141,144,153,0.1)'  },
   clientrenewprohibited:        { label: 'Yenileme Kilitli',            color: '#f5d37a', bg: 'rgba(245,211,122,0.1)'  },
   addperiod:                    { label: 'Yeni Kayıt (Koruma Süresi)',  color: '#d4a8ff', bg: 'rgba(212,168,255,0.1)'  },
 }
@@ -50,25 +50,25 @@ function CheckRow({ item }) {
   return (
     <div
       className="flex items-center gap-4 px-5 py-3.5 transition-colors"
-      style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+      style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,6,30,0.02)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
       {/* Icon */}
       <div
         className="w-8 h-8 rounded-btn flex items-center justify-center flex-shrink-0"
-        style={{ background: 'rgba(173,198,255,0.06)' }}
+        style={{ background: 'rgba(59,127,255,0.05)' }}
       >
-        <Icon className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
+        <Icon className="w-3.5 h-3.5" style={{ color: '#3b7eff' }} />
       </div>
 
       {/* Label + detail + EPP badges */}
       <div className="flex-1 min-w-0">
-        <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
+        <p className="text-body-sm font-medium" style={{ color: '#1a1d2e' }}>
           {item.label}
         </p>
         {item.detail && (
-          <p className="text-label-md mt-0.5 truncate" style={{ color: '#8d9099' }}>
+          <p className="text-label-md mt-0.5 truncate" style={{ color: '#6b7388' }}>
             {item.detail}
           </p>
         )}
@@ -76,7 +76,7 @@ function CheckRow({ item }) {
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {item.domain_statuses.map((s, i) => {
               const key = s.toLowerCase()
-              const meta = EPP_STATUS[key] || { label: s, color: '#8d9099', bg: 'rgba(141,144,153,0.1)' }
+              const meta = EPP_STATUS[key] || { label: s, color: '#6b7388', bg: 'rgba(141,144,153,0.1)' }
               return (
                 <span
                   key={i}
@@ -96,7 +96,7 @@ function CheckRow({ item }) {
       {item.value && (
         <code
           className="text-label-md font-mono px-2 py-0.5 rounded flex-shrink-0"
-          style={{ background: '#282a2e', color: cfg.color }}
+          style={{ background: '#f2f4fa', color: cfg.color }}
         >
           {item.value}
         </code>
@@ -104,7 +104,7 @@ function CheckRow({ item }) {
 
       {/* Latency */}
       {item.latency_ms != null && (
-        <p className="text-label-sm font-mono flex-shrink-0" style={{ color: '#424754' }}>
+        <p className="text-label-sm font-mono flex-shrink-0" style={{ color: '#9da5be' }}>
           {item.latency_ms < 1000 ? `${item.latency_ms}ms` : `${(item.latency_ms/1000).toFixed(1)}s`}
         </p>
       )}
@@ -134,7 +134,7 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
       {/* Hata başlığı */}
       <div
         className="flex items-center gap-3 px-5 py-4 rounded-card"
-        style={{ background: '#282a2e' }}
+        style={{ background: '#f2f4fa' }}
       >
         <div
           className="w-9 h-9 rounded-btn flex items-center justify-center flex-shrink-0"
@@ -146,7 +146,7 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
           <p className="text-body-sm font-semibold" style={{ color: '#ffb4ab' }}>
             {analysis.title}
           </p>
-          <p className="text-label-sm mt-0.5" style={{ color: '#8d9099' }}>
+          <p className="text-label-sm mt-0.5" style={{ color: '#6b7388' }}>
             Platform: {analysis.platform} · HTTP {httpStatus}
           </p>
         </div>
@@ -156,10 +156,10 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Olası nedenler */}
-        <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+        <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
           <div
             className="flex items-center gap-2 px-4 py-3"
-            style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}
+            style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}
           >
             <Info className="w-3.5 h-3.5" style={{ color: '#ffb786' }} />
             <p className="text-label-md font-medium" style={{ color: '#ffb786' }}>
@@ -171,24 +171,24 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
               <div key={i} className="flex items-start gap-2">
                 <span
                   className="text-label-sm font-mono mt-0.5 flex-shrink-0"
-                  style={{ color: '#424754' }}
+                  style={{ color: '#9da5be' }}
                 >
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <p className="text-body-sm" style={{ color: '#c2c6d6' }}>{cause}</p>
+                <p className="text-body-sm" style={{ color: '#4a5068' }}>{cause}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Teknik adımlar — senin için */}
-        <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+        <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
           <div
             className="flex items-center gap-2 px-4 py-3"
-            style={{ borderBottom: '1px solid rgba(66,71,84,0.2)' }}
+            style={{ borderBottom: '1px solid rgba(0,6,30,0.06)' }}
           >
-            <Wrench className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
-            <p className="text-label-md font-medium" style={{ color: '#adc6ff' }}>
+            <Wrench className="w-3.5 h-3.5" style={{ color: '#3b7eff' }} />
+            <p className="text-label-md font-medium" style={{ color: '#3b7eff' }}>
               Sen Ne Yapacaksın
             </p>
           </div>
@@ -197,13 +197,13 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
               <div key={i} className="flex items-start gap-2.5">
                 <div
                   className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: 'rgba(173,198,255,0.1)' }}
+                  style={{ background: 'rgba(59,127,255,0.09)' }}
                 >
-                  <span className="text-label-sm font-medium" style={{ color: '#adc6ff' }}>
+                  <span className="text-label-sm font-medium" style={{ color: '#3b7eff' }}>
                     {i + 1}
                   </span>
                 </div>
-                <p className="text-body-sm" style={{ color: '#c2c6d6' }}>{step}</p>
+                <p className="text-body-sm" style={{ color: '#4a5068' }}>{step}</p>
               </div>
             ))}
           </div>
@@ -211,31 +211,31 @@ function ErrorAnalysisPanel({ analysis, httpStatus }) {
       </div>
 
       {/* Müşteri yanıt taslağı */}
-      <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+      <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
         <button
           onClick={() => setShowCustomer(!showCustomer)}
           className="flex items-center justify-between w-full px-4 py-3 text-left"
-          style={{ borderBottom: showCustomer ? '1px solid rgba(66,71,84,0.2)' : 'none' }}
+          style={{ borderBottom: showCustomer ? '1px solid rgba(0,6,30,0.06)' : 'none' }}
         >
           <div className="flex items-center gap-2">
-            <User className="w-3.5 h-3.5" style={{ color: '#b1c6f9' }} />
-            <p className="text-label-md font-medium" style={{ color: '#b1c6f9' }}>
+            <User className="w-3.5 h-3.5" style={{ color: '#4a6cf7' }} />
+            <p className="text-label-md font-medium" style={{ color: '#4a6cf7' }}>
               {analysis.customer_action ? 'Müşteri Yapacak — Rehber Metin' : 'Müşteriye Yanıt Taslağı'}
             </p>
           </div>
           {showCustomer
-            ? <ChevronUp className="w-4 h-4" style={{ color: '#424754' }} />
-            : <ChevronDown className="w-4 h-4" style={{ color: '#424754' }} />
+            ? <ChevronUp className="w-4 h-4" style={{ color: '#9da5be' }} />
+            : <ChevronDown className="w-4 h-4" style={{ color: '#9da5be' }} />
           }
         </button>
         {showCustomer && (
           <div className="px-4 pb-4 pt-3">
-            <p className="text-body-sm mb-3" style={{ color: '#c2c6d6', lineHeight: '1.7' }}>
+            <p className="text-body-sm mb-3" style={{ color: '#4a5068', lineHeight: '1.7' }}>
               {analysis.draft}
             </p>
             <button onClick={copyDraft} className="btn-ghost text-label-md">
               {copied
-                ? <><Check className="w-3.5 h-3.5" style={{ color: '#b1c6f9' }} /> Kopyalandı</>
+                ? <><Check className="w-3.5 h-3.5" style={{ color: '#4a6cf7' }} /> Kopyalandı</>
                 : <><Copy className="w-3.5 h-3.5" /> Kopyala</>
               }
             </button>
@@ -264,20 +264,20 @@ function SitePreview({ domain }) {
     <div>
       <p
         className="text-label-sm font-medium uppercase tracking-wider mb-3"
-        style={{ color: '#424754' }}
+        style={{ color: '#9da5be' }}
       >
         Site Görünümü
       </p>
 
-      <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+      <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
         {/* Adres çubuğu */}
         <div
           className="flex items-center justify-between px-4 py-2.5"
-          style={{ borderBottom: '1px solid rgba(66,71,84,0.15)' }}
+          style={{ borderBottom: '1px solid rgba(0,6,30,0.05)' }}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Monitor className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8d9099' }} />
-            <p className="text-label-md font-mono truncate" style={{ color: '#8d9099' }}>
+            <Monitor className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#6b7388' }} />
+            <p className="text-label-md font-mono truncate" style={{ color: '#6b7388' }}>
               https://{domain}
             </p>
           </div>
@@ -299,12 +299,12 @@ function SitePreview({ domain }) {
         </div>
 
         {/* Screenshot alanı */}
-        <div className="relative" style={{ minHeight: '240px', background: '#111317' }}>
+        <div className="relative" style={{ minHeight: '240px', background: '#f0f2f7' }}>
           {/* Loading */}
           {!imgLoaded && !imgError && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-              style={{ color: '#424754' }}
+              style={{ color: '#9da5be' }}
             >
               <Loader2 className="w-5 h-5 animate-spin" />
               <p className="text-label-sm">Ekran görüntüsü alınıyor...</p>
@@ -315,11 +315,11 @@ function SitePreview({ domain }) {
           {imgError && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-              style={{ color: '#424754' }}
+              style={{ color: '#9da5be' }}
             >
               <Monitor className="w-7 h-7 opacity-30" />
-              <p className="text-body-sm" style={{ color: '#8d9099' }}>Önizleme alınamadı</p>
-              <p className="text-label-sm text-center max-w-xs" style={{ color: '#424754' }}>
+              <p className="text-body-sm" style={{ color: '#6b7388' }}>Önizleme alınamadı</p>
+              <p className="text-label-sm text-center max-w-xs" style={{ color: '#9da5be' }}>
                 Site HTTPS'i reddediyor veya screenshot servisi ulaşamıyor olabilir
               </p>
             </div>
@@ -378,16 +378,16 @@ export default function QuickCheck() {
             className="w-8 h-8 rounded-btn flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, rgba(173,198,255,0.2) 0%, rgba(77,142,255,0.15) 100%)' }}
           >
-            <Zap className="w-4 h-4" style={{ color: '#adc6ff' }} />
+            <Zap className="w-4 h-4" style={{ color: '#3b7eff' }} />
           </div>
           <h1
             className="text-headline-md font-semibold"
-            style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}
+            style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}
           >
             Hızlı Kontrol
           </h1>
         </div>
-        <p className="text-body-md" style={{ color: '#8d9099' }}>
+        <p className="text-body-md" style={{ color: '#6b7388' }}>
           Alan adı yaz — WHOIS, DNS, SSL, HTTP kontrollerini saniyeler içinde gör
         </p>
       </div>
@@ -396,9 +396,9 @@ export default function QuickCheck() {
       <div className="px-8 pb-6">
         <div
           className="flex items-center gap-3 rounded-card px-4 py-3"
-          style={{ background: '#1a1c20' }}
+          style={{ background: '#ffffff' }}
         >
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#8d9099' }} />
+          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
           <input
             ref={inputRef}
             type="text"
@@ -407,7 +407,7 @@ export default function QuickCheck() {
             onKeyDown={handleKey}
             placeholder="example.com"
             className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#e3e5ef', caretColor: '#adc6ff' }}
+            style={{ color: '#1a1d2e', caretColor: '#2d6be4' }}
             autoFocus
           />
           <button
@@ -426,19 +426,19 @@ export default function QuickCheck() {
       {/* Results */}
       {loading && (
         <div className="px-8">
-          <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+          <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
             {[1,2,3,4,5,6].map(i => (
               <div
                 key={i}
                 className="flex items-center gap-4 px-5 py-3.5 animate-pulse"
-                style={{ borderBottom: '1px solid rgba(66,71,84,0.1)' }}
+                style={{ borderBottom: '1px solid rgba(0,6,30,0.04)' }}
               >
-                <div className="w-8 h-8 rounded-btn" style={{ background: '#282a2e' }} />
+                <div className="w-8 h-8 rounded-btn" style={{ background: '#f2f4fa' }} />
                 <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="h-3 rounded w-32" style={{ background: '#282a2e' }} />
-                  <div className="h-3 rounded w-56" style={{ background: '#1e2128' }} />
+                  <div className="h-3 rounded w-32" style={{ background: '#f2f4fa' }} />
+                  <div className="h-3 rounded w-56" style={{ background: '#f0f2f8' }} />
                 </div>
-                <div className="h-5 w-20 rounded" style={{ background: '#282a2e' }} />
+                <div className="h-5 w-20 rounded" style={{ background: '#f2f4fa' }} />
               </div>
             ))}
           </div>
@@ -451,7 +451,7 @@ export default function QuickCheck() {
           {/* Overall status banner */}
           <div
             className="flex items-center justify-between px-5 py-4 rounded-card"
-            style={{ background: '#1a1c20' }}
+            style={{ background: '#ffffff' }}
           >
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -460,12 +460,12 @@ export default function QuickCheck() {
                   {overallCfg?.label}
                 </p>
               </div>
-              <span style={{ color: '#424754' }}>·</span>
-              <p className="text-body-sm font-mono" style={{ color: '#adc6ff' }}>
+              <span style={{ color: '#9da5be' }}>·</span>
+              <p className="text-body-sm font-mono" style={{ color: '#3b7eff' }}>
                 {result.domain}
               </p>
-              <span style={{ color: '#424754' }}>·</span>
-              <p className="text-body-sm" style={{ color: '#8d9099' }}>
+              <span style={{ color: '#9da5be' }}>·</span>
+              <p className="text-body-sm" style={{ color: '#6b7388' }}>
                 {result.summary}
               </p>
             </div>
@@ -478,7 +478,7 @@ export default function QuickCheck() {
                     : 'rgba(177,198,249,0.1)',
                   color: result.http_status >= 500 ? '#ffb4ab'
                     : result.http_status >= 400 ? '#ffb786'
-                    : '#b1c6f9',
+                    : '#4a6cf7',
                 }}
               >
                 HTTP {result.http_status}
@@ -487,7 +487,7 @@ export default function QuickCheck() {
           </div>
 
           {/* Check rows */}
-          <div className="rounded-card overflow-hidden" style={{ background: '#1a1c20' }}>
+          <div className="rounded-card overflow-hidden" style={{ background: '#ffffff' }}>
             {result.checks.map((item, i) => (
               <CheckRow key={i} item={item} />
             ))}
@@ -501,7 +501,7 @@ export default function QuickCheck() {
             <div>
               <p
                 className="text-label-sm font-medium uppercase tracking-wider mb-3"
-                style={{ color: '#424754' }}
+                style={{ color: '#9da5be' }}
               >
                 Hata Analizi
               </p>
@@ -519,7 +519,7 @@ export default function QuickCheck() {
               style={{ background: 'rgba(255,183,134,0.06)' }}
             >
               <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#ffb786' }} />
-              <p className="text-body-sm" style={{ color: '#c2c6d6' }}>
+              <p className="text-body-sm" style={{ color: '#4a5068' }}>
                 Bazı kontrollerde uyarı mevcut. Detayları yukarıdan inceleyin.
               </p>
             </div>
@@ -531,8 +531,8 @@ export default function QuickCheck() {
               className="px-5 py-4 rounded-card flex items-center gap-3"
               style={{ background: 'rgba(177,198,249,0.06)' }}
             >
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#b1c6f9' }} />
-              <p className="text-body-sm" style={{ color: '#c2c6d6' }}>
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#4a6cf7' }} />
+              <p className="text-body-sm" style={{ color: '#4a5068' }}>
                 Tüm kontroller başarılı. Alan adı sağlıklı görünüyor.
               </p>
             </div>
@@ -545,14 +545,14 @@ export default function QuickCheck() {
         <div className="flex-1 flex flex-col items-center justify-center pb-20">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-            style={{ background: 'rgba(173,198,255,0.06)' }}
+            style={{ background: 'rgba(59,127,255,0.05)' }}
           >
-            <Search className="w-7 h-7 opacity-30" style={{ color: '#adc6ff' }} />
+            <Search className="w-7 h-7 opacity-30" style={{ color: '#3b7eff' }} />
           </div>
-          <p className="text-title-md font-medium mb-1" style={{ color: '#c2c6d6' }}>
+          <p className="text-title-md font-medium mb-1" style={{ color: '#4a5068' }}>
             Alan adı girin
           </p>
-          <p className="text-body-md text-center max-w-xs" style={{ color: '#8d9099' }}>
+          <p className="text-body-md text-center max-w-xs" style={{ color: '#6b7388' }}>
             WHOIS, DNS (NS/A/MX), SSL ve HTTP kontrolleri otomatik çalışır
           </p>
         </div>

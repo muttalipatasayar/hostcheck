@@ -70,16 +70,16 @@ export default function NewTicketForm({ onBack, onCreated }) {
             className="w-8 h-8 rounded-btn flex items-center justify-center"
             style={{ background: 'rgba(173, 198, 255, 0.1)' }}
           >
-            <Ticket className="w-4 h-4" style={{ color: '#adc6ff' }} />
+            <Ticket className="w-4 h-4" style={{ color: '#3b7eff' }} />
           </div>
           <h1
             className="text-headline-md font-semibold"
-            style={{ color: '#e3e5ef', letterSpacing: '-0.01em' }}
+            style={{ color: '#1a1d2e', letterSpacing: '-0.01em' }}
           >
             Yeni Talep
           </h1>
         </div>
-        <p className="text-body-md" style={{ color: '#8d9099' }}>
+        <p className="text-body-md" style={{ color: '#6b7388' }}>
           Müşteri bilgilerini ve talep detaylarını girin
         </p>
       </div>
@@ -87,7 +87,7 @@ export default function NewTicketForm({ onBack, onCreated }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-8 px-8 pb-10 max-w-3xl">
         {/* Customer info */}
         <section>
-          <h2 className="text-title-md font-medium mb-4" style={{ color: '#e3e5ef' }}>
+          <h2 className="text-title-md font-medium mb-4" style={{ color: '#1a1d2e' }}>
             Müşteri Bilgileri
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -113,7 +113,7 @@ export default function NewTicketForm({ onBack, onCreated }) {
 
         {/* Technical info */}
         <section>
-          <h2 className="text-title-md font-medium mb-4" style={{ color: '#e3e5ef' }}>
+          <h2 className="text-title-md font-medium mb-4" style={{ color: '#1a1d2e' }}>
             Teknik Bilgiler
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -138,7 +138,7 @@ export default function NewTicketForm({ onBack, onCreated }) {
 
         {/* Ticket details */}
         <section>
-          <h2 className="text-title-md font-medium mb-4" style={{ color: '#e3e5ef' }}>
+          <h2 className="text-title-md font-medium mb-4" style={{ color: '#1a1d2e' }}>
             Talep Detayları
           </h2>
           <div className="flex flex-col gap-3">
@@ -155,7 +155,7 @@ export default function NewTicketForm({ onBack, onCreated }) {
               <Field label="Kategori">
                 <select
                   className="input-field"
-                  style={{ background: '#0d0f12', cursor: 'pointer' }}
+                  style={{ background: '#eaedf5', cursor: 'pointer' }}
                   value={form.category}
                   onChange={set('category')}
                 >
@@ -169,7 +169,7 @@ export default function NewTicketForm({ onBack, onCreated }) {
               <Field label="Öncelik">
                 <select
                   className="input-field"
-                  style={{ background: '#0d0f12', cursor: 'pointer' }}
+                  style={{ background: '#eaedf5', cursor: 'pointer' }}
                   value={form.priority}
                   onChange={set('priority')}
                 >
@@ -211,11 +211,11 @@ function Field({ label, hint, children }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
-        <label className="text-label-md font-medium" style={{ color: '#c2c6d6' }}>
+        <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>
           {label}
         </label>
         {hint && (
-          <span className="text-label-sm" style={{ color: '#424754' }}>{hint}</span>
+          <span className="text-label-sm" style={{ color: '#9da5be' }}>{hint}</span>
         )}
       </div>
       {children}

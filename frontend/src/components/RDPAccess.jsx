@@ -235,11 +235,11 @@ export default function RDPAccess() {
             >
               <Monitor className="w-4 h-4" style={{ color: '#d4a8ff' }} />
             </div>
-            <h1 className="text-headline-md font-semibold" style={{ color: '#e3e5ef' }}>
+            <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e' }}>
               RDP Uzak Masaüstü
             </h1>
           </div>
-          <p className="text-body-md pl-11" style={{ color: '#8d9099' }}>
+          <p className="text-body-md pl-11" style={{ color: '#6b7388' }}>
             {isConnected
               ? `${activeConn?.username}@${activeConn?.host}:${activeConn?.port} — aktif oturum`
               : 'Windows sunucularına tarayıcı üzerinden uzak masaüstü bağlantısı açın.'}
@@ -265,15 +265,15 @@ export default function RDPAccess() {
       {/* ── Connection Form ───────────────────────────────────────────────────── */}
       {showForm && (
         <div className="px-8 pb-5 flex-shrink-0 overflow-y-auto">
-          <div className="rounded-card p-5" style={{ background: '#1a1c20' }}>
-            <p className="text-label-sm font-medium mb-4" style={{ color: '#8d9099' }}>
+          <div className="rounded-card p-5" style={{ background: '#ffffff' }}>
+            <p className="text-label-sm font-medium mb-4" style={{ color: '#6b7388' }}>
               BAĞLANTI BİLGİLERİ
             </p>
 
             {/* Row 1: Host + Port */}
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="col-span-2">
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
                   Sunucu (Host / IP)
                 </label>
                 <input
@@ -286,7 +286,7 @@ export default function RDPAccess() {
                 />
               </div>
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Port</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Port</label>
                 <input
                   type="number"
                   className="input-field w-full"
@@ -302,7 +302,7 @@ export default function RDPAccess() {
             {/* Row 2: Username + Password */}
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Kullanıcı Adı</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Kullanıcı Adı</label>
                 <input
                   type="text"
                   className="input-field w-full"
@@ -314,7 +314,7 @@ export default function RDPAccess() {
                 />
               </div>
               <div>
-                <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>Şifre</label>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Şifre</label>
                 <input
                   type="password"
                   className="input-field w-full"
@@ -329,8 +329,8 @@ export default function RDPAccess() {
 
             {/* Row 3: Domain (optional) */}
             <div className="mb-4">
-              <label className="text-label-sm mb-1.5 block" style={{ color: '#8d9099' }}>
-                Domain <span style={{ color: '#424754' }}>(isteğe bağlı)</span>
+              <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
+                Domain <span style={{ color: '#9da5be' }}>(isteğe bağlı)</span>
               </label>
               <input
                 type="text"
@@ -366,7 +366,7 @@ export default function RDPAccess() {
               {/* guacd info */}
               <div
                 className="flex items-center gap-1.5 text-label-sm"
-                style={{ color: '#424754' }}
+                style={{ color: '#9da5be' }}
                 title="guacd Docker: docker run -d -p 4822:4822 guacamole/guacd"
               >
                 <Info className="w-3.5 h-3.5" />
@@ -377,11 +377,11 @@ export default function RDPAccess() {
             {/* guacd setup hint */}
             <div
               className="mt-4 px-3 py-2.5 rounded-btn text-label-sm"
-              style={{ background: 'rgba(173,198,255,0.06)', color: '#8d9099', border: '1px solid rgba(173,198,255,0.1)' }}
+              style={{ background: 'rgba(59,127,255,0.05)', color: '#6b7388', border: '1px solid rgba(59,127,255,0.09)' }}
             >
-              <span style={{ color: '#adc6ff' }}>guacd kurulum:</span>
+              <span style={{ color: '#3b7eff' }}>guacd kurulum:</span>
               {'  '}
-              <code style={{ color: '#c9cdd6', background: 'rgba(255,255,255,0.05)', padding: '1px 6px', borderRadius: 4 }}>
+              <code style={{ color: '#c9cdd6', background: 'rgba(0,6,30,0.04)', padding: '1px 6px', borderRadius: 4 }}>
                 docker run -d -p 4822:4822 guacamole/guacd
               </code>
             </div>
@@ -392,7 +392,7 @@ export default function RDPAccess() {
             <div className="mt-5">
               <p
                 className="text-label-sm font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                style={{ color: '#424754' }}
+                style={{ color: '#9da5be' }}
               >
                 <Clock className="w-3.5 h-3.5" />
                 Son Bağlantılar
@@ -403,7 +403,7 @@ export default function RDPAccess() {
                     key={i}
                     onClick={() => loadSavedConn(c)}
                     className="group flex items-center gap-3 px-4 py-3 rounded-btn text-left w-full transition-colors"
-                    style={{ background: '#1a1c20' }}
+                    style={{ background: '#ffffff' }}
                   >
                     <div
                       className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
@@ -412,17 +412,17 @@ export default function RDPAccess() {
                       <Monitor className="w-3.5 h-3.5" style={{ color: '#d4a8ff' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium truncate" style={{ color: '#e3e5ef' }}>
+                      <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>
                         {c.username}@{c.host}
                       </p>
-                      <p className="text-label-sm" style={{ color: '#424754' }}>
+                      <p className="text-label-sm" style={{ color: '#9da5be' }}>
                         port {c.port}{c.domain ? ` · ${c.domain}` : ''}
                       </p>
                     </div>
                     <button
                       onClick={(e) => removeSaved(i, e)}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
-                      style={{ color: '#424754' }}
+                      style={{ color: '#9da5be' }}
                       title="Sil"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -457,7 +457,7 @@ export default function RDPAccess() {
         <div
           className="rounded-card overflow-hidden flex flex-col h-full"
           style={{
-            background: '#111317',
+            background: '#f0f2f7',
             border: '1px solid rgba(66,71,84,0.5)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}
@@ -517,7 +517,7 @@ export default function RDPAccess() {
               <button
                 onClick={toggleFullscreen}
                 className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#8d9099' }}
+                style={{ color: '#6b7388' }}
                 title={isFullscreen ? 'Küçült' : 'Tam ekran'}
               >
                 {isFullscreen
@@ -529,7 +529,7 @@ export default function RDPAccess() {
               <button
                 onClick={disconnect}
                 className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#8d9099' }}
+                style={{ color: '#6b7388' }}
                 title="Kapat"
               >
                 <X className="w-3.5 h-3.5" />
@@ -552,10 +552,10 @@ export default function RDPAccess() {
             {!isConnected && !isConnecting && (
               <div
                 className="absolute flex flex-col items-center gap-3 pointer-events-none"
-                style={{ color: '#282a2e' }}
+                style={{ color: '#f2f4fa' }}
               >
                 <Monitor className="w-16 h-16" />
-                <p className="text-body-md" style={{ color: '#424754' }}>
+                <p className="text-body-md" style={{ color: '#9da5be' }}>
                   Uzak masaüstü bekleniyor
                 </p>
               </div>
