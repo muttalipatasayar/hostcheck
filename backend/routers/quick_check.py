@@ -47,6 +47,7 @@ class CheckItem(BaseModel):
     value: Optional[str] = None
     detail: Optional[str] = None
     latency_ms: Optional[float] = None
+    domain_statuses: list[str] = []   # EPP status kodları (sadece WHOIS satırında dolu)
 
 
 class ErrorAnalysis(BaseModel):
@@ -213,6 +214,54 @@ REGISTRAR_PATTERNS = [
 ]
 
 
+def _parse_whois_statuses(raw: str) -> list[str]:
+    """WHOIS metninden EPP domain status kodlarını çıkar.
+
+    Desteklenen formatlar:
+      - Standart: "Domain Status: clientTransferProhibited https://..."
+      - Trabis:   "Status              : Active"
+    """
+    statuses: list[str] = []
+
+    # Standart ICANN WHOIS: "Domain Status: clientTransferProhibited"
+    for m in re.finditer(r'^Domain\s+Status\s*:\s*([a-zA-Z]+)', raw, re.I | re.M):
+        s = m.group(1).strip()
+        if s and s not in statuses:
+            statuses.append(s)
+
+    # Trabis / DENIC gibi sitelerde sadece "Status: Active"
+    if not statuses:
+        for m in re.finditer(r'^Status\s*:\s*([a-zA-Z]+)', raw, re.I | re.M):
+            s = m.group(1).strip()
+            if s and s not in statuses:
+                statuses.append(s)
+
+    return statuses
+
+
+# EPP status kodlarının Türkçe karşılıkları ve önem derecesi
+# (detail metnine eklenir, frontend de ayrıca badge olarak gösterir)
+_EPP_LABELS: dict[str, str] = {
+    'ok':                       'Aktif',
+    'active':                   'Aktif',
+    'clienttransferprohibited': 'Transfer Kilitli',
+    'servertransferprohibited': 'Transfer Kilitli (Kayıt Kuruluşu)',
+    'clienthold':               'Askıda — DNS yayını yok!',
+    'serverhold':               'Askıda — Sunucu Engeli',
+    'pendingtransfer':          'Transfer Bekliyor',
+    'pendingdelete':            'Silinme Bekliyor',
+    'redemptionperiod':         'Kurtarma Sürecinde',
+    'clientdeleteprohibited':   'Silme Kilitli',
+    'serverdeleteprohibited':   'Silme Kilitli (Kayıt Kuruluşu)',
+    'clientupdateprohibited':   'Güncelleme Kilitli',
+    'clientrenewprohibited':    'Yenileme Kilitli',
+    'addperiod':                'Yeni Kayıt (Koruma Süresi)',
+}
+
+# Bu statüsler varsa WHOIS satırını "error" yap
+_CRITICAL_STATUSES = {'clienthold', 'serverhold', 'pendingdelete', 'redemptionperiod'}
+
+
 def _parse_whois_expiry(raw: str) -> tuple[datetime | None, str]:
     """WHOIS metninden son geçerlilik tarihi ve kayıt kuruluşunu çıkar"""
     exp_date = None
@@ -236,50 +285,72 @@ def _parse_whois_expiry(raw: str) -> tuple[datetime | None, str]:
     return exp_date, registrar
 
 
-def _whois_result_to_check(exp_date: datetime | None, registrar: str, domain: str) -> CheckItem:
-    """Tarih bilgisinden CheckItem oluştur"""
+def _whois_result_to_check(
+    exp_date: datetime | None,
+    registrar: str,
+    domain: str,
+    statuses: list[str] | None = None,
+) -> CheckItem:
+    """Tarih + EPP status bilgisinden CheckItem oluştur"""
     now = datetime.now(timezone.utc)
+    statuses = statuses or []
+    statuses_lower = [s.lower() for s in statuses]
+
+    # Kritik EPP durumu var mı?
+    has_critical = any(s in _CRITICAL_STATUSES for s in statuses_lower)
+
+    # Status satırına Türkçe karşılıkları ekle (detail için)
+    status_notes = [
+        _EPP_LABELS.get(s, s)
+        for s in statuses_lower
+        if s not in ('ok', 'active')   # bunlar zaten "normal" — gürültü yaratmayalım
+    ]
 
     if exp_date is None:
+        status_suffix = (f" | {', '.join(status_notes)}" if status_notes else "")
         return CheckItem(
             label="WHOIS / Alan Adı",
-            status="info",
+            status="error" if has_critical else "info",
             value="Tarih alınamadı",
-            detail=f"WHOIS yanıtı alındı ancak bitiş tarihi ayrıştırılamadı{(' | ' + registrar) if registrar else ''}"
+            detail=f"WHOIS yanıtı alındı ancak bitiş tarihi ayrıştırılamadı"
+                   f"{(' | Kayıt: ' + registrar) if registrar else ''}{status_suffix}",
+            domain_statuses=statuses,
         )
 
     days_left = (exp_date - now).days
     exp_str = exp_date.strftime('%d.%m.%Y')
     reg_str = f" | Kayıt: {registrar}" if registrar else ""
+    status_str = f" | {', '.join(status_notes)}" if status_notes else ""
 
-    if days_left < 0:
-        return CheckItem(
-            label="WHOIS / Alan Adı",
-            status="error",
-            value="Süresi dolmuş",
-            detail=f"Alan adı {abs(days_left)} gün önce sona erdi! ({exp_str}){reg_str}"
-        )
+    if has_critical:
+        item_status = "error"
+        note = f" | ⚠ {', '.join(status_notes)}" if status_notes else ""
+        value = "Askıda / Kilitli"
+        detail = f"Bitiş: {exp_str} — Domain aktif değil!{reg_str}{note}"
+    elif days_left < 0:
+        item_status = "error"
+        value = "Süresi dolmuş"
+        detail = f"Alan adı {abs(days_left)} gün önce sona erdi! ({exp_str}){reg_str}{status_str}"
     elif days_left < 15:
-        return CheckItem(
-            label="WHOIS / Alan Adı",
-            status="error",
-            value=f"{days_left} gün kaldı",
-            detail=f"Bitiş: {exp_str} — ACİL yenilenmeli!{reg_str}"
-        )
+        item_status = "error"
+        value = f"{days_left} gün kaldı"
+        detail = f"Bitiş: {exp_str} — ACİL yenilenmeli!{reg_str}{status_str}"
     elif days_left < 30:
-        return CheckItem(
-            label="WHOIS / Alan Adı",
-            status="warning",
-            value=f"{days_left} gün kaldı",
-            detail=f"Bitiş: {exp_str} — Yakında yenilenecek{reg_str}"
-        )
+        item_status = "warning"
+        value = f"{days_left} gün kaldı"
+        detail = f"Bitiş: {exp_str} — Yakında yenilenecek{reg_str}{status_str}"
     else:
-        return CheckItem(
-            label="WHOIS / Alan Adı",
-            status="healthy",
-            value=f"{days_left} gün kaldı",
-            detail=f"Bitiş: {exp_str}{reg_str}"
-        )
+        item_status = "healthy"
+        value = f"{days_left} gün kaldı"
+        detail = f"Bitiş: {exp_str}{reg_str}{status_str}"
+
+    return CheckItem(
+        label="WHOIS / Alan Adı",
+        status=item_status,
+        value=value,
+        detail=detail,
+        domain_statuses=statuses,
+    )
 
 
 async def do_whois(domain: str) -> CheckItem:
@@ -346,7 +417,8 @@ async def do_whois(domain: str) -> CheckItem:
             )
 
         exp_date, registrar = _parse_whois_expiry(raw)
-        return _whois_result_to_check(exp_date, registrar, domain)
+        statuses = _parse_whois_statuses(raw)
+        return _whois_result_to_check(exp_date, registrar, domain, statuses)
 
     try:
         return await asyncio.wait_for(

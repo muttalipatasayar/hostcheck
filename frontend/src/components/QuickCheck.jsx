@@ -15,6 +15,24 @@ const STATUS_CONFIG = {
   info:    { icon: Info,           color: '#adc6ff', dot: 'status-dot-pending', label: 'Bilgi' },
 }
 
+// EPP domain status kodları — label + renk
+const EPP_STATUS = {
+  ok:                           { label: 'Aktif',                       color: '#a8d5a2', bg: 'rgba(168,213,162,0.12)' },
+  active:                       { label: 'Aktif',                       color: '#a8d5a2', bg: 'rgba(168,213,162,0.12)' },
+  clienttransferprohibited:     { label: 'Transfer Kilitli',            color: '#adc6ff', bg: 'rgba(173,198,255,0.1)'  },
+  servertransferprohibited:     { label: 'Transfer Kilitli (Kayıt Kur.)', color: '#adc6ff', bg: 'rgba(173,198,255,0.1)' },
+  clienthold:                   { label: 'Askıda — DNS Yok!',           color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
+  serverhold:                   { label: 'Askıda (Sunucu Engeli)',      color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
+  pendingtransfer:              { label: 'Transfer Bekliyor',           color: '#f5d37a', bg: 'rgba(245,211,122,0.1)'  },
+  pendingdelete:                { label: 'Silinme Bekliyor',            color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
+  redemptionperiod:             { label: 'Kurtarma Sürecinde',          color: '#ffb4ab', bg: 'rgba(255,180,171,0.12)' },
+  clientdeleteprohibited:       { label: 'Silme Kilitli',               color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
+  serverdeleteprohibited:       { label: 'Silme Kilitli (Kayıt Kur.)', color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
+  clientupdateprohibited:       { label: 'Güncelleme Kilitli',          color: '#8d9099', bg: 'rgba(141,144,153,0.1)'  },
+  clientrenewprohibited:        { label: 'Yenileme Kilitli',            color: '#f5d37a', bg: 'rgba(245,211,122,0.1)'  },
+  addperiod:                    { label: 'Yeni Kayıt (Koruma Süresi)',  color: '#d4a8ff', bg: 'rgba(212,168,255,0.1)'  },
+}
+
 const CHECK_ICONS = {
   'WHOIS / Alan Adı':  Globe,
   'DNS / NS Kayıtları': Globe,
@@ -44,7 +62,7 @@ function CheckRow({ item }) {
         <Icon className="w-3.5 h-3.5" style={{ color: '#adc6ff' }} />
       </div>
 
-      {/* Label + detail */}
+      {/* Label + detail + EPP badges */}
       <div className="flex-1 min-w-0">
         <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>
           {item.label}
@@ -53,6 +71,24 @@ function CheckRow({ item }) {
           <p className="text-label-md mt-0.5 truncate" style={{ color: '#8d9099' }}>
             {item.detail}
           </p>
+        )}
+        {item.domain_statuses && item.domain_statuses.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {item.domain_statuses.map((s, i) => {
+              const key = s.toLowerCase()
+              const meta = EPP_STATUS[key] || { label: s, color: '#8d9099', bg: 'rgba(141,144,153,0.1)' }
+              return (
+                <span
+                  key={i}
+                  className="inline-flex items-center text-label-sm font-medium px-2 py-0.5 rounded"
+                  style={{ background: meta.bg, color: meta.color }}
+                  title={`EPP Status: ${s}`}
+                >
+                  {meta.label}
+                </span>
+              )
+            })}
+          </div>
         )}
       </div>
 
