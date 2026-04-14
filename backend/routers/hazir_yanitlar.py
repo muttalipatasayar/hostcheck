@@ -26,8 +26,11 @@ class YanitUpdate(BaseModel):
     content:  Optional[str] = Field(None, min_length=1)
     category: Optional[str] = Field(None, min_length=1, max_length=100)
 
-class YanitResponse(YanitBase):
+class YanitResponse(BaseModel):
     id:        int
+    title:     str
+    content:   str
+    category:  str
     is_pinned: bool
     use_count: int
 
