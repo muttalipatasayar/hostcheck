@@ -7,6 +7,7 @@ import DNSToolbox from './components/DNSToolbox'
 import DNSHistory from './components/DNSHistory'
 import SSHAccess from './components/SSHAccess'
 import HazirYanitlar from './components/HazirYanitlar'
+import RDPAccess from './components/RDPAccess'
 
 export default function App() {
   const [view, setView] = useState('quick-check')
@@ -20,6 +21,7 @@ export default function App() {
       case 'dns-toolbox':    return <DNSToolbox />
       case 'dns-history':    return <DNSHistory />
       case 'ssh-access':     return <SSHAccess />
+      case 'rdp-access':     return <RDPAccess />
       case 'hazir-yanitlar': return <HazirYanitlar />
       default:               return <QuickCheck />
     }

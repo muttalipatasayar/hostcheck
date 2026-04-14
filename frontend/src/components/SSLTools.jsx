@@ -2,7 +2,9 @@ import { useState, useRef } from 'react'
 import {
   Shield, FileKey, Package, FilePlus2, Copy, Check,
   Download, Upload, Plus, X, CheckCircle2, XCircle,
-  AlertTriangle, ChevronDown, ChevronUp, Loader2, Info
+  AlertTriangle, ChevronDown, ChevronUp, Loader2, Info,
+  Search, Calendar, Clock, Building2, Globe, Lock, LockOpen,
+  ShieldCheck, ShieldAlert, ShieldX, BadgeCheck, Star,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axios from 'axios'
@@ -79,6 +81,405 @@ function Field({ label, value, highlight }) {
     <div className="flex flex-col gap-0.5">
       <p className="text-label-sm" style={{ color: '#424754' }}>{label}</p>
       <p className="text-body-sm font-mono" style={{ color: highlight || '#e3e5ef' }}>{value}</p>
+    </div>
+  )
+}
+
+// ── Tab 0: SSL Sorgula ────────────────────────────────────────────────────────
+
+const CERT_TYPE_META = {
+  EV: {
+    label: 'EV',
+    full: 'Extended Validation',
+    color: '#a8d5a2',
+    bg: 'rgba(168,213,162,0.12)',
+    desc: 'En yüksek güven seviyesi. Kurum kimliği doğrulanmış.',
+  },
+  OV: {
+    label: 'OV',
+    full: 'Organization Validated',
+    color: '#adc6ff',
+    bg: 'rgba(173,198,255,0.12)',
+    desc: 'Orta güven seviyesi. Kurum bilgileri doğrulanmış.',
+  },
+  DV: {
+    label: 'DV',
+    full: 'Domain Validated',
+    color: '#8d9099',
+    bg: 'rgba(141,144,153,0.12)',
+    desc: 'Temel güven. Yalnızca alan adı doğrulanmış.',
+  },
+}
+
+function DaysGauge({ days, total }) {
+  const pct   = Math.max(0, Math.min(100, (days / total) * 100))
+  const color = days < 0 ? '#ffb4ab' : days < 30 ? '#ffb4ab' : days < 60 ? '#f5d37a' : '#a8d5a2'
+  const label = days < 0 ? 'Süresi Doldu' : `${days} gün kaldı`
+
+  // SVG donut arc
+  const R = 36, C = 44, stroke = 7
+  const circ = 2 * Math.PI * R
+  const dash = (pct / 100) * circ
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative flex items-center justify-center" style={{ width: 96, height: 96 }}>
+        <svg width="96" height="96" style={{ transform: 'rotate(-90deg)' }}>
+          {/* track */}
+          <circle cx={C} cy={C} r={R} fill="none"
+            stroke="rgba(66,71,84,0.3)" strokeWidth={stroke} />
+          {/* progress */}
+          <circle cx={C} cy={C} r={R} fill="none"
+            stroke={color} strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circ}`}
+            style={{ transition: 'stroke-dasharray 0.6s ease' }}
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center leading-tight">
+          <span className="font-bold" style={{ fontSize: 22, color, lineHeight: 1 }}>
+            {days < 0 ? '0' : days > 999 ? '999+' : days}
+          </span>
+          <span style={{ fontSize: 10, color: '#424754' }}>gün</span>
+        </div>
+      </div>
+      <span className="text-label-sm font-medium" style={{ color }}>{label}</span>
+    </div>
+  )
+}
+
+function StatusBadge({ isActive, isTrusted, daysRemaining }) {
+  if (!isTrusted && daysRemaining > 0) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3 rounded-btn"
+        style={{ background: 'rgba(245,211,122,0.1)', border: '1px solid rgba(245,211,122,0.25)' }}>
+        <ShieldAlert className="w-5 h-5 flex-shrink-0" style={{ color: '#f5d37a' }} />
+        <div>
+          <p className="text-body-sm font-semibold" style={{ color: '#f5d37a' }}>Güvenilir Değil</p>
+          <p className="text-label-sm" style={{ color: '#8d9099' }}>Sertifika CA tarafından doğrulanamadı (self-signed veya hatalı zincir)</p>
+        </div>
+      </div>
+    )
+  }
+  if (daysRemaining < 0) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3 rounded-btn"
+        style={{ background: 'rgba(255,180,171,0.1)', border: '1px solid rgba(255,180,171,0.25)' }}>
+        <ShieldX className="w-5 h-5 flex-shrink-0" style={{ color: '#ffb4ab' }} />
+        <div>
+          <p className="text-body-sm font-semibold" style={{ color: '#ffb4ab' }}>Süresi Dolmuş</p>
+          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası geçerlilik süresi dolmuş, yenilenmesi gerekiyor</p>
+        </div>
+      </div>
+    )
+  }
+  if (isActive && daysRemaining < 30) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3 rounded-btn"
+        style={{ background: 'rgba(255,180,171,0.08)', border: '1px solid rgba(255,180,171,0.2)' }}>
+        <ShieldAlert className="w-5 h-5 flex-shrink-0" style={{ color: '#ffb4ab' }} />
+        <div>
+          <p className="text-body-sm font-semibold" style={{ color: '#ffb4ab' }}>Yakında Sona Eriyor</p>
+          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası {daysRemaining} gün içinde sona eriyor, yenilemeyi planlayın</p>
+        </div>
+      </div>
+    )
+  }
+  if (isActive) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3 rounded-btn"
+        style={{ background: 'rgba(168,213,162,0.08)', border: '1px solid rgba(168,213,162,0.2)' }}>
+        <ShieldCheck className="w-5 h-5 flex-shrink-0" style={{ color: '#a8d5a2' }} />
+        <div>
+          <p className="text-body-sm font-semibold" style={{ color: '#a8d5a2' }}>Aktif ve Güvenilir</p>
+          <p className="text-label-sm" style={{ color: '#8d9099' }}>SSL sertifikası geçerli, güvenilir CA tarafından imzalanmış</p>
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
+function SSLChecker() {
+  const [domain, setDomain] = useState('')
+  const [port,   setPort]   = useState('443')
+  const [loading, setLoading] = useState(false)
+  const [result,  setResult]  = useState(null)
+  const [error,   setError]   = useState('')
+
+  const check = async () => {
+    const d = domain.trim()
+    if (!d) return
+    setLoading(true)
+    setError('')
+    setResult(null)
+    try {
+      const res = await axios.get('/api/ssl/check', {
+        params: { domain: d, port: parseInt(port, 10) || 443 },
+      })
+      setResult(res.data)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Sorgulama başarısız')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const typeMeta = result ? (CERT_TYPE_META[result.cert_type] || CERT_TYPE_META.DV) : null
+
+  return (
+    <div className="flex flex-col gap-5 max-w-3xl">
+      {/* Sorgu kutusu */}
+      <div
+        className="rounded-card p-5"
+        style={{ background: '#1a1c20' }}
+      >
+        <p className="text-label-sm font-medium mb-4" style={{ color: '#8d9099' }}>
+          SORGULANACAK ALAN ADI
+        </p>
+        <div className="flex gap-3 flex-wrap">
+          <div className="flex-1 min-w-52">
+            <input
+              type="text"
+              className="input-field w-full"
+              placeholder="example.com veya https://example.com"
+              value={domain}
+              onChange={e => setDomain(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && check()}
+            />
+          </div>
+          <div style={{ width: 88 }}>
+            <input
+              type="number"
+              className="input-field w-full text-center font-mono"
+              placeholder="443"
+              value={port}
+              onChange={e => setPort(e.target.value)}
+              min="1" max="65535"
+              title="Port"
+            />
+          </div>
+          <button
+            onClick={check}
+            disabled={loading || !domain.trim()}
+            className="btn-primary flex items-center gap-2 flex-shrink-0"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" />Sorgulanıyor…</>
+              : <><Search className="w-4 h-4" />Sorgula</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Hata */}
+      {error && (
+        <div
+          className="rounded-btn px-4 py-3 flex items-start gap-2 text-body-sm"
+          style={{ background: 'rgba(255,180,171,0.08)', color: '#ffb4ab', border: '1px solid rgba(255,180,171,0.2)' }}
+        >
+          <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Sonuç */}
+      {result && (
+        <div
+          className="rounded-card overflow-hidden"
+          style={{ background: '#1a1c20', border: '1px solid rgba(66,71,84,0.35)' }}
+        >
+          {/* ── Üst şerit ── */}
+          <div
+            className="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
+            style={{
+              background: '#16181d',
+              borderBottom: '1px solid rgba(66,71,84,0.3)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-btn flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: result.is_active
+                    ? 'rgba(168,213,162,0.12)'
+                    : 'rgba(255,180,171,0.1)',
+                }}
+              >
+                {result.is_active
+                  ? <Lock className="w-4 h-4" style={{ color: '#a8d5a2' }} />
+                  : <LockOpen className="w-4 h-4" style={{ color: '#ffb4ab' }} />
+                }
+              </div>
+              <div>
+                <p className="text-body-md font-semibold" style={{ color: '#e3e5ef' }}>
+                  {result.common_name || result.domain}
+                </p>
+                <p className="text-label-sm font-mono" style={{ color: '#424754' }}>
+                  {result.domain}:{result.port}
+                </p>
+              </div>
+            </div>
+
+            {/* Badges row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Cert type */}
+              <span
+                className="flex items-center gap-1.5 text-label-sm font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: typeMeta.bg, color: typeMeta.color, border: `1px solid ${typeMeta.color}30` }}
+                title={typeMeta.full}
+              >
+                <BadgeCheck className="w-3.5 h-3.5" />
+                {typeMeta.label} — {typeMeta.full}
+              </span>
+
+              {/* Wildcard */}
+              {result.is_wildcard && (
+                <span
+                  className="flex items-center gap-1.5 text-label-sm font-semibold px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(212,168,255,0.12)', color: '#d4a8ff', border: '1px solid rgba(212,168,255,0.25)' }}
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  Wildcard
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Ana içerik ── */}
+          <div className="px-6 py-5 flex flex-col gap-5">
+
+            {/* Durum + Gauge */}
+            <div className="flex items-start gap-5 flex-wrap">
+              <div className="flex-1 min-w-52 flex flex-col gap-3">
+                <StatusBadge
+                  isActive={result.is_active}
+                  isTrusted={result.is_trusted}
+                  daysRemaining={result.days_remaining}
+                />
+
+                {/* Progress bar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik süresi</span>
+                    <span className="text-label-sm font-mono" style={{ color: '#8d9099' }}>
+                      {Math.max(0, Math.round((result.days_remaining / result.total_days) * 100))}%
+                    </span>
+                  </div>
+                  <div
+                    className="w-full rounded-full overflow-hidden"
+                    style={{ height: 6, background: 'rgba(66,71,84,0.4)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(0, Math.min(100, (result.days_remaining / result.total_days) * 100))}%`,
+                        background: result.days_remaining < 0 ? '#ffb4ab'
+                          : result.days_remaining < 30 ? '#ffb4ab'
+                          : result.days_remaining < 60 ? '#f5d37a'
+                          : '#a8d5a2',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gauge */}
+              <DaysGauge days={result.days_remaining} total={result.total_days} />
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid rgba(66,71,84,0.25)' }} />
+
+            {/* Sertifika detayları */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              {result.organization && (
+                <div className="flex items-start gap-2.5">
+                  <Building2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                  <div>
+                    <p className="text-label-sm" style={{ color: '#424754' }}>Kuruluş (Organization)</p>
+                    <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>{result.organization}</p>
+                  </div>
+                </div>
+              )}
+
+              {result.issuer && (
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                  <div>
+                    <p className="text-label-sm" style={{ color: '#424754' }}>Sertifika Yayımlayan</p>
+                    <p className="text-body-sm font-medium" style={{ color: '#e3e5ef' }}>{result.issuer}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2.5">
+                <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                <div>
+                  <p className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik Başlangıcı</p>
+                  <p className="text-body-sm font-mono" style={{ color: '#c9cdd6' }}>{result.valid_from}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#424754' }} />
+                <div>
+                  <p className="text-label-sm" style={{ color: '#424754' }}>Geçerlilik Sonu</p>
+                  <p
+                    className="text-body-sm font-mono"
+                    style={{
+                      color: result.days_remaining < 30 ? '#ffb4ab'
+                        : result.days_remaining < 60 ? '#f5d37a'
+                        : '#c9cdd6',
+                    }}
+                  >
+                    {result.valid_until}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sertifika türü açıklaması */}
+            <div
+              className="flex items-start gap-2.5 px-3 py-2.5 rounded-btn"
+              style={{ background: typeMeta.bg }}
+            >
+              <BadgeCheck className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: typeMeta.color }} />
+              <div>
+                <p className="text-label-sm font-semibold" style={{ color: typeMeta.color }}>
+                  {typeMeta.label} — {typeMeta.full}
+                </p>
+                <p className="text-label-sm" style={{ color: '#8d9099' }}>{typeMeta.desc}</p>
+              </div>
+            </div>
+
+            {/* SAN listesi */}
+            {result.san.length > 0 && (
+              <div>
+                <p className="text-label-sm mb-2.5 flex items-center gap-1.5" style={{ color: '#424754' }}>
+                  <Globe className="w-3.5 h-3.5" />
+                  Subject Alternative Names ({result.san.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {result.san.map((s, i) => (
+                    <span
+                      key={i}
+                      className="text-label-sm font-mono px-2 py-1 rounded"
+                      style={{
+                        background: s.startsWith('*.')
+                          ? 'rgba(212,168,255,0.1)'
+                          : '#282a2e',
+                        color: s.startsWith('*.') ? '#d4a8ff' : '#adc6ff',
+                      }}
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -460,13 +861,14 @@ function CSRGenerate() {
 // ── Ana Bileşen ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'csr-decode',   label: 'CSR Çözümle',   icon: FileKey  },
-  { id: 'pfx-convert',  label: 'PFX Dönüştür',  icon: Package  },
+  { id: 'ssl-checker',  label: 'SSL Sorgula',   icon: Search    },
+  { id: 'csr-decode',   label: 'CSR Çözümle',   icon: FileKey   },
+  { id: 'pfx-convert',  label: 'PFX Dönüştür',  icon: Package   },
   { id: 'csr-generate', label: 'CSR Oluştur',   icon: FilePlus2 },
 ]
 
 export default function SSLTools() {
-  const [tab, setTab] = useState('csr-decode')
+  const [tab, setTab] = useState('ssl-checker')
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -505,6 +907,7 @@ export default function SSLTools() {
 
       {/* İçerik */}
       <div className="px-8 pb-10">
+        {tab === 'ssl-checker'  && <SSLChecker />}
         {tab === 'csr-decode'   && <CSRDecode />}
         {tab === 'pfx-convert'  && <PFXConvert />}
         {tab === 'csr-generate' && <CSRGenerate />}

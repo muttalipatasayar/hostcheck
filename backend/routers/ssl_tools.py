@@ -1,3 +1,9 @@
+import asyncio
+import datetime
+import ipaddress
+import re
+import socket
+import ssl as _ssl
 from typing import Optional
 
 from cryptography import x509
@@ -191,6 +197,191 @@ class CSRGenerateRequest(BaseModel):
 class CSRGenerateResponse(BaseModel):
     csr_pem: str
     private_key_pem: str
+
+
+# ── SSL Checker ───────────────────────────────────────────────────────────────
+
+class SSLCheckResponse(BaseModel):
+    domain: str
+    port: int
+    is_active: bool
+    is_trusted: bool
+    cert_type: str        # DV | OV | EV
+    is_wildcard: bool
+    common_name: str
+    organization: str
+    issuer: str
+    valid_from: str
+    valid_until: str
+    days_remaining: int
+    total_days: int
+    san: list[str]
+    error: Optional[str] = None
+
+
+def _utc(dt: datetime.datetime) -> datetime.datetime:
+    """Ensure datetime is UTC-aware regardless of cryptography version."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=datetime.timezone.utc)
+    return dt.astimezone(datetime.timezone.utc)
+
+
+def _detect_cert_type(cert: x509.Certificate, org: str) -> str:
+    """Detect DV / OV / EV based on Certificate Policies and Subject."""
+    try:
+        policies = cert.extensions.get_extension_for_class(x509.CertificatePolicies)
+        for policy in policies.value:
+            # CA/Browser Forum EV OID
+            if policy.policy_identifier.dotted_string == "2.23.140.1.1":
+                return "EV"
+    except Exception:
+        pass
+    if org.strip():
+        return "OV"
+    return "DV"
+
+
+def _is_private_host(host: str) -> bool:
+    """Block loopback / private / link-local targets (SSRF guard)."""
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+    except ValueError:
+        pass
+    try:
+        for res in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM):
+            ip = ipaddress.ip_address(res[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _check_ssl_sync(domain: str, port: int) -> dict:
+    """Blocking SSL check — called via run_in_executor."""
+    base: dict = dict(
+        domain=domain, port=port,
+        is_active=False, is_trusted=False,
+        cert_type="DV", is_wildcard=False,
+        common_name="", organization="",
+        issuer="", valid_from="", valid_until="",
+        days_remaining=0, total_days=1, san=[], error=None,
+    )
+
+    # — Fetch certificate (no trust verification, so we get it even if expired) —
+    ctx_raw = _ssl.create_default_context()
+    ctx_raw.check_hostname = False
+    ctx_raw.verify_mode = _ssl.CERT_NONE
+    cert_der = None
+    try:
+        with socket.create_connection((domain, port), timeout=10) as raw:
+            with ctx_raw.wrap_socket(raw, server_hostname=domain) as tls:
+                cert_der = tls.getpeercert(binary_form=True)
+    except (socket.timeout, TimeoutError):
+        base["error"] = f"Bağlantı zaman aşımı — {domain}:{port} erişilemiyor"
+        return base
+    except ConnectionRefusedError:
+        base["error"] = f"Bağlantı reddedildi — port {port} kapalı olabilir"
+        return base
+    except _ssl.SSLError as e:
+        base["error"] = f"SSL el sıkışma hatası: {e.reason or e}"
+        return base
+    except OSError as e:
+        base["error"] = f"Bağlantı hatası: {e}"
+        return base
+    except Exception as e:
+        base["error"] = f"Beklenmeyen hata: {e}"
+        return base
+
+    if not cert_der:
+        base["error"] = "Sertifika alınamadı"
+        return base
+
+    # — Parse certificate —
+    try:
+        cert = x509.load_der_x509_certificate(cert_der)
+    except Exception as e:
+        base["error"] = f"Sertifika çözümlenemedi: {e}"
+        return base
+
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    valid_from  = _utc(cert.not_valid_before)
+    valid_until = _utc(cert.not_valid_after)
+    days_remaining = (valid_until - now).days
+    total_days = max((valid_until - valid_from).days, 1)
+
+    cn       = _get_attr(cert.subject, NameOID.COMMON_NAME)       or ""
+    org      = _get_attr(cert.subject, NameOID.ORGANIZATION_NAME) or ""
+    issuer   = (_get_attr(cert.issuer, NameOID.COMMON_NAME) or
+                _get_attr(cert.issuer, NameOID.ORGANIZATION_NAME) or "")
+
+    # SAN list
+    san_list: list[str] = []
+    try:
+        ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+        san_list = list(ext.value.get_values_for_type(x509.DNSName))
+    except Exception:
+        pass
+
+    is_wildcard = cn.startswith("*.") or any(s.startswith("*.") for s in san_list)
+    cert_type   = _detect_cert_type(cert, org)
+
+    # — Trust check (full CA verification + hostname matching) —
+    is_trusted = False
+    try:
+        ctx_trusted = _ssl.create_default_context()
+        with socket.create_connection((domain, port), timeout=10) as raw:
+            with ctx_trusted.wrap_socket(raw, server_hostname=domain) as _tls:
+                is_trusted = True
+    except Exception:
+        pass
+
+    is_active = days_remaining > 0 and is_trusted
+
+    base.update(
+        is_active=is_active,
+        is_trusted=is_trusted,
+        cert_type=cert_type,
+        is_wildcard=is_wildcard,
+        common_name=cn,
+        organization=org,
+        issuer=issuer,
+        valid_from=valid_from.strftime("%d %b %Y %H:%M UTC"),
+        valid_until=valid_until.strftime("%d %b %Y %H:%M UTC"),
+        days_remaining=days_remaining,
+        total_days=total_days,
+        san=san_list,
+    )
+    return base
+
+
+@router.get("/check", response_model=SSLCheckResponse)
+async def check_ssl(domain: str, port: int = 443):
+    """SSL sertifikasını sorgular; aktiflik, tür (DV/OV/EV/Wildcard) ve kalan gün döner."""
+    # — Sanitize —
+    domain = domain.strip().lower()
+    for prefix in ("https://", "http://"):
+        if domain.startswith(prefix):
+            domain = domain[len(prefix):]
+    domain = domain.split("/")[0].split("?")[0].split(":")[0]
+
+    if not domain:
+        raise HTTPException(400, "Domain adı zorunludur")
+    if not re.match(r"^[a-z0-9.\-*]+$", domain):
+        raise HTTPException(400, "Geçersiz domain adı")
+    if not (1 <= port <= 65535):
+        raise HTTPException(400, "Geçersiz port numarası (1-65535)")
+    if _is_private_host(domain):
+        raise HTTPException(400, "Özel / yerel ağ adresleri sorgulanamaz")
+
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, _check_ssl_sync, domain, port)
+
+    if result["error"] and not result["common_name"]:
+        raise HTTPException(400, result["error"])
+
+    return result
 
 
 @router.post("/csr-generate", response_model=CSRGenerateResponse)
