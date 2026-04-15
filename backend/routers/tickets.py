@@ -61,6 +61,12 @@ def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
     return ticket
 
 
+_TICKET_UPDATE_FIELDS = frozenset({
+    "status", "priority", "category", "notes",
+    "domain", "server_ip", "customer_name", "customer_email",
+})
+
+
 @router.patch("/{ticket_id}", response_model=TicketResponse)
 def update_ticket(ticket_id: int, payload: TicketUpdate, db: Session = Depends(get_db)):
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
@@ -69,6 +75,9 @@ def update_ticket(ticket_id: int, payload: TicketUpdate, db: Session = Depends(g
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        # Yalnızca izin verilen alanlar güncellenebilir (IDOR / mass assignment koruması)
+        if field not in _TICKET_UPDATE_FIELDS:
+            raise HTTPException(status_code=400, detail=f"'{field}' alanı güncellenemez")
         setattr(ticket, field, value)
 
     ticket.updated_at = datetime.utcnow()

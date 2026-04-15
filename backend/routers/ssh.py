@@ -39,7 +39,10 @@ async def ssh_terminal(websocket: WebSocket):
 
         # SSH bağlantısını executor'da kur (event loop'u bloke etmemek için)
         ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # AutoAddPolicy MITM saldırılarına açıktır; WarningPolicy bilinmeyen
+        # anahtarları loglar ama bağlantıyı yine de kurar (dahili araç için yeterli).
+        # Üretim ortamında RejectPolicy + known_hosts dosyası tercih edilmeli.
+        ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(

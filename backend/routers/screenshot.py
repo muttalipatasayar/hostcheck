@@ -25,6 +25,12 @@ def _sync_screenshot(url: str) -> bytes:
     with sync_playwright() as p:
         # Önce sisteme kurulu Edge'i dene, yoksa Chromium kullan
         browser = None
+        # --no-sandbox Chromium sandbox güvenliğini devre dışı bırakır;
+        # yalnızca geliştirme ortamında veya Docker içinde gereklidir.
+        import os as _os
+        _extra = ["--no-sandbox"] if _os.getenv("ENV", "development") == "development" else []
+        _base_args = _extra + ["--disable-dev-shm-usage", "--disable-gpu"]
+
         for launch_opts in [
             {"channel": "msedge", "headless": True},
             {"headless": True},
@@ -32,7 +38,7 @@ def _sync_screenshot(url: str) -> bytes:
             try:
                 browser = p.chromium.launch(
                     **launch_opts,
-                    args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                    args=_base_args,
                 )
                 break
             except Exception:
