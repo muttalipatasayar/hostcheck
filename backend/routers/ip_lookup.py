@@ -6,16 +6,13 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from net_validation import validate_host
 from rate_limiter import limiter
 
 router = APIRouter(prefix="/api/ip", tags=["ip-lookup"])
 
 # ip-api.com — ücretsiz, API anahtarı gerektirmez, dakikada 45 istek
 _IP_API_URL = "http://ip-api.com/json/{query}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,mobile,proxy,hosting,query"
-
-_DOMAIN_RE = re.compile(r'^([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$')
-_IPV4_RE   = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
-_IPV6_RE   = re.compile(r'^[0-9a-fA-F:]+$')
 
 
 class IPLookupResponse(BaseModel):
@@ -38,39 +35,8 @@ class IPLookupResponse(BaseModel):
 
 
 def _validate_and_clean(raw: str) -> str:
-    """Girdiyi doğrula, temizlenmiş string döndür."""
-    q = raw.strip().lower()
-    q = re.sub(r'^https?://', '', q)
-    q = q.split('/')[0].split('?')[0]
-
-    if not q:
-        raise HTTPException(400, "IP adresi veya alan adı zorunludur")
-
-    # IPv4 kontrolü
-    if _IPV4_RE.match(q):
-        try:
-            ip = ipaddress.IPv4Address(q)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                raise HTTPException(400, "Özel / yerel IP adresleri sorgulanamaz")
-            return q
-        except ipaddress.AddressValueError:
-            raise HTTPException(400, "Geçersiz IPv4 adresi")
-
-    # IPv6 kontrolü
-    if ':' in q:
-        try:
-            ip6 = ipaddress.IPv6Address(q)
-            if ip6.is_private or ip6.is_loopback or ip6.is_link_local:
-                raise HTTPException(400, "Özel / yerel IPv6 adresleri sorgulanamaz")
-            return q
-        except ipaddress.AddressValueError:
-            raise HTTPException(400, "Geçersiz IPv6 adresi")
-
-    # Domain adı kontrolü
-    if _DOMAIN_RE.match(q):
-        return q
-
-    raise HTTPException(400, "Geçersiz IP adresi veya alan adı formatı")
+    """Girdiyi doğrula, temizlenmiş string döndür (net_validation'a delege)."""
+    return validate_host(raw, allow_ip=True, allow_private=False)
 
 
 @router.get("/lookup", response_model=IPLookupResponse)

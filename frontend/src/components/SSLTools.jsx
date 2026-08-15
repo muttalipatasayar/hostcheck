@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
-  Shield, FileKey, Package, FilePlus2, Copy, Check,
+  Shield, FileKey, FilePlus2, Copy, Check,
   Download, Upload, Plus, X, CheckCircle2, XCircle,
   AlertTriangle, ChevronDown, ChevronUp, Loader2, Info,
   Search, Calendar, Clock, Building2, Globe, Lock, LockOpen,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import { SSL_TABS } from '../lib/sslTabs'
+import { useTarget, useCommittedTarget } from '../context/TargetContext'
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 
@@ -200,15 +202,14 @@ function StatusBadge({ isActive, isTrusted, daysRemaining }) {
   return null
 }
 
-function SSLChecker() {
-  const [domain, setDomain] = useState('')
+function SSLChecker({ isActive }) {
   const [port,   setPort]   = useState('443')
   const [loading, setLoading] = useState(false)
   const [result,  setResult]  = useState(null)
   const [error,   setError]   = useState('')
+  const { target, commitTarget } = useTarget()
 
-  const check = async () => {
-    const d = domain.trim()
+  const check = async (d) => {
     if (!d) return
     setLoading(true)
     setError('')
@@ -225,29 +226,23 @@ function SSLChecker() {
     }
   }
 
+  // autoRun:false — SSL el sıkışması pahalı; yalnızca açık Enter/Çalıştır ile.
+  // Alt sekme gizliyken (display:none) gelen commit'ler de sorgu ATMAMALI.
+  useCommittedTarget((d) => { if (isActive) check(d) }, { autoRun: false })
+
   const typeMeta = result ? (CERT_TYPE_META[result.cert_type] || CERT_TYPE_META.DV) : null
 
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
-      {/* Sorgu kutusu */}
+      {/* Sorgu kutusu — alan adı üstteki hedef çubuğundan gelir */}
       <div
         className="rounded-card p-5"
         style={{ background: '#ffffff' }}
       >
         <p className="text-label-sm font-medium mb-4" style={{ color: '#6b7388' }}>
-          SORGULANACAK ALAN ADI
+          SORGULANACAK ALAN ADI — ÜSTTEKİ HEDEF ÇUBUĞU
         </p>
-        <div className="flex gap-3 flex-wrap">
-          <div className="flex-1 min-w-52">
-            <input
-              type="text"
-              className="input-field w-full"
-              placeholder="example.com veya https://example.com"
-              value={domain}
-              onChange={e => setDomain(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && check()}
-            />
-          </div>
+        <div className="flex gap-3 flex-wrap items-center">
           <div style={{ width: 88 }}>
             <input
               type="number"
@@ -260,14 +255,19 @@ function SSLChecker() {
             />
           </div>
           <button
-            onClick={check}
-            disabled={loading || !domain.trim()}
+            onClick={commitTarget}
+            disabled={loading || !target.trim()}
             className="btn-primary flex items-center gap-2 flex-shrink-0"
           >
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Sorgulanıyor…</>
-              : <><Search className="w-4 h-4" />Sorgula</>}
+              : <><Search className="w-4 h-4" />{target.trim() ? `${target.trim()} sorgula` : 'Sorgula'}</>}
           </button>
+          {!target.trim() && (
+            <p className="text-body-sm" style={{ color: '#9da5be' }}>
+              Üstteki hedef çubuğuna bir alan adı yazın.
+            </p>
+          )}
         </div>
       </div>
 
@@ -860,15 +860,12 @@ function CSRGenerate() {
 
 // ── Ana Bileşen ───────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'ssl-checker',  label: 'SSL Sorgula',   icon: Search    },
-  { id: 'csr-decode',   label: 'CSR Çözümle',   icon: FileKey   },
-  { id: 'pfx-convert',  label: 'PFX Dönüştür',  icon: Package   },
-  { id: 'csr-generate', label: 'CSR Oluştur',   icon: FilePlus2 },
-]
-
 export default function SSLTools() {
-  const [tab, setTab] = useState('ssl-checker')
+  const { peekPendingIntent, clearPendingIntent } = useTarget()
+  // Palet niyeti ("CSR Çözümle") ilk render'da sekmeyi seçer
+  const [tab, setTab] = useState(() => peekPendingIntent('ssl-tools')?.tab ?? 'ssl-checker')
+
+  useEffect(() => { clearPendingIntent('ssl-tools') }, [clearPendingIntent])
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -891,7 +888,7 @@ export default function SSLTools() {
       {/* Tabs */}
       <div className="px-8 pb-6">
         <div className="flex gap-1 rounded-card p-1 w-fit" style={{ background: '#ffffff' }}>
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {SSL_TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className="flex items-center gap-2 px-4 py-2 rounded text-body-sm font-medium transition-all"
               style={{
@@ -905,12 +902,13 @@ export default function SSLTools() {
         </div>
       </div>
 
-      {/* İçerik */}
+      {/* İçerik — alt sekmeler GİZLENİR, unmount edilmez: yapıştırılan CSR/PFX
+          içeriği sekme değişiminde kaybolmaz */}
       <div className="px-8 pb-10">
-        {tab === 'ssl-checker'  && <SSLChecker />}
-        {tab === 'csr-decode'   && <CSRDecode />}
-        {tab === 'pfx-convert'  && <PFXConvert />}
-        {tab === 'csr-generate' && <CSRGenerate />}
+        <div style={{ display: tab === 'ssl-checker'  ? undefined : 'none' }}><SSLChecker isActive={tab === 'ssl-checker'} /></div>
+        <div style={{ display: tab === 'csr-decode'   ? undefined : 'none' }}><CSRDecode /></div>
+        <div style={{ display: tab === 'pfx-convert'  ? undefined : 'none' }}><PFXConvert /></div>
+        <div style={{ display: tab === 'csr-generate' ? undefined : 'none' }}><CSRGenerate /></div>
       </div>
     </div>
   )

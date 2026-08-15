@@ -2,20 +2,21 @@ import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 
-from database import engine, Base
+from db_migrate import run_migrations
 from rate_limiter import limiter
-from routers import tickets, checks, ai, quick_check, screenshot, ssl_tools, dns_toolbox, dns_history, ssh, rdp, ip_lookup, hazir_yanitlar
+from routers import quick_check, screenshot, ssl_tools, dns_toolbox, dns_history, dns_propagation, blacklist, mail_health, ssh, rdp, ip_lookup, hazir_yanitlar
+from routers import ftp as ftp_router
+from routers import admin
 
 load_dotenv()
 
-# Tabloları oluştur
-Base.metadata.create_all(bind=engine)
+# Şemayı Alembic ile en güncel sürüme getir
+run_migrations()
 
 app = FastAPI(
     title="HostCheck API",
@@ -70,14 +71,16 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-app.include_router(tickets.router)
-app.include_router(checks.router)
-app.include_router(ai.router)
 app.include_router(quick_check.router)
 app.include_router(screenshot.router)
 app.include_router(ssl_tools.router)
 app.include_router(dns_toolbox.router)
 app.include_router(dns_history.router)
+app.include_router(dns_propagation.router)
+app.include_router(blacklist.router)
+app.include_router(mail_health.router)
+app.include_router(ftp_router.router)
+app.include_router(admin.router)
 app.include_router(ssh.router)
 app.include_router(rdp.router)
 app.include_router(ip_lookup.router)

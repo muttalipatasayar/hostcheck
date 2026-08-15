@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import {
   Search, Globe, Building2, Network, MapPin, Clock,
   Loader2, X, Server, Smartphone, ShieldAlert, Wifi,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import { useTarget, useCommittedTarget } from '../context/TargetContext'
 
 // ISO 3166-1 alpha-2 → bayrak emoji
 const flagEmoji = (code) => {
@@ -90,14 +91,13 @@ const NETWORK_TAGS = [
 ]
 
 export default function IPLookup() {
-  const [query, setQuery]   = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult]   = useState(null)
   const [error, setError]     = useState('')
-  const inputRef = useRef(null)
+  const { target, setTarget, commitTarget } = useTarget()
 
-  const lookup = async () => {
-    const q = query.trim()
+  const lookup = async (value) => {
+    const q = value.trim()
     if (!q) return
     setLoading(true)
     setError('')
@@ -112,7 +112,9 @@ export default function IPLookup() {
     }
   }
 
-  const handleKey = (e) => { if (e.key === 'Enter') lookup() }
+  // autoRun:true — ucuz/idempotent; commit edilmiş hedefle sekmeye gelindiğinde
+  // kendiliğinden de çalışır
+  useCommittedTarget(lookup, { autoRun: true })
 
   const mapsUrl = result?.lat && result?.lon
     ? `https://www.google.com/maps?q=${result.lat},${result.lon}`
@@ -139,42 +141,25 @@ export default function IPLookup() {
         </p>
       </div>
 
-      {/* ── Search ─────────────────────────────────────────────────────────── */}
+      {/* ── Çalıştır — hedef üstteki çubuktan gelir ───────────────────────── */}
       <div className="px-8 pb-6">
-        <div
-          className="flex items-center gap-3 rounded-card px-4 py-3"
-          style={{ background: '#ffffff' }}
-        >
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="8.8.8.8 · 2001:4860:4860::8888 · example.com"
-            className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#1a1d2e', caretColor: '#a8d5a2' }}
-            autoFocus
-            spellCheck={false}
-          />
-          {query && (
-            <button onClick={() => { setQuery(''); setResult(null); setError('') }}
-              className="p-1 rounded hover:opacity-70" style={{ color: '#9da5be' }}>
-              <X className="w-4 h-4" />
-            </button>
-          )}
+        <div className="flex items-center gap-3">
           <button
-            onClick={lookup}
-            disabled={loading || !query.trim()}
-            className="btn-primary flex-shrink-0"
+            onClick={commitTarget}
+            disabled={loading || !target.trim()}
+            className="btn-primary flex-shrink-0 flex items-center gap-2"
             style={{ background: loading ? undefined : 'linear-gradient(135deg,#a8d5a2,#6dc87a)' }}
           >
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Sorgulanıyor…</>
-              : <><Search className="w-4 h-4" /> Sorgula</>
+              : <><Search className="w-4 h-4" /> {target.trim() ? `${target.trim()} sorgula` : 'Sorgula'}</>
             }
           </button>
+          {!target.trim() && (
+            <p className="text-body-sm" style={{ color: '#9da5be' }}>
+              Üstteki hedef çubuğuna IP adresi veya alan adı yazın.
+            </p>
+          )}
         </div>
       </div>
 
@@ -396,7 +381,7 @@ export default function IPLookup() {
             {['8.8.8.8', '1.1.1.1', '208.67.222.222'].map(ip => (
               <button
                 key={ip}
-                onClick={() => { setQuery(ip); setTimeout(lookup, 50) }}
+                onClick={() => { setTarget(ip); commitTarget() }}
                 className="text-label-sm font-mono px-3 py-1.5 rounded-btn transition-colors"
                 style={{ background: '#ffffff', color: '#6b7388', border: '1px solid rgba(0,6,30,0.09)' }}
               >

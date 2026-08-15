@@ -1,49 +1,93 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Guacamole from 'guacamole-common-js'
+import axios from 'axios'
+import toast from 'react-hot-toast'
 import {
-  Monitor, Plug, PlugZap, X, RotateCcw, Clock,
-  Maximize2, Minimize2, AlertTriangle, Info,
+  Monitor, Plug, PlugZap, X, Info,
+  ClipboardCopy, ClipboardPaste, CheckCircle2, XCircle, RefreshCw,
 } from 'lucide-react'
+import { wsUrl } from '../lib/ws'
+import { ensureAdminAccess } from '../lib/adminAuth'
+import { useTarget } from '../context/TargetContext'
+import { useSavedConnections } from '../hooks/useSavedConnections'
+import { useConnectionStatus } from '../hooks/useConnectionStatus'
+import { useFullscreen } from '../hooks/useFullscreen'
+import { useRefitOnVisible } from '../hooks/useRefitOnVisible'
+import RemoteWindowFrame from './remote/RemoteWindowFrame'
+import SavedConnectionsList from './remote/SavedConnectionsList'
+import ConnectionHeader from './remote/ConnectionHeader'
 
-const SAVED_KEY = 'rdp_saved_connections'
-const MAX_SAVED = 8
+// Windows sunucular çoğunlukla NLA ister; "Otomatik" pazarlığı bazı
+// sunucu/guacd ikililerinde başarısız olur — açık seçim şart
+const SECURITY_MODES = [
+  { id: 'any', label: 'Otomatik (önerilen)' },
+  { id: 'nla', label: 'NLA — modern Windows varsayılanı' },
+  { id: 'tls', label: 'TLS' },
+  { id: 'rdp', label: 'RDP (eski sunucular)' },
+]
 
-function loadSaved() {
-  try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]') }
-  catch { return [] }
-}
-
-function persistSaved(list) {
-  localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, MAX_SAVED)))
+// Guacamole durum kodları → teknisyene Türkçe teşhis ipucu
+const STATUS_HINTS = {
+  514: 'Sunucu yanıt vermedi (zaman aşımı) — IP/port doğru mu, 3389 güvenlik duvarında açık mı?',
+  515: "RDP el sıkışması başarısız — Güvenlik modunu 'NLA' (veya eski sunucuda 'RDP') olarak değiştirip yeniden deneyin",
+  516: 'Kaynak bulunamadı',
+  519: 'Sunucuya ulaşılamadı — adres yanlış veya 3389 portu kapalı olabilir',
+  520: 'Sunucu şu an erişilemez durumda',
+  768: 'Geçersiz bağlantı parametresi',
+  769: 'Kimlik doğrulama başarısız — kullanıcı adı / şifre / domain (NLA) kontrol edin',
+  771: 'Erişim reddedildi — hesabın uzak masaüstü izni olmayabilir',
 }
 
 export default function RDPAccess() {
-  const [status, setStatus]         = useState('idle') // idle | connecting | connected | error
-  const [errorMsg, setErrorMsg]     = useState('')
-  const [isFullscreen, setFullscreen] = useState(false)
-  const [savedConns, setSavedConns] = useState(loadSaved)
+  const { status, setStatus, errorMsg, setErrorMsg, isConnected, isConnecting, fail, reset } = useConnectionStatus()
   const [activeConn, setActiveConn] = useState(null)
   const [form, setForm] = useState({
-    host: '', port: '3389', username: '', password: '', domain: '',
+    host: '', port: '3389', username: '', password: '', domain: '', security: 'any',
   })
+  const [guacd, setGuacd] = useState(null)          // null: kontrol ediliyor
+  const [remoteClip, setRemoteClip] = useState('')  // uzaktan gelen pano metni
+  const [clipInput, setClipInput] = useState('')    // uzağa gönderilecek metin
 
-  const displayContainerRef = useRef(null) // <div> where Guacamole canvas is mounted
+  // guacd erişilebilirlik kontrolü — "bağlanmıyor" şikayetlerinin 1 numaralı
+  // nedeni guacd'ın hiç çalışmıyor olması; formda peşinen gösterilir
+  const checkGuacd = useCallback(() => {
+    setGuacd(null)
+    axios.get('/api/rdp/guacd-status')
+      .then(({ data }) => setGuacd(data))
+      .catch(() => setGuacd({ running: false, address: '127.0.0.1:4822' }))
+  }, [])
+
+  const saved = useSavedConnections(
+    'rdp_saved_connections',
+    (a, b) => a.host === b.host && a.port === b.port && a.username === b.username,
+  )
+
+  // Paylaşılan hedefi TEK YÖNLÜ tüket: mount'ta host alanına ön-doldur,
+  // asla geri yazma (keepAlive olduğundan yalnızca ilk ziyarette çalışır)
+  const { target } = useTarget()
+  useEffect(() => {
+    const t = target.trim()
+    if (t) setForm(f => f.host ? f : { ...f, host: t })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const displayContainerRef = useRef(null) // Guacamole canvas'ının bağlandığı <div>
   const clientRef            = useRef(null)
   const keyboardRef          = useRef(null)
 
-  // ── Cleanup on unmount ───────────────────────────────────────────────────────
+  // ── Unmount temizliği ────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (clientRef.current) {
-        try { clientRef.current.disconnect() } catch {}
+        try { clientRef.current.disconnect() } catch { /* boş */ }
       }
       if (keyboardRef.current) {
-        try { keyboardRef.current.reset() } catch {}
+        try { keyboardRef.current.reset() } catch { /* boş */ }
       }
     }
   }, [])
 
-  // ── Scale display to fit container ──────────────────────────────────────────
+  // ── Ekranı konteynere sığdır ─────────────────────────────────────────────────
   const fitDisplay = useCallback(() => {
     const client = clientRef.current
     const container = displayContainerRef.current
@@ -58,18 +102,28 @@ export default function RDPAccess() {
     display.scale(scale)
   }, [])
 
-  // ── Connect ──────────────────────────────────────────────────────────────────
-  const connect = useCallback((overrideForm) => {
+  const { isFullscreen, setIsFullscreen, toggle: toggleFullscreen } = useFullscreen(fitDisplay)
+
+  // Konteyner görünür/yeniden boyutlanınca ekranı yeniden ölçekle
+  useRefitOnVisible(displayContainerRef, fitDisplay)
+
+  // ── Bağlan ───────────────────────────────────────────────────────────────────
+  const connect = useCallback(async (overrideForm) => {
     const f = overrideForm || form
     if (!f.host?.trim() || !f.username?.trim()) return
+    // Prod'da reverse proxy Basic Auth'unu tetikle (WS'ten önce kimlik cache'lensin)
+    if (!(await ensureAdminAccess())) {
+      fail('Yönetici erişimi gerekli — RDP aracı için kimlik doğrulaması iptal edildi.')
+      return
+    }
 
-    // Tear down any existing session
+    // Varsa mevcut oturumu kapat
     if (clientRef.current) {
-      try { clientRef.current.disconnect() } catch {}
+      try { clientRef.current.disconnect() } catch { /* boş */ }
       clientRef.current = null
     }
     if (keyboardRef.current) {
-      try { keyboardRef.current.reset() } catch {}
+      try { keyboardRef.current.reset() } catch { /* boş */ }
       keyboardRef.current = null
     }
     if (displayContainerRef.current) {
@@ -80,42 +134,69 @@ export default function RDPAccess() {
     setErrorMsg('')
     setActiveConn({ host: f.host.trim(), port: f.port || '3389', username: f.username.trim(), domain: f.domain || '' })
 
+    // Form açıkken görüntü alanı daralmış olabilir (ör. 57px yükseklik) —
+    // backend 320x240 altını reddeder ve bağlantı hiç kurulamazdı. Ölçüyü
+    // makul sınırlara sıkıştır; bağlandıktan sonra fitDisplay zaten ölçekler.
     const container = displayContainerRef.current
-    const w = container?.clientWidth  || 1280
-    const h = container?.clientHeight || 720
+    const w = Math.min(Math.max(container?.clientWidth || 1280, 800), 7680)
+    const h = Math.min(Math.max(container?.clientHeight || 720, 600), 4320)
 
-    // Build WebSocket URL — goes through Vite proxy in dev
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsBase = `${proto}//${window.location.host}/api/rdp/ws`
-
-    const tunnel = new Guacamole.WebSocketTunnel(wsBase)
+    const tunnel = new Guacamole.WebSocketTunnel(wsUrl('/api/rdp/ws'))
     const client = new Guacamole.Client(tunnel)
 
-    // Mount canvas
+    // Canvas'ı bağla
     const displayEl = client.getDisplay().getElement()
     displayEl.style.display = 'block'
     container.appendChild(displayEl)
 
-    // Keyboard — attach to display element only (won't steal focus from UI inputs)
+    // Klavye — yalnızca display elemanına bağlanır (UI girdilerinden odak çalmaz)
     const keyboard = new Guacamole.Keyboard(displayEl)
     keyboard.onkeydown = (keysym) => client.sendKeyEvent(1, keysym)
     keyboard.onkeyup   = (keysym) => client.sendKeyEvent(0, keysym)
     keyboardRef.current = keyboard
 
-    // Mouse
+    // Fare
     const mouse = new Guacamole.Mouse(displayEl)
     mouse.onmousedown = (state) => client.sendMouseState(state)
     mouse.onmouseup   = (state) => client.sendMouseState(state)
     mouse.onmousemove = (state) => client.sendMouseState(state)
 
-    // Click on canvas to capture keyboard focus
+    // Canvas'a tıklayınca klavye odağını al
     displayEl.setAttribute('tabindex', '0')
     displayEl.addEventListener('click', () => displayEl.focus())
 
-    // Display resize → re-scale
+    // ── Pano senkronu: uzak → yerel ─────────────────────────────────────────
+    client.onclipboard = (stream, mimetype) => {
+      if (!mimetype.startsWith('text/')) { stream.sendAck('Yalnızca metin', 0x0100); return }
+      const reader = new Guacamole.StringReader(stream)
+      let data = ''
+      reader.ontext = (t) => { data += t }
+      reader.onend = () => {
+        setRemoteClip(data)
+        // navigator.clipboard yalnızca secure context'te var (localhost sayılır,
+        // LAN IP'si SAYILMAZ) — yoksa metin aşağıdaki kutuda gösterilir
+        if (window.isSecureContext && navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(data).catch(() => {})
+        }
+      }
+    }
+
+    // ── Pano senkronu: yerel → uzak (paste olayı insecure context'te de
+    // veri taşır — Ctrl+V canvas'a odaklıyken içerik uzağa gider) ────────────
+    displayEl.addEventListener('paste', (ev) => {
+      const text = ev.clipboardData?.getData('text/plain')
+      if (text && clientRef.current === client) {
+        const stream = client.createClipboardStream('text/plain')
+        const writer = new Guacamole.StringWriter(stream)
+        writer.sendText(text)
+        writer.sendEnd()
+      }
+    })
+
+    // Uzak ekran yeniden boyutlanınca yeniden ölçekle
     client.getDisplay().onresize = fitDisplay
 
-    // State changes
+    // Durum değişimleri
     client.onstatechange = (state) => {
       // 3 = CONNECTED
       if (state === 3) {
@@ -123,20 +204,12 @@ export default function RDPAccess() {
         fitDisplay()
 
         // Kaydet (şifresiz)
-        const entry = {
+        saved.save({
           host: f.host.trim(),
           port: f.port || '3389',
           username: f.username.trim(),
           domain: f.domain || '',
           lastUsed: Date.now(),
-        }
-        setSavedConns(prev => {
-          const deduped = prev.filter(
-            c => !(c.host === entry.host && c.port === entry.port && c.username === entry.username)
-          )
-          const updated = [entry, ...deduped]
-          persistSaved(updated)
-          return updated
         })
       }
       // 5 = DISCONNECTED
@@ -146,123 +219,130 @@ export default function RDPAccess() {
       }
     }
 
-    // Errors
+    // Hatalar — Guacamole kodunu Türkçe teşhis ipucuyla zenginleştir.
+    // Backend'in ürettiği mesajlar zaten Türkçe; onlara ipucu ekleme.
     client.onerror = (status) => {
       const msg = status?.message || 'Bilinmeyen hata'
-      setStatus('error')
-      setErrorMsg(msg)
+      const hint = STATUS_HINTS[status?.code]
+      const alreadyTurkish = /[çğıöşü]/i.test(msg)
+      fail(alreadyTurkish || !hint ? msg : `${hint} (kod ${status?.code} — ${msg})`)
     }
 
     clientRef.current = client
 
-    // Connect params appended to WS URL as query string
-    const params = new URLSearchParams({
+    // Kimlik bilgileri POST gövdesinde gider; WebSocket URL'i yalnızca kısa
+    // ömürlü, tek kullanımlık bir bilet taşır. Şifre hiçbir zaman URL'de,
+    // tarayıcı geçmişinde veya sunucu access logunda görünmez.
+    axios.post('/api/rdp/session', {
       hostname: f.host.trim(),
-      port:     String(f.port || 3389),
+      port:     Number(f.port) || 3389,
       username: f.username.trim(),
       password: f.password || '',
       domain:   f.domain   || '',
-      width:    String(w),
-      height:   String(h),
+      width:    w,
+      height:   h,
+      security: f.security || 'any',
     })
-    client.connect(params.toString())
-  }, [form, fitDisplay])
+      .then(({ data }) => {
+        // Kullanıcı bilet gelene kadar bağlantıyı iptal etmiş olabilir
+        if (clientRef.current !== client) return
+        client.connect(new URLSearchParams({ ticket: data.ticket }).toString())
+      })
+      .catch((err) => {
+        if (clientRef.current !== client) return
+        fail(err?.response?.data?.detail || 'Bağlantı oturumu oluşturulamadı')
+      })
+  }, [form, fitDisplay, fail, saved, setStatus, setErrorMsg])
 
-  // ── Disconnect ───────────────────────────────────────────────────────────────
+  // ── Bağlantıyı kes ───────────────────────────────────────────────────────────
   const disconnect = useCallback(() => {
     if (clientRef.current) {
-      try { clientRef.current.disconnect() } catch {}
+      try { clientRef.current.disconnect() } catch { /* boş */ }
       clientRef.current = null
     }
     if (keyboardRef.current) {
-      try { keyboardRef.current.reset() } catch {}
+      try { keyboardRef.current.reset() } catch { /* boş */ }
       keyboardRef.current = null
     }
     if (displayContainerRef.current) {
       displayContainerRef.current.innerHTML = ''
     }
-    setStatus('idle')
-    setErrorMsg('')
+    reset()
     setActiveConn(null)
+    setRemoteClip('')
   }, [])
 
   const newConnection = () => {
     disconnect()
-    setForm({ host: '', port: '3389', username: '', password: '', domain: '' })
-    setFullscreen(false)
+    setForm({ host: '', port: '3389', username: '', password: '', domain: '', security: 'any' })
+    setClipInput('')
+    setIsFullscreen(false)
   }
 
-  const toggleFullscreen = () => {
-    setFullscreen(v => !v)
-    setTimeout(fitDisplay, 80)
+  // ── Pano: açık "Panoyu gönder" yolu (insecure context'te de çalışır) ───────
+  const sendClipboardText = (text) => {
+    const client = clientRef.current
+    if (!client || !text) return
+    const stream = client.createClipboardStream('text/plain')
+    const writer = new Guacamole.StringWriter(stream)
+    writer.sendText(text)
+    writer.sendEnd()
+    toast.success('Metin uzak panoya gönderildi')
   }
 
-  const removeSaved = (i, e) => {
-    e.stopPropagation()
-    setSavedConns(prev => {
-      const updated = prev.filter((_, idx) => idx !== i)
-      persistSaved(updated)
-      return updated
-    })
+  const readLocalAndSend = async () => {
+    try {
+      const t = await navigator.clipboard.readText()
+      if (t) { setClipInput(t); sendClipboardText(t) }
+    } catch {
+      toast.error('Tarayıcı yerel panoya erişemedi — metni alana yapıştırıp gönderin')
+    }
   }
 
-  const loadSavedConn = (c) => {
-    setForm({ host: c.host, port: c.port, username: c.username, password: '', domain: c.domain || '' })
+  const copyRemoteToLocal = async () => {
+    try {
+      await navigator.clipboard.writeText(remoteClip)
+      toast.success('Yerel panoya kopyalandı')
+    } catch {
+      // insecure context fallback: seçilebilir alan üzerinden kopyala
+      const ta = document.createElement('textarea')
+      ta.value = remoteClip
+      document.body.appendChild(ta)
+      ta.select()
+      try {
+        document.execCommand('copy')
+        toast.success('Yerel panoya kopyalandı')
+      } catch {
+        toast.error('Kopyalanamadı — metni kutudan elle seçin')
+      }
+      ta.remove()
+    }
   }
 
-  // ResizeObserver for display container
+  const showForm = !isConnected && !isConnecting
+
+  // Form her göründüğünde guacd'ı yeniden kontrol et (keepAlive: bileşen
+  // mount kalır, yalnızca mount'ta kontrol etmek bayat rozet bırakır)
   useEffect(() => {
-    if (!displayContainerRef.current) return
-    const ro = new ResizeObserver(fitDisplay)
-    ro.observe(displayContainerRef.current)
-    return () => ro.disconnect()
-  }, [fitDisplay])
-
-  const isConnected  = status === 'connected'
-  const isConnecting = status === 'connecting'
-  const showForm     = !isConnected && !isConnecting
+    if (showForm) checkGuacd()
+  }, [showForm, checkGuacd])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ── Page Header ────────────────────────────────────────────────────────── */}
-      <div className="px-8 pt-8 pb-5 flex-shrink-0 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div
-              className="w-8 h-8 rounded-btn flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,rgba(212,168,255,.2) 0%,rgba(168,85,247,.15) 100%)' }}
-            >
-              <Monitor className="w-4 h-4" style={{ color: '#d4a8ff' }} />
-            </div>
-            <h1 className="text-headline-md font-semibold" style={{ color: '#1a1d2e' }}>
-              RDP Uzak Masaüstü
-            </h1>
-          </div>
-          <p className="text-body-md pl-11" style={{ color: '#6b7388' }}>
-            {isConnected
-              ? `${activeConn?.username}@${activeConn?.host}:${activeConn?.port} — aktif oturum`
-              : 'Windows sunucularına tarayıcı üzerinden uzak masaüstü bağlantısı açın.'}
-          </p>
-        </div>
+      {/* ── Sayfa başlığı ──────────────────────────────────────────────────────── */}
+      <ConnectionHeader
+        icon={<Monitor className="w-4 h-4" style={{ color: '#d4a8ff' }} />}
+        iconBg="linear-gradient(135deg,rgba(212,168,255,.2) 0%,rgba(168,85,247,.15) 100%)"
+        title="RDP Uzak Masaüstü"
+        subtitle={isConnected
+          ? `${activeConn?.username}@${activeConn?.host}:${activeConn?.port} — aktif oturum`
+          : 'Windows sunucularına tarayıcı üzerinden uzak masaüstü bağlantısı açın.'}
+        showNewConnection={isConnected}
+        onNewConnection={newConnection}
+      />
 
-        {isConnected && (
-          <button
-            onClick={newConnection}
-            className="flex items-center gap-2 px-3 py-2 rounded-btn text-body-sm font-medium flex-shrink-0"
-            style={{
-              background: 'rgba(255,180,171,0.1)',
-              color: '#ffb4ab',
-              border: '1px solid rgba(255,180,171,0.25)',
-            }}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Yeni Bağlantı
-          </button>
-        )}
-      </div>
-
-      {/* ── Connection Form ───────────────────────────────────────────────────── */}
+      {/* ── Bağlantı formu ───────────────────────────────────────────────────── */}
       {showForm && (
         <div className="px-8 pb-5 flex-shrink-0 overflow-y-auto">
           <div className="rounded-card p-5" style={{ background: '#ffffff' }}>
@@ -270,7 +350,7 @@ export default function RDPAccess() {
               BAĞLANTI BİLGİLERİ
             </p>
 
-            {/* Row 1: Host + Port */}
+            {/* Satır 1: Host + Port */}
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="col-span-2">
                 <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
@@ -299,7 +379,7 @@ export default function RDPAccess() {
               </div>
             </div>
 
-            {/* Row 2: Username + Password */}
+            {/* Satır 2: Kullanıcı adı + Şifre */}
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>Kullanıcı Adı</label>
@@ -327,22 +407,39 @@ export default function RDPAccess() {
               </div>
             </div>
 
-            {/* Row 3: Domain (optional) */}
-            <div className="mb-4">
-              <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
-                Domain <span style={{ color: '#9da5be' }}>(isteğe bağlı)</span>
-              </label>
-              <input
-                type="text"
-                className="input-field w-full"
-                placeholder="WORKGROUP veya domain.local"
-                value={form.domain}
-                onChange={e => setForm(f => ({ ...f, domain: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && connect()}
-              />
+            {/* Satır 3: Domain + Güvenlik modu */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
+                  Domain <span style={{ color: '#9da5be' }}>(isteğe bağlı)</span>
+                </label>
+                <input
+                  type="text"
+                  className="input-field w-full"
+                  placeholder="WORKGROUP veya domain.local"
+                  value={form.domain}
+                  onChange={e => setForm(f => ({ ...f, domain: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && connect()}
+                />
+              </div>
+              <div>
+                <label className="text-label-sm mb-1.5 block" style={{ color: '#6b7388' }}>
+                  Güvenlik Modu
+                </label>
+                <select
+                  className="input-field w-full"
+                  value={form.security}
+                  onChange={e => setForm(f => ({ ...f, security: e.target.value }))}
+                  title="Bağlantı kurulamıyorsa önce NLA'yı, eski sunucularda RDP'yi deneyin"
+                >
+                  {SECURITY_MODES.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Error */}
+            {/* Hata */}
             {errorMsg && (
               <div
                 className="rounded-btn px-4 py-2.5 mb-4 text-body-sm flex items-start gap-2"
@@ -363,79 +460,59 @@ export default function RDPAccess() {
                 Bağlan
               </button>
 
-              {/* guacd info */}
-              <div
-                className="flex items-center gap-1.5 text-label-sm"
-                style={{ color: '#9da5be' }}
-                title="guacd Docker: docker run -d -p 4822:4822 guacamole/guacd"
-              >
-                <Info className="w-3.5 h-3.5" />
-                guacd gerektirir
+              {/* guacd canlı durum rozeti */}
+              <div className="flex items-center gap-1.5 text-label-sm">
+                {guacd === null && (
+                  <span className="flex items-center gap-1.5" style={{ color: '#9da5be' }}>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> guacd kontrol ediliyor…
+                  </span>
+                )}
+                {guacd?.running === true && (
+                  <span className="flex items-center gap-1.5" style={{ color: '#4a6cf7' }}>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> guacd çalışıyor ({guacd.address})
+                  </span>
+                )}
+                {guacd?.running === false && (
+                  <span className="flex items-center gap-1.5" style={{ color: '#ffb4ab' }}>
+                    <XCircle className="w-3.5 h-3.5" /> guacd ÇALIŞMIYOR — bağlantı kurulamaz
+                    <button onClick={checkGuacd} className="underline hover:opacity-70" style={{ color: '#3b7eff' }}>
+                      yeniden dene
+                    </button>
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* guacd setup hint */}
+            {/* guacd kurulum ipucu — çalışmıyorsa vurgulu */}
             <div
               className="mt-4 px-3 py-2.5 rounded-btn text-label-sm"
-              style={{ background: 'rgba(59,127,255,0.05)', color: '#6b7388', border: '1px solid rgba(59,127,255,0.09)' }}
+              style={guacd?.running === false
+                ? { background: 'rgba(255,180,171,0.08)', color: '#c14953', border: '1px solid rgba(255,180,171,0.2)' }
+                : { background: 'rgba(59,127,255,0.05)', color: '#6b7388', border: '1px solid rgba(59,127,255,0.09)' }}
             >
-              <span style={{ color: '#3b7eff' }}>guacd kurulum:</span>
+              <span style={{ color: guacd?.running === false ? '#c14953' : '#3b7eff' }}>
+                {guacd?.running === false ? 'guacd başlatın:' : 'guacd kurulum:'}
+              </span>
               {'  '}
-              <code style={{ color: '#c9cdd6', background: 'rgba(0,6,30,0.04)', padding: '1px 6px', borderRadius: 4 }}>
-                docker run -d -p 4822:4822 guacamole/guacd
+              <code style={{ color: '#6b7388', background: 'rgba(0,6,30,0.04)', padding: '1px 6px', borderRadius: 4 }}>
+                docker run -d --restart unless-stopped -p 4822:4822 guacamole/guacd
               </code>
             </div>
           </div>
 
-          {/* Saved Connections */}
-          {savedConns.length > 0 && (
-            <div className="mt-5">
-              <p
-                className="text-label-sm font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                style={{ color: '#9da5be' }}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                Son Bağlantılar
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {savedConns.map((c, i) => (
-                  <button
-                    key={i}
-                    onClick={() => loadSavedConn(c)}
-                    className="group flex items-center gap-3 px-4 py-3 rounded-btn text-left w-full transition-colors"
-                    style={{ background: '#ffffff' }}
-                  >
-                    <div
-                      className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(212,168,255,0.08)' }}
-                    >
-                      <Monitor className="w-3.5 h-3.5" style={{ color: '#d4a8ff' }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>
-                        {c.username}@{c.host}
-                      </p>
-                      <p className="text-label-sm" style={{ color: '#9da5be' }}>
-                        port {c.port}{c.domain ? ` · ${c.domain}` : ''}
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => removeSaved(i, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
-                      style={{ color: '#9da5be' }}
-                      title="Sil"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Kayıtlı bağlantılar */}
+          <SavedConnectionsList
+            items={saved.items}
+            icon={<Monitor className="w-3.5 h-3.5" style={{ color: '#d4a8ff' }} />}
+            iconBg="rgba(212,168,255,0.08)"
+            subtitle={(c) => `port ${c.port}${c.domain ? ` · ${c.domain}` : ''}`}
+            onSelect={(c) => setForm({ host: c.host, port: c.port, username: c.username, password: '', domain: c.domain || '' })}
+            onRemove={saved.remove}
+          />
         </div>
       )}
 
-      {/* ── Connecting banner ────────────────────────────────────────────────── */}
+      {/* ── Bağlanıyor bandı ─────────────────────────────────────────────────── */}
       {isConnecting && (
         <div className="px-8 pb-4 flex-shrink-0">
           <div
@@ -448,121 +525,107 @@ export default function RDPAccess() {
         </div>
       )}
 
-      {/* ── RDP Window ───────────────────────────────────────────────────────── */}
-      <div
-        className={`min-h-0 flex-1 flex flex-col ${
-          isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'px-8 pb-8'
-        }`}
+      {/* ── RDP penceresi ────────────────────────────────────────────────────── */}
+      <RemoteWindowFrame
+        tabIcon={<Monitor className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d4a8ff' }} />}
+        tabLabel={isConnected || isConnecting
+          ? `${activeConn?.username || form.username}@${activeConn?.host || form.host}:${activeConn?.port || form.port}`
+          : 'rdp'}
+        isFullscreen={isFullscreen}
+        isConnected={isConnected}
+        isConnecting={isConnecting}
+        onToggleFullscreen={toggleFullscreen}
+        onDisconnect={disconnect}
       >
-        <div
-          className="rounded-card overflow-hidden flex flex-col h-full"
-          style={{
-            background: '#f0f2f7',
-            border: '1px solid rgba(66,71,84,0.5)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}
-        >
-          {/* ── macOS-style title bar ── */}
+        {/* ── Pano çubuğu (Aşama 8) ── */}
+        {isConnected && (
           <div
-            className="flex items-center gap-3 px-4 py-2.5 flex-shrink-0 select-none"
-            style={{ background: '#1e2025', borderBottom: '1px solid rgba(66,71,84,0.5)' }}
+            className="flex items-center gap-2 px-3 py-2 flex-shrink-0 flex-wrap"
+            style={{ background: '#16181d', borderBottom: '1px solid rgba(66,71,84,0.4)' }}
           >
-            {/* Traffic lights */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={disconnect}
-                title="Bağlantıyı kes"
-                className="w-3 h-3 rounded-full transition-opacity hover:opacity-75 active:scale-95"
-                style={{ background: '#ff5f57' }}
-              />
-              <div className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
-              <div
-                className="w-3 h-3 rounded-full cursor-pointer transition-opacity hover:opacity-75"
-                onClick={toggleFullscreen}
-                title="Tam ekran"
-                style={{ background: '#28c840' }}
-              />
-            </div>
-
-            {/* Tab */}
-            <div
-              className="flex items-center gap-2 px-3 py-1 rounded text-label-sm"
-              style={{ background: 'rgba(255,255,255,0.06)', color: '#c9cdd6', maxWidth: '320px' }}
-            >
-              <Monitor className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d4a8ff' }} />
-              <span className="truncate">
-                {isConnected || isConnecting
-                  ? `${activeConn?.username || form.username}@${activeConn?.host || form.host}:${activeConn?.port || form.port}`
-                  : 'rdp'}
-              </span>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* Status + controls */}
-            <div className="flex items-center gap-3">
-              {isConnected && (
-                <span className="flex items-center gap-1.5 text-label-sm" style={{ color: '#28c840' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                  Bağlı
-                </span>
-              )}
-              {isConnecting && (
-                <span className="flex items-center gap-1.5 text-label-sm" style={{ color: '#febc2e' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
-                  Bağlanıyor
-                </span>
-              )}
-
-              <button
-                onClick={toggleFullscreen}
-                className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#6b7388' }}
-                title={isFullscreen ? 'Küçült' : 'Tam ekran'}
-              >
-                {isFullscreen
-                  ? <Minimize2 className="w-3.5 h-3.5" />
-                  : <Maximize2 className="w-3.5 h-3.5" />
-                }
-              </button>
-
-              <button
-                onClick={disconnect}
-                className="p-1 rounded transition-opacity hover:opacity-70"
-                style={{ color: '#6b7388' }}
-                title="Kapat"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* ── Display area ── */}
-          <div
-            className="flex-1 min-h-0 overflow-hidden flex items-center justify-center"
-            style={{ background: '#0d0f13', cursor: isConnected ? 'default' : 'default' }}
-          >
-            {/* Guacamole canvas is mounted here imperatively */}
-            <div
-              ref={displayContainerRef}
-              style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+            <ClipboardPaste className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d4a8ff' }} />
+            <input
+              type="text"
+              value={clipInput}
+              onChange={e => setClipInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendClipboardText(clipInput)}
+              placeholder="Uzak panoya gönderilecek metin…"
+              className="flex-1 min-w-40 bg-transparent outline-none text-body-sm font-mono rounded px-2 py-1"
+              style={{ color: '#e8eaf4', background: 'rgba(255,255,255,0.05)', caretColor: '#d4a8ff' }}
             />
-
-            {/* Idle placeholder */}
-            {!isConnected && !isConnecting && (
-              <div
-                className="absolute flex flex-col items-center gap-3 pointer-events-none"
-                style={{ color: '#f2f4fa' }}
+            <button
+              onClick={() => sendClipboardText(clipInput)}
+              disabled={!clipInput}
+              className="text-label-sm px-2.5 py-1.5 rounded-btn font-medium disabled:opacity-40"
+              style={{ background: 'rgba(212,168,255,0.15)', color: '#d4a8ff' }}
+            >
+              Panoyu gönder
+            </button>
+            {window.isSecureContext ? (
+              <button
+                onClick={readLocalAndSend}
+                className="text-label-sm px-2.5 py-1.5 rounded-btn"
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#c9cdd6' }}
+                title="Yerel panodaki metni okuyup uzak oturuma gönderir"
               >
-                <Monitor className="w-16 h-16" />
-                <p className="text-body-md" style={{ color: '#9da5be' }}>
-                  Uzak masaüstü bekleniyor
-                </p>
-              </div>
+                Yerel panodan oku & gönder
+              </button>
+            ) : (
+              <span
+                className="text-label-sm flex items-center gap-1"
+                style={{ color: '#9da5be' }}
+                title="navigator.clipboard yalnızca HTTPS veya localhost'ta çalışır — LAN IP'sinden açıldığında tarayıcı yerel panoyu doğrudan okuyamaz; metni bu alanla taşıyın (canvas'a Ctrl+V de çalışır)"
+              >
+                <Info className="w-3 h-3" />
+                LAN erişimi: pano bu alanla taşınır
+              </span>
+            )}
+            {remoteClip && (
+              <span className="flex items-center gap-1.5 min-w-0" style={{ maxWidth: 340 }}>
+                <span className="text-label-sm flex-shrink-0" style={{ color: '#9da5be' }}>Uzaktan:</span>
+                <span className="text-label-sm font-mono truncate" style={{ color: '#c9cdd6' }} title={remoteClip}>
+                  {remoteClip}
+                </span>
+                <button
+                  onClick={copyRemoteToLocal}
+                  className="p-1 rounded hover:opacity-70 flex-shrink-0"
+                  style={{ color: '#d4a8ff' }}
+                  title="Uzaktan kopyalanan metni yerel panoya al"
+                >
+                  <ClipboardCopy className="w-3.5 h-3.5" />
+                </button>
+              </span>
             )}
           </div>
+        )}
+
+        {/* ── Görüntü alanı ── */}
+        <div
+          className="flex-1 min-h-0 overflow-hidden flex items-center justify-center"
+          style={{ background: '#0d0f13' }}
+        >
+          {/* Guacamole canvas'ı buraya imperatif olarak bağlanır.
+              data-remote-session: odak buradayken Ctrl+K uzağa gitsin (App.jsx) */}
+          <div
+            ref={displayContainerRef}
+            data-remote-session="rdp"
+            style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+          />
+
+          {/* Boşta yer tutucu */}
+          {!isConnected && !isConnecting && (
+            <div
+              className="absolute flex flex-col items-center gap-3 pointer-events-none"
+              style={{ color: '#f2f4fa' }}
+            >
+              <Monitor className="w-16 h-16" />
+              <p className="text-body-md" style={{ color: '#9da5be' }}>
+                Uzak masaüstü bekleniyor
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </RemoteWindowFrame>
     </div>
   )
 }

@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
+import { useTarget, useCommittedTarget } from '../context/TargetContext'
 import {
   Search, Globe, Shield, Mail, Wifi, Lock,
   CheckCircle2, XCircle, AlertTriangle, Info,
@@ -342,14 +343,11 @@ function SitePreview({ domain }) {
 }
 
 export default function QuickCheck() {
-  const [domain, setDomain] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
-  const inputRef = useRef(null)
+  const { target, commitTarget } = useTarget()
 
-  const run = async () => {
-    const d = domain.trim()
-    if (!d) return
+  const run = async (d) => {
     setLoading(true)
     setResult(null)
     try {
@@ -363,9 +361,9 @@ export default function QuickCheck() {
     }
   }
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter') run()
-  }
+  // autoRun:false — endpoint 20/dk ile sınırlı; yalnızca açık Enter/Çalıştır
+  // ile çalışır, sekmeye gelince kendiliğinden sorgu atmaz
+  useCommittedTarget(run, { autoRun: false })
 
   const overallCfg = result ? STATUS_CONFIG[result.overall] : null
 
@@ -392,34 +390,25 @@ export default function QuickCheck() {
         </p>
       </div>
 
-      {/* Search bar */}
+      {/* Hedef hazır — tek Enter yeter */}
       <div className="px-8 pb-6">
-        <div
-          className="flex items-center gap-3 rounded-card px-4 py-3"
-          style={{ background: '#ffffff' }}
-        >
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
-          <input
-            ref={inputRef}
-            type="text"
-            value={domain}
-            onChange={e => setDomain(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="example.com"
-            className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#1a1d2e', caretColor: '#2d6be4' }}
-            autoFocus
-          />
+        <div className="flex items-center gap-3">
           <button
-            onClick={run}
-            disabled={loading || !domain.trim()}
-            className="btn-primary flex-shrink-0"
+            onClick={commitTarget}
+            disabled={loading || !target.trim()}
+            autoFocus
+            className="btn-primary flex-shrink-0 flex items-center gap-2"
           >
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Kontrol ediliyor...</>
-              : <><Zap className="w-4 h-4" /> Kontrol Et</>
+              : <><Zap className="w-4 h-4" /> {target.trim() ? `${target.trim()} adresini kontrol et` : 'Kontrol Et'}</>
             }
           </button>
+          {!target.trim() && (
+            <p className="text-body-sm" style={{ color: '#9da5be' }}>
+              Üstteki hedef çubuğuna bir alan adı yazın.
+            </p>
+          )}
         </div>
       </div>
 

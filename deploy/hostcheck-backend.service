@@ -1,0 +1,43 @@
+# HostCheck backend — systemd servisi
+# Kurulum:
+#   sudo cp deploy/hostcheck-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hostcheck-backend
+#   sudo systemctl status hostcheck-backend
+#
+# Yolları kendi kurulumunuza göre düzenleyin (WorkingDirectory, User, ExecStart).
+
+[Unit]
+Description=HostCheck Backend (FastAPI + Uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+
+# ── ÖNEMLİ: root DEĞİL, ayrı bir kullanıcı ────────────────────────────────────
+# Playwright/Chromium sandbox root'ta çalışmaz; ayrıca güvenlik için de şart.
+#   sudo useradd -r -m -d /opt/hostcheck hostcheck
+User=hostcheck
+Group=hostcheck
+
+WorkingDirectory=/opt/hostcheck/backend
+EnvironmentFile=/opt/hostcheck/backend/.env
+
+# ── ÖNEMLİ: TEK worker ────────────────────────────────────────────────────────
+# RDP biletleri ve FTP oturumları SÜREÇ İÇİ tutulur. Birden fazla worker olursa
+# bilet bir worker'da üretilip WebSocket başka worker'a düşer → RDP/FTP kırılır.
+# Ölçekleme gerekirse sticky-session'lı ayrı bir mimari gerekir.
+ExecStart=/opt/hostcheck/backend/venv/bin/uvicorn main:app \
+    --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+
+Restart=always
+RestartSec=3
+
+# ── Sertleştirme ──────────────────────────────────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

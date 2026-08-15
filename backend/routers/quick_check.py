@@ -20,17 +20,15 @@ try:
 except ImportError:
     DNS_AVAILABLE = False
 
+import dns_core
+
 # Hızlı public DNS resolver — sistem DNS'ini bypass et
 PUBLIC_DNS = ['8.8.8.8', '1.1.1.1']
 DNS_TIMEOUT = 3.0  # saniye
 
 
 def make_resolver() -> 'dns.resolver.Resolver':
-    r = dns.resolver.Resolver(configure=False)
-    r.nameservers = PUBLIC_DNS
-    r.timeout = DNS_TIMEOUT
-    r.lifetime = DNS_TIMEOUT
-    return r
+    return dns_core.make_resolver(PUBLIC_DNS, DNS_TIMEOUT)
 
 router = APIRouter(prefix="/api/quick-check", tags=["quick-check"])
 

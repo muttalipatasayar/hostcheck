@@ -277,6 +277,28 @@ ERROR_DB = {
         "draft": "E-posta hizmetinizde sorun tespit edildi. Teknik ekibimiz inceleme yapıyor.",
     },
 
+    "blacklist": {
+        "platform": "Mail",
+        "title": "IP Adresi Kara Listede (RBL)",
+        "causes": [
+            "Sunucudan spam gönderilmiş (ele geçirilmiş hesap veya zararlı script)",
+            "Aynı IP'yi paylaşan başka bir müşteri spam göndermiş (paylaşımlı hosting)",
+            "PHP mail() ile korumasız iletişim formu kötüye kullanılmış",
+            "IP dinamik/ev tipi aralıkta olduğu için politika gereği listelenmiş (PBL)",
+            "Yanlış yapılandırılmış sunucu açık relay olarak kullanılmış",
+        ],
+        "tech_steps": [
+            "Hangi listelerde olduğunu ve dönen kodu not et — kod, listelenme NEDENİNİ söyler",
+            "Mail kuyruğunu incele: spam kalıntısı var mı? (postqueue -p / exim -bp)",
+            "Mail loglarında olağan dışı gönderim hacmi ara: kim, ne zaman, nereye?",
+            "Ele geçirilmiş hesap/script varsa önce onu temizle — temizlemeden delist isteme",
+            "Her listenin kendi delist (kaldırma) formundan talep aç; Spamhaus/PBL için ISP tipine dikkat",
+            "24-48 saat sonra tekrar kontrol et; tekrarlıyorsa kaynağı bulunamamış demektir",
+        ],
+        "customer_action": False,
+        "draft": "Sunucu IP adresinizin bazı spam kara listelerinde yer aldığını tespit ettik. Kaynağı tespit edip temizliyor, ardından listelerden kaldırma sürecini başlatıyoruz. E-posta gönderimlerinizde geçici gecikmeler yaşanabilir.",
+    },
+
     # ─── WORDPRESS ───────────────────────────────────────────────────────────
 
     "wp_db": {

@@ -1,26 +1,21 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { Search, Clock, Shield, Building2, Server, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Info } from 'lucide-react'
-
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+import { useTarget, useCommittedTarget } from '../context/TargetContext'
 
 export default function DNSHistory() {
-  const [domain, setDomain] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const { target, commitTarget } = useTarget()
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    const d = domain.trim()
-    if (!d) return
-
+  const lookup = async (d) => {
     setLoading(true)
     setError(null)
     setResult(null)
 
     try {
-      const res = await axios.post(`${API}/api/dns-history/lookup`, { domain: d })
+      const res = await axios.post('/api/dns-history/lookup', { domain: d })
       setResult(res.data)
     } catch (err) {
       setError(err.response?.data?.detail || 'Sorgu sırasında bir hata oluştu.')
@@ -29,9 +24,13 @@ export default function DNSHistory() {
     }
   }
 
+  // autoRun:false — SecurityTrails kotası pahalı; yalnızca açık Enter/Çalıştır
+  // ile sorgular, sekmeye gelince kendiliğinden çalışmaz
+  useCommittedTarget(lookup, { autoRun: false })
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
+      {/* Başlık */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#1a1d2e' }}>DNS History</h1>
         <p className="text-sm" style={{ color: '#6b7388' }}>
@@ -39,38 +38,24 @@ export default function DNSHistory() {
         </p>
       </div>
 
-      {/* Search form */}
-      <form onSubmit={handleSearch} className="mb-8">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-              style={{ color: '#6b7388' }}
-            />
-            <input
-              type="text"
-              value={domain}
-              onChange={e => setDomain(e.target.value)}
-              placeholder="example.com"
-              className="w-full pl-9 pr-4 py-2.5 rounded-btn text-sm outline-none"
-              style={{
-                background: '#ffffff',
-                border: '1px solid rgba(66,71,84,0.5)',
-                color: '#1a1d2e',
-              }}
-              autoFocus
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !domain.trim()}
-            className="px-5 py-2.5 rounded-btn text-sm font-medium transition-opacity disabled:opacity-50"
-            style={{ background: '#3b7eff', color: '#002e6a' }}
-          >
-            {loading ? 'Sorgulanıyor…' : 'Sorgula'}
-          </button>
-        </div>
-      </form>
+      {/* Hedef hazır — tek Enter yeter */}
+      <div className="mb-8 flex items-center gap-3">
+        <button
+          onClick={commitTarget}
+          disabled={loading || !target.trim()}
+          autoFocus
+          className="px-5 py-2.5 rounded-btn text-sm font-medium transition-opacity disabled:opacity-50 flex items-center gap-2"
+          style={{ background: '#3b7eff', color: '#002e6a' }}
+        >
+          <Search className="w-4 h-4" />
+          {loading ? 'Sorgulanıyor…' : target.trim() ? `${target.trim()} geçmişini sorgula` : 'Sorgula'}
+        </button>
+        {!target.trim() && (
+          <p className="text-sm" style={{ color: '#9da5be' }}>
+            Üstteki hedef çubuğuna bir alan adı yazın.
+          </p>
+        )}
+      </div>
 
       {/* Error */}
       {error && (

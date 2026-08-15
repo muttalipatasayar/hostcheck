@@ -1,18 +1,6 @@
 import { clsx } from 'clsx'
-import {
-  ChevronRight, Server, Zap, Shield, Wrench, History, Terminal, MessageSquare, Monitor, Globe
-} from 'lucide-react'
-
-const navItems = [
-  { id: 'quick-check',    label: 'Hızlı Kontrol',  icon: Zap           },
-  { id: 'ssl-tools',      label: 'SSL Araçları',    icon: Shield        },
-  { id: 'dns-toolbox',    label: 'DNS Toolbox',     icon: Wrench        },
-  { id: 'dns-history',    label: 'DNS History',     icon: History       },
-  { id: 'ssh-access',     label: 'SSH Erişimi',     icon: Terminal      },
-  { id: 'rdp-access',     label: 'RDP Erişimi',     icon: Monitor       },
-  { id: 'ip-lookup',      label: 'IP Sorgulama',    icon: Globe         },
-  { id: 'hazir-yanitlar', label: 'Hazır Yanıtlar',  icon: MessageSquare },
-]
+import { ChevronRight, Server } from 'lucide-react'
+import { TOOLS } from '../lib/tools'
 
 export default function Sidebar({ activeView, onNavigate }) {
   return (
@@ -59,7 +47,7 @@ export default function Sidebar({ activeView, onNavigate }) {
         <p className="px-3 pt-1 pb-2 text-label-sm font-medium uppercase tracking-wider" style={{ color: '#9da5be' }}>
           Navigasyon
         </p>
-        {navItems.map(({ id, label, icon: Icon }) => (
+        {TOOLS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => onNavigate(id)}

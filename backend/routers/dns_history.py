@@ -11,18 +11,17 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+import dns_core
+
 router = APIRouter(prefix="/api/dns-history", tags=["dns-history"])
 
 PUBLIC_DNS = ['8.8.8.8', '1.1.1.1']
+DNS_TIMEOUT = 4.0
 ST_BASE = "https://api.securitytrails.com/v1"
 
 
 def make_resolver():
-    r = dns.resolver.Resolver(configure=False)
-    r.nameservers = PUBLIC_DNS
-    r.timeout = 4.0
-    r.lifetime = 4.0
-    return r
+    return dns_core.make_resolver(PUBLIC_DNS, DNS_TIMEOUT)
 
 
 # ── WHOIS yardımcıları ────────────────────────────────────────────────────────

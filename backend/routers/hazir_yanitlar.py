@@ -55,9 +55,8 @@ def seed_if_empty(db: Session):
     """Tablo boşsa hazirYanitlar.json'u yükle."""
     if db.query(HazirYanit).count() > 0:
         return
-    json_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "frontend", "src", "data", "hazirYanitlar.json"
-    )
+    # Seed verisi backend'in kendi data/ dizininde — frontend kaynak ağacına bağımlı değil
+    json_path = os.path.join(os.path.dirname(__file__), "..", "data", "hazirYanitlar.json")
     if not os.path.exists(json_path):
         return
     with open(json_path, encoding="utf-8") as f:

@@ -1,45 +1,29 @@
 # Python
-__pycache__/
-*.py[cod]
+backend/venv/
+**/__pycache__/
+*.pyc
 *.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.eggs/
 
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-
-# Environment variables
+# Ortam & sırlar — ASLA depoya girmemeli
 backend/.env
+.env
+*.pem
+*.key
 
-# Database
+# Veritabanı (yerelde üretilir, migration'lardan kurulur)
 backend/*.db
-backend/*.sqlite3
+backend/hostcheck.db
 
-# Node
-node_modules/
-frontend/dist/
-frontend/.cache/
-
-# Vite
+# Frontend
 frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
+# Playwright tarayıcı önbelleği
+.cache/
 
-# IDE
+# Editör / OS
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Logs
-*.log
+.DS_Store
+Thumbs.db

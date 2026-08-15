@@ -4,6 +4,8 @@ import json
 import paramiko
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from ws_utils import safe_send
+
 router = APIRouter(prefix="/api/ssh", tags=["ssh"])
 
 
@@ -116,13 +118,13 @@ async def ssh_terminal(websocket: WebSocket):
                 pass
 
     except asyncio.TimeoutError:
-        _safe_send(websocket, "\r\nHata: SSH bağlantısı zaman aşımına uğradı.\r\n")
+        await safe_send(websocket, "\r\nHata: SSH bağlantısı zaman aşımına uğradı.\r\n")
     except paramiko.AuthenticationException:
-        await _safe_send(websocket, "\r\nHata: Kimlik doğrulama başarısız. Kullanıcı adı veya şifre hatalı.\r\n")
+        await safe_send(websocket, "\r\nHata: Kimlik doğrulama başarısız. Kullanıcı adı veya şifre hatalı.\r\n")
     except paramiko.SSHException as exc:
-        await _safe_send(websocket, f"\r\nSSH Hatası: {exc}\r\n")
+        await safe_send(websocket, f"\r\nSSH Hatası: {exc}\r\n")
     except OSError as exc:
-        await _safe_send(websocket, f"\r\nBağlantı hatası: {exc}\r\n")
+        await safe_send(websocket, f"\r\nBağlantı hatası: {exc}\r\n")
     except WebSocketDisconnect:
         pass
     finally:
@@ -136,10 +138,3 @@ async def ssh_terminal(websocket: WebSocket):
                 ssh.close()
             except Exception:
                 pass
-
-
-async def _safe_send(websocket: WebSocket, text: str):
-    try:
-        await websocket.send_text(text)
-    except Exception:
-        pass

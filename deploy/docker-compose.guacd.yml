@@ -1,0 +1,19 @@
+# guacd — RDP aracının Guacamole daemon'ı.
+# HostCheck backend'i buna 127.0.0.1:4822'den bağlanır.
+#
+# Başlat:  docker compose -f deploy/docker-compose.guacd.yml up -d
+# Durum:   docker ps | grep guacd
+# Log:     docker logs hostcheck-guacd
+#
+# (Alternatif tek satır, compose kullanmadan:)
+#   docker run -d --name hostcheck-guacd --restart unless-stopped \
+#     -p 127.0.0.1:4822:4822 guacamole/guacd
+
+services:
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: hostcheck-guacd
+    restart: unless-stopped
+    # Yalnızca localhost'a bağla — guacd'ın kendisi auth'suzdur, dışarı açılmaz
+    ports:
+      - "127.0.0.1:4822:4822"

@@ -9,6 +9,9 @@ import dns.rdatatype
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+import dns_core
+from mail_analysis import parse_dkim, parse_dmarc, parse_spf
+
 router = APIRouter(prefix="/api/dns-toolbox", tags=["dns-toolbox"])
 
 PUBLIC_DNS = ['8.8.8.8', '1.1.1.1', '9.9.9.9']
@@ -16,11 +19,7 @@ DNS_TIMEOUT = 5.0
 
 
 def make_resolver() -> dns.resolver.Resolver:
-    r = dns.resolver.Resolver(configure=False)
-    r.nameservers = PUBLIC_DNS
-    r.timeout = DNS_TIMEOUT
-    r.lifetime = DNS_TIMEOUT
-    return r
+    return dns_core.make_resolver(PUBLIC_DNS, DNS_TIMEOUT)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -52,75 +51,53 @@ class DNSQueryResponse(BaseModel):
 
 # ── Analiz fonksiyonları ──────────────────────────────────────────────────────
 
+# Formatlayıcılar — yapısal ayrıştırma mail_analysis'te, metin burada.
+# Çağrı yerleri (DKIM/SPF/DMARC/MX analiz satırları) byte-identik çalışmaya
+# devam eder; tek bilinçli fark parse_spf'teki '-ALL' normalizasyon düzeltmesi.
+
 def analyze_spf(txt: str) -> str:
-    parts = txt.split()
-    policy = next((p for p in parts if p.lower().endswith('all')), None)
+    parsed = parse_spf(txt)
     policy_map = {
         '-all': '❌ Sıkı (Fail) — yetkisiz sunuculardan gelen e-postalar reddedilir',
         '~all': '⚠ Yumuşak (SoftFail) — yetkisiz e-postalar spam olarak işaretlenir',
         '+all': '🔓 Açık (Pass) — tüm sunuculardan gönderime izin verilir (zayıf ayar)',
         '?all': 'ℹ Nötr — politika belirtilmemiş',
     }
-    result = policy_map.get(policy, 'Politika mekanizması bulunamadı')
-    includes = [p for p in parts if p.startswith('include:')]
-    redirects = [p for p in parts if p.startswith('redirect=')]
-    ips = [p for p in parts if p.startswith('ip4:') or p.startswith('ip6:')]
+    result = policy_map.get(parsed['policy'], 'Politika mekanizması bulunamadı')
     details = []
-    if includes:
-        details.append(f"İzin verilen servisler: {', '.join(i.split(':',1)[1] for i in includes)}")
-    if ips:
-        details.append(f"İzin verilen IP'ler: {', '.join(i.split(':',1)[1] for i in ips)}")
-    if redirects:
-        details.append(f"Yönlendirme: {redirects[0].split('=',1)[1]}")
+    if parsed['includes']:
+        details.append(f"İzin verilen servisler: {', '.join(parsed['includes'])}")
+    if parsed['ips']:
+        details.append(f"İzin verilen IP'ler: {', '.join(parsed['ips'])}")
+    if parsed['redirects']:
+        details.append(f"Yönlendirme: {parsed['redirects'][0]}")
     return result + (' | ' + ' | '.join(details) if details else '')
 
 
 def analyze_dmarc(txt: str) -> str:
-    tags = {}
-    for part in txt.split(';'):
-        part = part.strip()
-        if '=' in part:
-            k, v = part.split('=', 1)
-            tags[k.strip().lower()] = v.strip()
-
-    p = tags.get('p', 'none')
-    sp = tags.get('sp', '')
-    pct = tags.get('pct', '100')
+    parsed = parse_dmarc(txt)
     policy_map = {
         'none':       '👁 İzleme (none) — başarısız e-postalar yine de iletilir, sadece rapor alınır',
         'quarantine': '📦 Karantina — başarısız e-postalar spam klasörüne gönderilir',
         'reject':     '🚫 Ret (reject) — başarısız e-postalar tamamen reddedilir',
     }
-    lines = [policy_map.get(p, f'Politika: {p}')]
-    if sp:
-        lines.append(f"Alt alan politikası: {sp}")
-    if pct != '100':
-        lines.append(f"Uygulama oranı: %{pct}")
-    rua = tags.get('rua', '')
-    if rua:
-        lines.append(f"Toplam rapor adresi: {rua}")
+    lines = [policy_map.get(parsed['policy'], f"Politika: {parsed['policy']}")]
+    if parsed['subdomain_policy']:
+        lines.append(f"Alt alan politikası: {parsed['subdomain_policy']}")
+    if parsed['pct'] != '100':
+        lines.append(f"Uygulama oranı: %{parsed['pct']}")
+    if parsed['rua']:
+        lines.append(f"Toplam rapor adresi: {parsed['rua']}")
     return ' | '.join(lines)
 
 
 def analyze_dkim(txt: str, selector: str) -> str:
-    tags = {}
-    for part in txt.split(';'):
-        part = part.strip()
-        if '=' in part:
-            k, v = part.split('=', 1)
-            tags[k.strip().lower()] = v.strip()
-    ver = tags.get('v', 'DKIM1')
-    alg = tags.get('k', 'rsa').upper()
-    pub = tags.get('p', '')
+    parsed = parse_dkim(txt)
 
-    if not pub:
+    if not parsed['valid']:
         return f"❌ Selector '{selector}' geçersiz — public key (p=) eksik veya anahtar iptal edilmiş"
 
-    # Base64 uzunluğundan key boyutunu tahmin et
-    clean = pub.replace(' ', '').replace('\n', '')
-    key_bytes = len(clean) * 3 // 4
-    key_bits  = key_bytes * 8
-
+    key_bits = parsed['key_bits']
     if key_bits >= 2048:
         health = f"✅ DKIM geçerli ve sağlıklı — güçlü anahtar (~{key_bits} bit)"
     elif key_bits >= 1024:
@@ -128,9 +105,9 @@ def analyze_dkim(txt: str, selector: str) -> str:
     else:
         health = f"❌ DKIM anahtar boyutu çok küçük (~{key_bits} bit) — güvenlik riski"
 
-    service = tags.get('s', '')
+    service = parsed['service']
     svc_str = f" | Servis: {service}" if service and service != '*' else ''
-    return f"{health} | Selector: {selector} | Versiyon: {ver} | Algoritma: {alg}{svc_str}"
+    return f"{health} | Selector: {selector} | Versiyon: {parsed['version']} | Algoritma: {parsed['algorithm']}{svc_str}"
 
 
 def analyze_mx(records: list[DNSRecord]) -> str:

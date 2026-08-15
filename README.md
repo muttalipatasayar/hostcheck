@@ -1,15 +1,23 @@
 # HostCheck — Hosting Destek Paneli
 
-Hosting destek uzmanları için geliştirilmiş, yerel çalışan kapsamlı bir **destek otomasyon paneli**. DNS sorgulama, SSL araçları, alan adı geçmişi, hızlı site kontrolü ve talep yönetimini tek bir arayüzde birleştirir.
+Hosting destek uzmanları için geliştirilmiş, yerel çalışan kapsamlı bir **destek otomasyon paneli**. DNS sorgulama, SSL araçları, alan adı geçmişi, hızlı site kontrolü, SSH/RDP erişimi ve hazır yanıt kütüphanesini tek bir arayüzde birleştirir.
+
+---
+
+## ⚠️ Güvenlik Notu — Önce Bunu Okuyun
+
+**Panelde kimlik doğrulama yoktur.** SSH ve RDP terminalleri, DNS/SSL araçları ve hazır yanıt veritabanı, API'ye ulaşabilen herkese açıktır.
+
+Bu nedenle sunucu varsayılan olarak **yalnızca `127.0.0.1` üzerinde** dinler. `--host 0.0.0.0` yaparsanız aynı ağdaki herkes sizin makinenizi SSH/RDP atlama noktası olarak kullanabilir. Paneli başka bir makineden kullanmanız gerekiyorsa, doğrudan açmak yerine SSH tüneli veya VPN arkasına alın.
 
 ---
 
 ## Özellikler
 
 ### Hızlı Kontrol
-- Alan adı için A, MX, NS kayıtları ve SSL sertifika bilgisi
-- Playwright (Microsoft Edge) ile anlık site önizlemesi
-- Ping / HTTP durum kodu kontrolü
+- Alan adı için WHOIS (EPP durum kodları dahil), A / NS / MX kayıtları ve SSL sertifika bilgisi
+- Playwright (Microsoft Edge / Chromium) ile anlık site önizlemesi
+- HTTP durum kodu kontrolü + yaygın hatalar için otomatik analiz ve müşteri yanıtı taslağı
 
 ### DNS Toolbox
 - **A, AAAA, CNAME, MX, NS, TXT, SOA, PTR** kayıt sorguları
@@ -27,28 +35,36 @@ Hosting destek uzmanları için geliştirilmiş, yerel çalışan kapsamlı bir 
 - [SecurityTrails API](https://securitytrails.com/) ile tam NS değişim geçmişi (opsiyonel)
 
 ### SSL Araçları
+- **SSL Checker** — canlı sertifika sorgusu; DV/OV/EV tespiti, wildcard, SAN listesi, kalan gün
 - **CSR Çözümle** — PEM formatındaki CSR'ı ayrıştırır; CN, O, SAN, key bilgisi gösterir
 - **PFX Dönüştür** — CRT + Private Key + CA Chain → `.pfx` dosyası indir
 - **CSR Oluştur** — 2048/4096-bit RSA, SAN desteği, Türkçe karakter otomatik dönüştürme
 
-### Talep Yönetimi
-- Talep oluşturma, listeleme, detay görüntüleme
-- Durum takibi (Açık / Kapalı) ve öncelik seviyesi
-- AI destekli hata analizi (Anthropic Claude)
+### SSH / RDP Erişimi
+- Tarayıcı içi SSH terminali (xterm.js + paramiko)
+- Guacamole (`guacd`) üzerinden tarayıcı içi RDP oturumu
+- Kimlik bilgileri POST gövdesinde iletilir, URL'de veya loglarda görünmez
+
+### IP Sorgulama
+- IP veya alan adı için ülke, şehir, ISP, ASN, proxy/hosting tespiti
+
+### Hazır Yanıtlar
+- Kategorili yanıt kütüphanesi, arama, sabitleme, kullanım sayacı
+- SQLite'ta saklanır; ilk açılışta `backend/data/hazirYanitlar.json` ile doldurulur
 
 ---
 
 ## Teknoloji
 
-| Katman    | Teknoloji |
-|-----------|-----------|
-| Frontend  | React 18 + Vite + Tailwind CSS |
-| Backend   | FastAPI + Uvicorn |
-| Veritabanı | SQLite + SQLAlchemy |
-| DNS       | dnspython (8.8.8.8 / 1.1.1.1) |
+| Katman     | Teknoloji |
+|------------|-----------|
+| Frontend   | React 18 + Vite + Tailwind CSS |
+| Backend    | FastAPI + Uvicorn |
+| Veritabanı | SQLite + SQLAlchemy + Alembic |
+| DNS        | dnspython (8.8.8.8 / 1.1.1.1 / 9.9.9.9) |
 | SSL/Crypto | cryptography |
+| Terminal   | paramiko (SSH) + guacamole-common-js (RDP) |
 | Ekran görüntüsü | Playwright (Microsoft Edge / Chromium) |
-| AI        | Anthropic Claude API |
 
 ---
 
@@ -57,11 +73,12 @@ Hosting destek uzmanları için geliştirilmiş, yerel çalışan kapsamlı bir 
 ### Gereksinimler
 - Python 3.11+
 - Node.js 18+
-- Microsoft Edge (ekran görüntüsü için — Windows'ta hazır gelir)
+- Microsoft Edge veya Chromium (ekran görüntüsü için — Playwright kurulumu hallediyor)
+- Docker (yalnızca RDP kullanacaksanız — `guacd` için)
 
 ### 1. Projeyi klonlayın
 ```bash
-git clone https://github.com/KULLANICI_ADI/hostcheck.git
+git clone https://github.com/muttalipatasayar/hostcheck.git
 cd hostcheck
 ```
 
@@ -73,12 +90,14 @@ venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
 
 pip install -r requirements.txt
+python -m playwright install chromium
 ```
 
 `.env` dosyası oluşturun (`backend/.env.example` şablonuna bakın):
 ```env
-ANTHROPIC_API_KEY=sk-ant-...          # Claude AI için (opsiyonel)
-SECURITYTRAILS_API_KEY=...            # DNS History için (opsiyonel)
+ENV=development
+CORS_ORIGINS=http://localhost:5173
+SECURITYTRAILS_API_KEY=          # DNS History için (opsiyonel)
 ```
 
 ### 3. Frontend kurulumu
@@ -87,14 +106,23 @@ cd frontend
 npm install
 ```
 
+### 4. RDP için guacd (opsiyonel)
+```bash
+docker run -d -p 4822:4822 guacamole/guacd
+```
+
 ---
 
 ## Çalıştırma
 
+Tek tıkla: **`start.bat`** (backend + frontend + tarayıcı)
+
+Veya elle:
+
 **Terminal 1 — Backend:**
 ```bash
 cd backend
-venv\Scripts\python.exe -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 **Terminal 2 — Frontend:**
@@ -107,9 +135,21 @@ Tarayıcıda açın: **http://localhost:5173**
 
 ---
 
-## Ekran Görüntüleri
+## Veritabanı
 
-> Dashboard, DNS Toolbox ve SSL Araçları ekran görüntüleri buraya eklenebilir.
+Şema Alembic ile yönetilir ve uygulama her açılışta migration'ları otomatik çalıştırır — ayrıca bir komut vermenize gerek yoktur. Mevcut `hostcheck.db` dosyaları sorunsuz yükseltilir.
+
+Elle çalıştırmak isterseniz:
+```bash
+cd backend
+venv\Scripts\activate
+alembic upgrade head
+```
+
+Model değiştirdikten sonra yeni migration üretmek için:
+```bash
+alembic revision --autogenerate -m "aciklama"
+```
 
 ---
 
@@ -121,41 +161,43 @@ hostcheck/
 │   ├── main.py              # FastAPI uygulaması
 │   ├── database.py          # SQLAlchemy bağlantısı
 │   ├── models.py            # Veritabanı modelleri
-│   ├── schemas.py           # Pydantic şemaları
+│   ├── db_migrate.py        # Açılışta Alembic upgrade
 │   ├── rate_limiter.py      # slowapi rate limiting
-│   ├── error_analysis.py    # AI hata analizi
-│   ├── requirements.txt
+│   ├── error_analysis.py    # HTTP hata analizi veritabanı
+│   ├── alembic.ini
+│   ├── migrations/          # Alembic migration'ları
+│   ├── data/
+│   │   └── hazirYanitlar.json   # Hazır yanıt seed verisi
 │   └── routers/
-│       ├── tickets.py       # Talep CRUD
-│       ├── quick_check.py   # Hızlı kontrol
+│       ├── quick_check.py   # Hızlı kontrol (WHOIS + DNS + SSL + HTTP)
 │       ├── screenshot.py    # Playwright ekran görüntüsü
-│       ├── ssl_tools.py     # CSR / PFX / SSL araçları
+│       ├── ssl_tools.py     # CSR / PFX / SSL checker
 │       ├── dns_toolbox.py   # DNS sorgu motoru
 │       ├── dns_history.py   # WHOIS + NS geçmişi
-│       ├── checks.py
-│       └── ai.py
+│       ├── ssh.py           # SSH WebSocket köprüsü
+│       ├── rdp.py           # Guacamole RDP köprüsü
+│       ├── ip_lookup.py     # IP / ASN sorgulama
+│       └── hazir_yanitlar.py
 └── frontend/
     └── src/
         ├── App.jsx
-        ├── components/
-        │   ├── Sidebar.jsx
-        │   ├── Dashboard.jsx
-        │   ├── QuickCheck.jsx
-        │   ├── SSLTools.jsx
-        │   ├── DNSToolbox.jsx
-        │   ├── DNSHistory.jsx
-        │   ├── TicketList.jsx
-        │   ├── TicketDetail.jsx
-        │   └── NewTicketForm.jsx
-        └── api/
-            └── client.js
+        └── components/
+            ├── Sidebar.jsx
+            ├── QuickCheck.jsx
+            ├── SSLTools.jsx
+            ├── DNSToolbox.jsx
+            ├── DNSHistory.jsx
+            ├── SSHAccess.jsx
+            ├── RDPAccess.jsx
+            ├── IPLookup.jsx
+            └── HazirYanitlar.jsx
 ```
 
 ---
 
 ## API Dokümantasyonu
 
-Backend çalışırken: **http://localhost:8000/docs** (Swagger UI)
+Backend çalışırken (`ENV=development` iken): **http://127.0.0.1:8000/docs**
 
 ---
 

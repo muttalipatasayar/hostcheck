@@ -5,6 +5,8 @@ import {
   Layers, AlertTriangle, Save, Hash, Tag, Eye, Loader2,
 } from 'lucide-react'
 import axios from 'axios'
+import { useTarget } from '../context/TargetContext'
+import { useHotkeys } from '../hooks/useHotkeys'
 
 // ─── Sabit kategoriler (built-in, API'den gelmiyor) ───────────────────────────
 
@@ -54,14 +56,16 @@ export default function HazirYanitlar() {
   const [savingId,    setSavingId]    = useState(null)  // şu an API çağrısı yapılan kart id'si
 
   const [activeCat,  setActiveCat]  = useState('Tümü')
-  const [query,      setQuery]      = useState('')
   const [detailId,   setDetailId]   = useState(null)
   const [copiedId,   setCopiedId]   = useState(null)
   const [modal,      setModal]      = useState(null)
   const [addCatMode, setAddCatMode] = useState(false)
   const [newCatName, setNewCatName] = useState('')
 
-  const searchRef = useRef(null)
+  // Filtre artık üstteki hedef çubuğunda yaşıyor (TargetBar) — eski "/" kısayolu
+  // ve yerel arama kutusu bu yüzden kaldırıldı
+  const { filter: query, setFilter: setQuery } = useTarget()
+
   const newCatRef = useRef(null)
 
   // ── API yükle ──────────────────────────────────────────────────────────────
@@ -83,17 +87,6 @@ export default function HazirYanitlar() {
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
-
-  // "/" kısayol tuşu
-  useEffect(() => {
-    const h = e => {
-      if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) {
-        e.preventDefault(); searchRef.current?.focus()
-      }
-    }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [])
 
   useEffect(() => {
     if (addCatMode) newCatRef.current?.focus()
@@ -266,31 +259,7 @@ export default function HazirYanitlar() {
             </p>
           </div>
 
-          {/* Arama */}
-          <div className="px-3 pb-3 flex-shrink-0">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-                style={{ color: '#9da5be' }} />
-              <input
-                ref={searchRef}
-                type="text"
-                className="w-full text-body-sm outline-none rounded-btn py-2 pr-8"
-                style={{ paddingLeft: '2rem', background: '#f0f2f8', border: '1px solid rgba(0,6,30,0.08)', color: '#1a1d2e' }}
-                placeholder="Tümünde ara…"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-              />
-              {query
-                ? <button onClick={() => setQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70"
-                    style={{ color: '#9da5be' }}>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                : <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-label-sm px-1 py-0.5 rounded"
-                    style={{ background: 'rgba(0,6,30,0.06)', color: '#9da5be', fontSize: 10 }}>/</kbd>
-              }
-            </div>
-          </div>
+          {/* Arama üstteki hedef çubuğuna taşındı ("/" ile odaklanır) */}
 
           {/* Kategoriler */}
           <nav className="flex-1 overflow-y-auto px-2 pb-2">
@@ -661,11 +630,8 @@ function DetailModal({ r, catMeta, isCopied, isPinned, useCount, onClose, onCopy
   const color = catMeta[r.category]?.color ?? '#6b7388'
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  useEffect(() => {
-    const h = e => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [onClose])
+  // Scope stack sayesinde iki modal açıkken Escape yalnızca üsttekini kapatır
+  useHotkeys({ escape: () => onClose() })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
@@ -762,11 +728,8 @@ function ResponseModal({ mode, initialData, categories, onSave, onClose }) {
   const [category, setCategory] = useState(initialData?.category ?? (categories[0]?.id ?? 'Genel'))
   const [saving,   setSaving]   = useState(false)
 
-  useEffect(() => {
-    const h = e => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [onClose])
+  // Scope stack sayesinde iki modal açıkken Escape yalnızca üsttekini kapatır
+  useHotkeys({ escape: () => onClose() })
 
   const canSave = title.trim() && content.trim() && !saving
 

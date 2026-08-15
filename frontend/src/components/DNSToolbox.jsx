@@ -1,31 +1,14 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Search, Globe, Mail, Server, FileText, Shield,
+  Search, Shield,
   CheckCircle2, XCircle, AlertTriangle, Info,
-  Loader2, Clock, ChevronRight, Copy, Check,
-  Wrench, RefreshCw
+  Loader2, Clock, Copy, Check,
+  Wrench,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axios from 'axios'
-
-// ── Kayıt tipleri ─────────────────────────────────────────────────────────────
-
-const RECORD_TYPES = [
-  { id: 'A',     label: 'A',     desc: 'IPv4 Adresi',              icon: Globe,       color: '#4a6cf7' },
-  { id: 'AAAA',  label: 'AAAA',  desc: 'IPv6 Adresi',              icon: Globe,       color: '#4a6cf7' },
-  { id: 'CNAME', label: 'CNAME', desc: 'Alias / Takma Ad',         icon: ChevronRight,color: '#3b7eff' },
-  { id: 'MX',    label: 'MX',    desc: 'Mail Sunucusu',            icon: Mail,        color: '#c3b1e1' },
-  { id: 'NS',    label: 'NS',    desc: 'Ad Sunucusu',              icon: Server,      color: '#3b7eff' },
-  { id: 'TXT',   label: 'TXT',   desc: 'Metin Kaydı',             icon: FileText,    color: '#6b7388' },
-  { id: 'SOA',   label: 'SOA',   desc: 'Otorite Başlangıcı',       icon: Info,        color: '#6b7388' },
-  { id: 'PTR',   label: 'PTR',   desc: 'Ters DNS (IP girin)',       icon: RefreshCw,   color: '#6b7388' },
-  { id: 'SPF',   label: 'SPF',   desc: 'Gönderici Politikası',     icon: Shield,      color: '#b1f9c2' },
-  { id: 'DMARC', label: 'DMARC', desc: 'E-posta Kimlik Doğrulama', icon: Shield,      color: '#ffb786' },
-  { id: 'DKIM',   label: 'DKIM',   desc: 'E-posta İmzası',      icon: Shield, color: '#f9d4b1' },
-  { id: 'DNSSEC', label: 'DNSSEC', desc: 'Zone İmza Doğrulama', icon: Shield, color: '#b1f9e0' },
-]
-
-const TYPE_MAP = Object.fromEntries(RECORD_TYPES.map(t => [t.id, t]))
+import { RECORD_TYPES, TYPE_MAP } from '../lib/dnsRecordTypes'
+import { useTarget, useCommittedTarget } from '../context/TargetContext'
 
 // ── Yardımcı bileşenler ───────────────────────────────────────────────────────
 
@@ -142,73 +125,73 @@ function isBareRootDomain(domain) {
   return false
 }
 
+// ── Türetilmiş sorgu ─────────────────────────────────────────────────────────
+
+/**
+ * Paylaşılan hedeften SAF türetme — hedefi asla mutasyona uğratmaz, `note`
+ * ile ne yapıldığını açıklar. Gerçek otorite backend'in döndürdüğü
+ * `queried_domain` alanıdır; bu fonksiyon yalnızca isteği hazırlar.
+ */
+export function deriveQuery(rawTarget, recordType, selector) {
+  let queryDomain = rawTarget.trim()
+  let type = recordType
+  let sel = selector
+  let note = null
+
+  const parsed = parseDkimInput(queryDomain)
+  if (parsed && recordType !== 'CNAME') {
+    // Tam DKIM adresi → DKIM sorgusuna çevir (açıkça CNAME seçilmişse dokunma)
+    type = 'DKIM'
+    sel = parsed.selector
+    queryDomain = parsed.baseDomain
+    note = `DKIM adresi algılandı — selector: ${parsed.selector}, alan adı: ${parsed.baseDomain}`
+  } else if (parsed) {
+    // CNAME seçiliyken DKIM adresi girildi → kök alan adını kullan
+    queryDomain = parsed.baseDomain
+    note = `DKIM adresinden alan adı alındı: ${parsed.baseDomain}`
+  }
+
+  if (type === 'CNAME' && isBareRootDomain(queryDomain)) {
+    queryDomain = `www.${queryDomain}`
+    note = note
+      ? `${note} · www. ile sorgulandı`
+      : `Kök alan adı algılandı — ${queryDomain} ile sorgulandı`
+  }
+
+  return { queryDomain, recordType: type, selector: sel, note }
+}
+
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 
 export default function DNSToolbox() {
-  const [domain, setDomain] = useState('')
-  const [selectedType, setSelectedType] = useState('A')
+  const { target, peekPendingIntent, clearPendingIntent } = useTarget()
+
+  // Palet niyeti ("A kaydı sorgula") ilk render'da okunur ki autoRun sorgusu
+  // doğru tiple çıksın; mount'ta temizlenir
+  const [selectedType, setSelectedType] = useState(
+    () => peekPendingIntent('dns-toolbox')?.recordType ?? 'A'
+  )
   const [selector, setSelector] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const domainRef = useRef('')
-  const selectorRef = useRef('')
 
-  // Domain input değişince DKIM pattern kontrolü
-  const handleDomainChange = (val) => {
-    setDomain(val)
-    domainRef.current = val
-    const parsed = parseDkimInput(val.trim())
-    if (parsed) {
-      setSelectedType('DKIM')
-      setSelector(parsed.selector)
-      selectorRef.current = parsed.selector
-    }
-  }
+  useEffect(() => { clearPendingIntent('dns-toolbox') }, [clearPendingIntent])
 
-  const handleSelectorChange = (val) => {
-    setSelector(val)
-    selectorRef.current = val
-  }
-
-  // Kayıt tipine tıklayınca tipi değiştir ve varsa otomatik sorgula
-  const handleTypeSelect = (id) => {
-    setSelectedType(id)
-    if (domainRef.current.trim()) {
-      query(domainRef.current, id, id === 'DKIM' ? selectorRef.current : undefined)
-    }
-  }
-
-  const query = useCallback(async (d, t, sel) => {
-    let dom = (d ?? domain).trim()
-    let typ = t ?? selectedType
-    let selVal = sel !== undefined ? sel : selector
-
-    // Tam DKIM adresi girilmişse otomatik ayır
-    const parsed = parseDkimInput(dom)
-    if (parsed) {
-      typ    = 'DKIM'
-      selVal = parsed.selector
-      dom    = parsed.baseDomain
-      setSelectedType('DKIM')
-      setSelector(parsed.selector)
-      setDomain(parsed.baseDomain)
-      domainRef.current = parsed.baseDomain
-    }
-
-    // CNAME sorgusunda kök domain girilmişse www. ekle
-    if (typ === 'CNAME' && isBareRootDomain(dom)) {
-      dom = `www.${dom}`
-    }
-
-    if (!dom) return
+  const runQuery = async (rawTarget, typeOverride, selectorOverride) => {
+    const derived = deriveQuery(
+      rawTarget,
+      typeOverride ?? selectedType,
+      selectorOverride !== undefined ? selectorOverride : selector,
+    )
+    if (!derived.queryDomain) return
 
     setLoading(true)
     setResult(null)
     try {
       const res = await axios.post('/api/dns-toolbox/query', {
-        domain: dom,
-        record_type: typ,
-        selector: typ === 'DKIM' ? (selVal || null) : null,
+        domain: derived.queryDomain,
+        record_type: derived.recordType,
+        selector: derived.recordType === 'DKIM' ? (derived.selector || null) : null,
       })
       setResult(res.data)
     } catch (err) {
@@ -216,9 +199,20 @@ export default function DNSToolbox() {
     } finally {
       setLoading(false)
     }
-  }, [domain, selectedType, selector])
+  }
 
-  const handleKey = (e) => { if (e.key === 'Enter') query() }
+  // autoRun:true — ucuz/idempotent; commit edilmiş hedefle sekmeye gelindiğinde
+  // kendiliğinden de çalışır
+  useCommittedTarget(runQuery, { autoRun: true })
+
+  // Kayıt tipine tıklayınca tipi değiştir ve hedef doluysa hemen sorgula
+  const handleTypeSelect = (id) => {
+    setSelectedType(id)
+    if (target.trim()) runQuery(target, id)
+  }
+
+  // Canlı caption: hedef nasıl yorumlanacak? (hedefi DEĞİŞTİRMEZ, açıklar)
+  const derivedNow = deriveQuery(target, selectedType, selector)
 
   const resultType = result?.record_type
   const typeCfg = resultType ? TYPE_MAP[resultType] : null
@@ -243,25 +237,31 @@ export default function DNSToolbox() {
 
       {/* Arama */}
       <div className="px-8 pb-5 flex flex-col gap-3">
-        {/* Input */}
-        <div className="flex items-center gap-3 rounded-card px-4 py-3" style={{ background: '#ffffff' }}>
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7388' }} />
-          <input
-            type="text"
-            value={domain}
-            onChange={e => handleDomainChange(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder={selectedType === 'PTR' ? '8.8.8.8 — IP girin' : 'example.com'}
-            autoFocus
-            className="flex-1 bg-transparent outline-none text-title-md font-mono"
-            style={{ color: '#1a1d2e', caretColor: '#2d6be4' }}
-          />
-          <button onClick={() => query()} disabled={loading || !domain.trim()} className="btn-primary flex-shrink-0">
+        {/* Çalıştır + türetme açıklaması */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => runQuery(target)}
+            disabled={loading || !target.trim()}
+            className="btn-primary flex-shrink-0 flex items-center gap-2"
+          >
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Sorgulanıyor...</>
-              : <><Search className="w-4 h-4" />Sorgula</>}
+              : <><Search className="w-4 h-4" />{target.trim() ? `${selectedType} sorgula` : 'Sorgula'}</>}
           </button>
+          {!target.trim() && (
+            <p className="text-body-sm" style={{ color: '#9da5be' }}>
+              Üstteki hedef çubuğuna {selectedType === 'PTR' ? 'bir IP adresi' : 'bir alan adı'} yazın.
+            </p>
+          )}
         </div>
+
+        {/* Türetilmiş sorgu caption'ı — hedef çubuğu DEĞİŞMEZ, yorum burada açıklanır */}
+        {derivedNow.note && (
+          <p className="text-label-sm flex items-center gap-1.5" style={{ color: '#6b7388' }}>
+            <Info className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#3b7eff' }} />
+            {derivedNow.note}
+          </p>
+        )}
 
         {/* DKIM selector alanı */}
         {selectedType === 'DKIM' && (
@@ -272,8 +272,8 @@ export default function DNSToolbox() {
               <input
                 type="text"
                 value={selector}
-                onChange={e => handleSelectorChange(e.target.value.toLowerCase().trim())}
-                onKeyDown={handleKey}
+                onChange={e => setSelector(e.target.value.toLowerCase().trim())}
+                onKeyDown={e => { if (e.key === 'Enter') runQuery(target) }}
                 placeholder="ör: google, default, mail — boş bırakırsan otomatik arar"
                 className="bg-transparent outline-none text-body-sm font-mono"
                 style={{ color: '#1a1d2e', caretColor: '#f9d4b1', width: '320px' }}
@@ -420,7 +420,7 @@ export default function DNSToolbox() {
               </div>
               <p className="text-title-md font-medium mb-1" style={{ color: '#4a5068' }}>DNS Toolbox</p>
               <p className="text-body-md text-center max-w-xs" style={{ color: '#6b7388' }}>
-                Alan adı ve kayıt tipini seçin, ardından Sorgula butonuna basın
+                Üstteki hedef çubuğuna alan adı yazın, kayıt tipini seçin ve Enter'a basın
               </p>
             </div>
           )}
