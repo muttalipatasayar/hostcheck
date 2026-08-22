@@ -67,8 +67,8 @@ function PemBox({ label, value, onChange, placeholder, readOnly = false, rows = 
         placeholder={placeholder}
         className="w-full rounded-card px-4 py-3 font-mono text-xs outline-none resize-y"
         style={{
-          background: '#0e1012',
-          color: readOnly ? '#6b7388' : '#4a5068',
+          background: '#f0f2f8',
+          color: readOnly ? '#6b7388' : '#1a1d2e',
           border: '1px solid rgba(0,6,30,0.09)',
           lineHeight: '1.6',
         }}
@@ -646,7 +646,7 @@ function PFXConvert() {
           onChange={e => setPassword(e.target.value)}
           placeholder="Boş bırakılırsa şifresiz oluşturulur"
           className="rounded-card px-4 py-2.5 text-body-sm outline-none w-full max-w-sm"
-          style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
+          style={{ background: '#f0f2f8', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
         />
       </div>
 
@@ -686,7 +686,7 @@ function CSRInputField({ label, value, onChange, placeholder, required, maxLengt
         placeholder={placeholder}
         maxLength={maxLength}
         className={`rounded-card px-3 py-2 text-body-sm outline-none ${mono ? 'font-mono' : ''}`}
-        style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
+        style={{ background: '#f0f2f8', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }}
       />
       {hasTR(value || '') && (
         <p className="text-label-sm" style={{ color: '#ffb786' }}>
@@ -752,7 +752,7 @@ function CSRGenerate() {
           <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>Ülke Kodu</label>
           <input type="text" value={form.country} onChange={set('country')} maxLength={2}
             className="rounded-card px-3 py-2 text-body-sm font-mono outline-none uppercase"
-            style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)', maxWidth: '80px' }} />
+            style={{ background: '#f0f2f8', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)', maxWidth: '80px' }} />
         </div>
         <CSRInputField label="Şehir / İl" value={form.state} onChange={set('state')} placeholder="İstanbul" />
         <CSRInputField label="İlçe / Lokasyon" value={form.locality} onChange={set('locality')} placeholder="Kadıköy" />
@@ -785,7 +785,7 @@ function CSRGenerate() {
             onKeyDown={e => e.key === 'Enter' && addSan()}
             placeholder="www.example.com"
             className="flex-1 rounded-card px-3 py-2 text-body-sm font-mono outline-none"
-            style={{ background: '#0e1012', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }} />
+            style={{ background: '#f0f2f8', color: '#1a1d2e', border: '1px solid rgba(0,6,30,0.09)' }} />
           <button onClick={addSan} className="btn-ghost px-3">
             <Plus className="w-4 h-4" /> Ekle
           </button>
