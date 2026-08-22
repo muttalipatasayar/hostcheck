@@ -677,7 +677,7 @@ function CSRInputField({ label, value, onChange, placeholder, required, maxLengt
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-label-md font-medium" style={{ color: '#4a5068' }}>
-        {label}{required && <span style={{ color: '#ffb4ab' }}> *</span>}
+        {label}{required && <span style={{ color: '#dc2626' }}> *</span>}
       </label>
       <input
         type="text"
