@@ -51,8 +51,13 @@ Nothing in the API is authenticated. The SSH and RDP WebSocket endpoints will pr
 
 `backend/routers/*.py` are self-contained — each defines its own Pydantic request/response models inline rather than sharing a central `schemas.py`. Adding a tool means: new router file + one `include_router()` line in `main.py`. Shared pieces are deliberately few:
 
-- `quick_check.validate_domain()` — the SSRF/format guard. `screenshot.py` imports it; any new endpoint that accepts a user-supplied hostname should too.
-- `rate_limiter.limiter` — slowapi. Apply as `@router.get(...)` then `@limiter.limit("N/minute")` (limiter must be the *inner* decorator), and the endpoint function **must** take `request: Request` or slowapi raises at runtime.
+- `quick_check.validate_domain()` — the **format** guard (regex, length, null byte, IP-literal rejection). It is *not* sufficient on its own: it never resolves the name, so `127.0.0.1.nip.io` and `localtest.me` pass it and point at loopback.
+- `net_validation.resolve_public_ips_async()` / `assert_public_target()` — the **SSRF** guard. Any endpoint that opens an outbound connection must resolve the target through this and connect to the returned IP, not to the hostname (connecting by name lets the OS resolve a second time, reopening the DNS-rebinding window). `screenshot.py`, `quick_check.py`, `mail_health.py` and `ssl_tools.py` all go through it.
+  - A target derived from a *DNS answer* (an MX host, a redirect `Location`) counts as user input — the domain owner controls it. `mail_health._smtp_banner` and `quick_check._safe_get` re-validate at those points.
+  - `httpx` must run with `follow_redirects=False`; use `quick_check._safe_get`, which follows hops manually and validates each one.
+  - `net_validation.make_playwright_route_guard()` — the browser-side gate. `--host-resolver-rules` only pins the *main* host; a page can reach the internal network through a redirect, iframe or subresource. `screenshot.py` and `site_speed/engine.py` both import this one function — do not fork a second copy, a patch applied to one and not the other is a silent SSRF hole.
+- `rate_limiter.limiter` — slowapi. Apply as `@router.get(...)` then `@limiter.limit("N/minute")` (limiter must be the *inner* decorator), and the endpoint function **must** take `request: Request` or slowapi raises at runtime. Every endpoint that costs anything (an outbound connection, a DNS fan-out, CPU, a DB write) carries a limit; keep it that way when adding endpoints.
+- `ws_utils.check_origin()` — call it **before** `websocket.accept()` on every WebSocket endpoint. WebSocket handshakes are not subject to CORS, and Basic Auth is ambient, so without this a malicious page can open a socket from the operator's browser (CSWSH).
 - `error_analysis.ERROR_DB` — HTTP status → cause list, technician steps, and a customer-facing Turkish draft. Consumed by `quick_check` to enrich failing checks.
 
 **Blocking I/O must go through `run_in_executor`.** DNS (dnspython), raw WHOIS over port 43, synchronous SSL handshakes, and Playwright are all blocking; every call site wraps them and adds an `asyncio.wait_for` timeout. Playwright additionally uses its own `ThreadPoolExecutor` because `sync_playwright` needs a thread with no running event loop.
@@ -63,6 +68,8 @@ Neither SSH nor RDP credentials may appear in a URL — URLs land in browser his
 
 - **SSH** (`routers/ssh.py`): the browser opens the socket, then sends host/username/password as the **first JSON message**. Subsequent frames are raw terminal bytes, except JSON `{type: "resize"}` control messages.
 - **RDP** (`routers/rdp.py`): credentials go to `POST /api/rdp/session` in the body; it returns a 60-second, **single-use ticket** held in an in-process dict. The WebSocket carries only `?ticket=`. `_redeem_ticket()` pops the entry, so a replayed ticket fails. Because the store is in-process, this does not survive a reload mid-connect and will not work across multiple workers.
+
+Both WebSocket endpoints validate `Origin` against `CORS_ORIGINS` before accepting (`ws_utils.check_origin`); a request with no `Origin` header is not from a browser and is allowed through, since the network boundary is then the only relevant control.
 
 RDP also requires `guacd` reachable at `127.0.0.1:4822` (`docker run -d -p 4822:4822 guacamole/guacd`); `rdp.py` speaks the Guacamole wire protocol directly (`LEN.VALUE,...;` instructions) and hands frames to `guacamole-common-js` in the browser.
 
@@ -80,6 +87,50 @@ Two layers, both in play at once:
 Existing components mix these with inline `style={{ color: '#1a1d2e' }}` hex literals. Match the surrounding file rather than normalizing.
 
 `DESIGN.md` describes a **dark** "Atmospheric Precision" theme that no longer matches the app — the UI switched to a light theme (`#f0f2f7` background) in commit `d486253` and the document was never updated. Treat `index.css` and `tailwind.config.js` as the source of truth for visual decisions.
+
+### Ortam bayrağı
+
+`os.getenv("ENV", ...)` çağrılarının varsayılanı **`production`**'dır (`main.py`
+`/docs` kararı, `screenshot.py` `--no-sandbox` kararı). `.env` okunamazsa
+uygulama güvenli tarafa düşmelidir; geliştirme modu açıkça seçilir.
+
+### Site Hızı (`routers/site_speed/`)
+
+The one tool that is a package rather than a single file, because it carries
+genuinely separate concerns: `engine.py` (Playwright + CDP device/network
+emulation), `timing.py` (raw asyncio DNS/TCP/TLS/TTFB phases, median of 3),
+`scoring.py` (a line-for-line port of Lighthouse `getLogNormalScore` and its
+curve control points), `audits.py` (our own hosting checks), `advice.py` (the
+Turkish advice DB — same shape as `error_analysis.ERROR_DB`), `google.py`
+(optional PSI + CrUX), `store.py` (history).
+
+Things that will bite you here:
+
+- **Measurement takes 20-60 s**, so the endpoint is job-based: `POST /run`
+  returns an id, the UI polls `GET /job/{id}`. The job store `_ISLER` is
+  in-process, like `rdp._tickets` — it does not survive a reload and needs
+  the single worker.
+- **The resolution gate runs in the endpoint, not the background task.**
+  `validate_domain` is only a format check; `127.0.0.1.nip.io` passes it.
+  Queueing first and validating later still failed safely, but wasted a queue
+  slot and reported the error 15 s late.
+- **Speed Index is not measured** (needs a filmstrip trace). `performance_score`
+  divides by the weight of the metrics actually present, so dropping SI
+  renormalises the remaining four. Say so in any UI that shows the score.
+- **INP cannot be measured in a lab** — it needs real interaction. TBT is shown
+  as its proxy and labelled as such; real INP only ever comes from CrUX.
+- **`web-vitals` is vendored** at `site_speed/vendor/` and injected via
+  `add_init_script` *before* navigation. It is not loaded from a CDN at
+  runtime. Its `onLCP` silently fails to report on some pages, so
+  `collector.js` also keeps a raw `largest-contentful-paint` observer and the
+  engine falls back to it.
+- **Emulation values come from Lighthouse's `constants.js`** (mobile: 4x CPU,
+  562.5 ms latency, 1.6 Mbps; desktop: 1x CPU, 40 ms, 10 Mbps). Lighthouse
+  *simulates* throttling and we *apply* it, so numbers are close but not
+  identical. Changing these numbers moves every score.
+- **Google is optional.** Without `PAGESPEED_API_KEY` those sections are simply
+  absent. Do not try keyless PSI calls — Google bills anonymous use to a shared
+  project whose daily quota is permanently 0, so every request returns 429.
 
 ### Data
 

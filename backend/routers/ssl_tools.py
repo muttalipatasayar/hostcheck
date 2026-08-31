@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import datetime
 import ipaddress
 import re
@@ -12,11 +13,32 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12, Encoding
 from cryptography.x509.oid import NameOID
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from net_validation import resolve_public_ips_async
+from rate_limiter import limiter
+
 router = APIRouter(prefix="/api/ssl", tags=["ssl-tools"])
+
+# Kripto işleri için AYRILMIŞ havuz (screenshot.py / ftp deseni).
+# RSA-4096 anahtar üretimi bu makinede ~1.7 sn CPU harcıyor; `async def`
+# içinde senkron çağrıldığında tek worker'lı sunucunun TEK event loop'unu
+# o süre boyunca tamamen dondururyordu — auth'suz bir uçtan tam servis
+# kesintisi anlamına geliyordu.
+_CRYPTO_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="ssl-crypto")
+
+
+async def _run_crypto(fn, *args):
+    return await asyncio.get_running_loop().run_in_executor(_CRYPTO_EXECUTOR, fn, *args)
+
+
+# SSL Checker'ın izin verdiği portlar. Eskiden 1-65535 serbestti ve uç
+# auth'suz + rate limitsiz olduğu için dış hedeflere karşı port tarayıcısı
+# olarak kullanılabiliyordu (hata metni portun durumunu ele veriyordu).
+ALLOWED_TLS_PORTS = {443, 8443, 993, 995, 465, 587, 636, 989, 990, 5061, 25, 21}
 
 # ── Türkçe karakter dönüşümü ─────────────────────────────────────────────────
 
@@ -62,9 +84,10 @@ class CSRDecodeResponse(BaseModel):
 
 
 @router.post("/csr-decode", response_model=CSRDecodeResponse)
-async def decode_csr(payload: CSRDecodeRequest):
+@limiter.limit("30/minute")
+async def decode_csr(request: Request, payload: CSRDecodeRequest):
     try:
-        csr = x509.load_pem_x509_csr(payload.csr_pem.strip().encode())
+        csr = await _run_crypto(x509.load_pem_x509_csr, payload.csr_pem.strip().encode())
     except Exception:
         raise HTTPException(status_code=400, detail="Geçersiz CSR formatı — PEM olarak yapıştırdığınızdan emin olun")
 
@@ -122,7 +145,8 @@ class PFXConvertRequest(BaseModel):
 
 
 @router.post("/pfx-convert")
-async def convert_pfx(payload: PFXConvertRequest):
+@limiter.limit("20/minute")
+async def convert_pfx(request: Request, payload: PFXConvertRequest):
     # Sertifika
     try:
         cert = x509.load_pem_x509_certificate(payload.cert_pem.strip().encode())
@@ -163,12 +187,15 @@ async def convert_pfx(payload: PFXConvertRequest):
     )
 
     try:
-        pfx_data = pkcs12.serialize_key_and_certificates(
-            name=b"certificate",
-            key=private_key,
-            cert=cert,
-            cas=ca_certs if ca_certs else None,
-            encryption_algorithm=enc,
+        # Parola verildiğinde KDF iterasyonları CPU harcar → executor'da çalıştır
+        pfx_data = await _run_crypto(
+            lambda: pkcs12.serialize_key_and_certificates(
+                name=b"certificate",
+                key=private_key,
+                cert=cert,
+                cas=ca_certs if ca_certs else None,
+                encryption_algorithm=enc,
+            )
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PFX oluşturulamadı: {str(e)[:120]}")
@@ -241,25 +268,21 @@ def _detect_cert_type(cert: x509.Certificate, org: str) -> str:
     return "DV"
 
 
-def _is_private_host(host: str) -> bool:
-    """Block loopback / private / link-local targets (SSRF guard)."""
-    try:
-        ip = ipaddress.ip_address(host)
-        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
-    except ValueError:
-        pass
-    try:
-        for res in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM):
-            ip = ipaddress.ip_address(res[4][0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local:
-                return True
-    except Exception:
-        pass
-    return False
+# NOT: Eski `_is_private_host` kaldırıldı. Yerini `net_validation`
+# içindeki ortak kapı aldı (`resolve_public_ips_async`): çözümlemeyi
+# executor'da yapar, `is_reserved`/`is_multicast`/IPv4-mapped IPv6 dâhil
+# tam süzgeç uygular ve bağlantı doğrulanmış IP'ye pinlenir.
 
 
-def _check_ssl_sync(domain: str, port: int) -> dict:
-    """Blocking SSL check — called via run_in_executor."""
+def _check_ssl_sync(domain: str, port: int, target_ip: str = "") -> dict:
+    """Blocking SSL check — called via run_in_executor.
+
+    `target_ip` verilirse bağlantı O ADRESE kurulur ve `server_hostname`
+    alan adı olarak kalır: SNI ve sertifika doğrulaması alan adına göre
+    yapılır, ama işletim sistemi ikinci bir DNS çözümlemesi yapmaz — yani
+    doğrulama ile bağlantı arasındaki rebinding penceresi kapanır.
+    """
+    connect_to = target_ip or domain
     base: dict = dict(
         domain=domain, port=port,
         is_active=False, is_trusted=False,
@@ -275,7 +298,7 @@ def _check_ssl_sync(domain: str, port: int) -> dict:
     ctx_raw.verify_mode = _ssl.CERT_NONE
     cert_der = None
     try:
-        with socket.create_connection((domain, port), timeout=10) as raw:
+        with socket.create_connection((connect_to, port), timeout=10) as raw:
             with ctx_raw.wrap_socket(raw, server_hostname=domain) as tls:
                 cert_der = tls.getpeercert(binary_form=True)
     except (socket.timeout, TimeoutError):
@@ -331,7 +354,7 @@ def _check_ssl_sync(domain: str, port: int) -> dict:
     is_trusted = False
     try:
         ctx_trusted = _ssl.create_default_context()
-        with socket.create_connection((domain, port), timeout=10) as raw:
+        with socket.create_connection((connect_to, port), timeout=10) as raw:
             with ctx_trusted.wrap_socket(raw, server_hostname=domain) as _tls:
                 is_trusted = True
     except Exception:
@@ -357,7 +380,8 @@ def _check_ssl_sync(domain: str, port: int) -> dict:
 
 
 @router.get("/check", response_model=SSLCheckResponse)
-async def check_ssl(domain: str, port: int = 443):
+@limiter.limit("20/minute")
+async def check_ssl(request: Request, domain: str, port: int = 443):
     """SSL sertifikasını sorgular; aktiflik, tür (DV/OV/EV/Wildcard) ve kalan gün döner."""
     # — Sanitize —
     domain = domain.strip().lower()
@@ -370,13 +394,22 @@ async def check_ssl(domain: str, port: int = 443):
         raise HTTPException(400, "Domain adı zorunludur")
     if not re.match(r"^[a-z0-9.\-*]+$", domain):
         raise HTTPException(400, "Geçersiz domain adı")
-    if not (1 <= port <= 65535):
-        raise HTTPException(400, "Geçersiz port numarası (1-65535)")
-    if _is_private_host(domain):
-        raise HTTPException(400, "Özel / yerel ağ adresleri sorgulanamaz")
+    if port not in ALLOWED_TLS_PORTS:
+        raise HTTPException(
+            400,
+            "Bu port sorgulanamaz. İzin verilenler: "
+            + ", ".join(str(p) for p in sorted(ALLOWED_TLS_PORTS)),
+        )
+
+    # SSRF kapısı. Eski `_is_private_host` doğruydu ama iki kusuru vardı:
+    # (1) `async def` içinde senkron `getaddrinfo` çağırıp event loop'u
+    #     bloklıyordu, (2) çözümlemeyi doğrulayıp bağlantıyı ALAN ADINA
+    #     kurduğu için araya DNS rebinding penceresi giriyordu.
+    # Artık çözümleme executor'da yapılır ve bağlantı doğrulanmış IP'ye pinlenir.
+    target_ip = (await resolve_public_ips_async(domain, port))[0]
 
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, _check_ssl_sync, domain, port)
+    result = await loop.run_in_executor(None, _check_ssl_sync, domain, port, target_ip)
 
     if result["error"] and not result["common_name"]:
         raise HTTPException(400, result["error"])
@@ -385,18 +418,23 @@ async def check_ssl(domain: str, port: int = 443):
 
 
 @router.post("/csr-generate", response_model=CSRGenerateResponse)
-async def generate_csr(payload: CSRGenerateRequest):
+@limiter.limit("5/minute")
+async def generate_csr(request: Request, payload: CSRGenerateRequest):
     if not payload.common_name.strip():
         raise HTTPException(status_code=400, detail="Common Name (alan adı) zorunludur")
 
     if payload.key_size not in (2048, 4096):
         raise HTTPException(status_code=400, detail="Key boyutu 2048 veya 4096 olmalıdır")
 
-    # Private key oluştur
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=payload.key_size,
-        backend=default_backend(),
+    # Private key oluştur — AYRILMIŞ executor'da.
+    # RSA-4096 ~1.7 sn CPU harcar; event loop'ta çalıştırıldığında tüm panel
+    # (SSH/RDP/FTP oturumları dâhil) o süre boyunca donuyordu.
+    private_key = await _run_crypto(
+        lambda: rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=payload.key_size,
+            backend=default_backend(),
+        )
     )
 
     # Subject alanları — Türkçe karakterleri temizle
@@ -434,7 +472,8 @@ async def generate_csr(payload: CSRGenerateRequest):
             critical=False,
         )
 
-    csr = builder.sign(private_key, hashes.SHA256(), default_backend())
+    csr = await _run_crypto(
+        lambda: builder.sign(private_key, hashes.SHA256(), default_backend()))
 
     csr_pem = csr.public_bytes(Encoding.PEM).decode()
     key_pem = private_key.private_bytes(
