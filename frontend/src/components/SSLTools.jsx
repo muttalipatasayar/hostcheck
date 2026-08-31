@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  Shield, FileKey, FilePlus2, Copy, Check,
+  Shield, FileKey, FilePlus2,
   Download, Upload, Plus, X, CheckCircle2, XCircle,
   AlertTriangle, ChevronDown, ChevronUp, Loader2, Info,
   Search, Calendar, Clock, Building2, Globe, Lock, LockOpen,
@@ -9,6 +9,8 @@ import {
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import { SSL_TABS } from '../lib/sslTabs'
+import CopyButton from './CopyButton'
+import SSLChainCheck from './SSLChainCheck'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
@@ -16,22 +18,6 @@ import { useTarget, useCommittedTarget } from '../context/TargetContext'
 const TR_MAP = { ğ:'g',Ğ:'G',ü:'u',Ü:'U',ş:'s',Ş:'S',ı:'i',İ:'I',ö:'o',Ö:'O',ç:'c',Ç:'C' }
 const sanitizeTR = (s) => s.split('').map(c => TR_MAP[c] || c).join('')
 const hasTR = (s) => Object.keys(TR_MAP).some(c => s.includes(c))
-
-function CopyButton({ text, size = 'sm' }) {
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    toast.success('Kopyalandı')
-    setTimeout(() => setCopied(false), 2000)
-  }
-  return (
-    <button onClick={copy} className="btn-ghost text-label-md py-1 px-2 flex items-center gap-1.5">
-      {copied ? <><Check className="w-3.5 h-3.5" style={{ color: '#4a6cf7' }} />Kopyalandı</>
-               : <><Copy className="w-3.5 h-3.5" />Kopyala</>}
-    </button>
-  )
-}
 
 function PemBox({ label, value, onChange, placeholder, readOnly = false, rows = 8 }) {
   const fileRef = useRef()
@@ -881,7 +867,7 @@ export default function SSLTools() {
           </h1>
         </div>
         <p className="text-body-md" style={{ color: '#6b7388' }}>
-          CSR çözümle · PFX dönüştür · CSR oluştur
+          Zincir doğrula · CSR çözümle · PFX dönüştür · CSR oluştur
         </p>
       </div>
 
@@ -906,6 +892,7 @@ export default function SSLTools() {
           içeriği sekme değişiminde kaybolmaz */}
       <div className="px-8 pb-10">
         <div style={{ display: tab === 'ssl-checker'  ? undefined : 'none' }}><SSLChecker isActive={tab === 'ssl-checker'} /></div>
+        <div style={{ display: tab === 'chain-check'  ? undefined : 'none' }}><SSLChainCheck isActive={tab === 'chain-check'} /></div>
         <div style={{ display: tab === 'csr-decode'   ? undefined : 'none' }}><CSRDecode /></div>
         <div style={{ display: tab === 'pfx-convert'  ? undefined : 'none' }}><PFXConvert /></div>
         <div style={{ display: tab === 'csr-generate' ? undefined : 'none' }}><CSRGenerate /></div>
