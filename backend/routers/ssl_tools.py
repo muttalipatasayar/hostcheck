@@ -331,8 +331,13 @@ def _check_ssl_sync(domain: str, port: int, target_ip: str = "") -> dict:
         return base
 
     now = datetime.datetime.now(tz=datetime.timezone.utc)
-    valid_from  = _utc(cert.not_valid_before)
-    valid_until = _utc(cert.not_valid_after)
+    # `cert.not_valid_before/after` cryptography'de KULLANIMDAN KALDIRILDI ve
+    # kaldırılacak. Kaldırıldığı gün bu satırlar AttributeError verir, fonksiyon
+    # aşağıdaki `except Exception`'a düşer ve araç sessizce "Sertifika
+    # çözümlenemedi" demeye başlar — sessiz bozulma. getattr'lı biçim eski
+    # sürümlerde de çalışır (ssl_chain_core aynı deseni kullanıyor).
+    valid_from  = _utc(getattr(cert, "not_valid_before_utc", None) or cert.not_valid_before)
+    valid_until = _utc(getattr(cert, "not_valid_after_utc", None) or cert.not_valid_after)
     days_remaining = (valid_until - now).days
     total_days = max((valid_until - valid_from).days, 1)
 

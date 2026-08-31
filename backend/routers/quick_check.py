@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from error_analysis import analyze_error, get_error_by_key
 from net_validation import assert_public_target, resolve_public_ips_async
 from rate_limiter import limiter
+import ssl_chain_core
 
 try:
     import dns.resolver
@@ -548,9 +549,101 @@ async def do_dns_mx(domain: str) -> CheckItem:
     )
 
 
+def _ssl_failure_reason(domain: str, target_ip: str) -> tuple[str, str]:
+    """SSL doğrulaması neden başarısız oldu? (value, detail) döner.
+
+    Eskiden bu fonksiyon yoktu ve `except Exception` her şeyi
+    "HTTPS yok — sitenin HTTPS'i olmayabilir" diye raporluyordu. Sahadaki EN
+    YAYGIN vaka olan "sunucu ara sertifikayı göndermiyor" tam olarak oraya
+    düşüyordu: site HTTPS konuşuyor, sertifika geçerli, ama Python'ın ssl
+    modülü (Android gibi) AIA çekmediği için doğrulayamıyor. Teknisyene
+    "HTTPS yok" demek onu yanlış yere bakmaya gönderiyordu.
+
+    Burada AIA ÇEKİLMEZ — bu hızlı kontrol; derin teşhis Zincir Doğrulama
+    sekmesinin işi. Tek ek el sıkışmayla sebebi adlandırıp oraya yönlendirir.
+    """
+    ipucu = " Ayrıntı: SSL Araçları → Zincir Doğrulama."
+    hs = ssl_chain_core.fetch_chain_sync(domain, target_ip, 443)
+    if not hs.certs:
+        return "Sertifika alınamadı", "Sunucu TLS el sıkışmasında sertifika göndermedi."
+
+    leaf = hs.certs[0]
+    now = datetime.now(timezone.utc)
+
+    if ssl_chain_core._not_after(leaf) < now:
+        bitis = ssl_chain_core._not_after(leaf).strftime("%d.%m.%Y")
+        return "Süresi dolmuş", f"Sertifikanın süresi {bitis} tarihinde dolmuş."
+
+    san = ssl_chain_core._san_dns(leaf)
+    if not san:
+        return "SAN alanı yok", (
+            "Sertifikada Subject Alternative Name yok; modern tarayıcıların "
+            "hiçbiri Common Name alanına bakmaz." + ipucu
+        )
+    if not any(ssl_chain_core._host_matches(pat, domain) for pat in san):
+        return "Alan adı eşleşmiyor", (
+            f"Sertifika '{domain}' için geçerli değil. Kapsadığı adlar: "
+            + ", ".join(san[:5]) + ("…" if len(san) > 5 else "")
+        )
+
+    yol, sonuc = ssl_chain_core.build_own_path(leaf, hs.certs)
+
+    if sonuc == "eksik_halka":
+        return "Zincir eksik", (
+            "Sunucu ara sertifikayı GÖNDERMİYOR. Masaüstü tarayıcılar eksik "
+            "halkayı kendileri indirip onarır, Android cihazlar onaramaz — "
+            "o cihazlarda 'güvenli değil' uyarısı çıkar." + ipucu
+        )
+    if sonuc == "kendinden_imzali" and len(yol) == 1:
+        return "Kendinden imzalı", (
+            "Sertifika kendi kendini imzalamış; hiçbir tarayıcı güvenmez." + ipucu
+        )
+    if sonuc == "kendinden_imzali":
+        return "Kök güvenilmiyor", (
+            f"Zincir '{ssl_chain_core._short_name(yol[-1])}' kökünde bitiyor; bu kök "
+            "hiçbir tarayıcının güven deposunda yok." + ipucu
+        )
+    if sonuc == "imza_dogrulanamadi":
+        return "Zincir hatalı", (
+            "Gönderilen ara sertifika bu sertifikayı imzalamamış — büyük "
+            "ihtimalle başka bir sitenin bundle'ı kurulmuş." + ipucu
+        )
+
+    doldu = [c for c in yol[1:] if ssl_chain_core._not_after(c) < now]
+    if doldu:
+        return "Ara sertifika süresi dolmuş", (
+            f"'{ssl_chain_core._short_name(doldu[0])}' ara sertifikasının süresi "
+            "dolmuş; zincir bu yüzden doğrulanamıyor." + ipucu
+        )
+
+    return "Doğrulanamadı", (
+        "Zincir kurulabiliyor ama doğrulama başarısız — sertifika profili "
+        "tarayıcı kurallarına uymuyor olabilir." + ipucu
+    )
+
+
+async def _ssl_diagnose(domain: str, target_ip: str, latency: float):
+    """Teşhisi executor'da çalıştırır. Motor yoksa None döner (eski davranış)."""
+    if not ssl_chain_core.CHAIN_AVAILABLE or not target_ip:
+        return None
+    try:
+        loop = asyncio.get_event_loop()
+        value, detail = await asyncio.wait_for(
+            loop.run_in_executor(None, _ssl_failure_reason, domain, target_ip),
+            timeout=12.0,
+        )
+        return CheckItem(
+            label="SSL Sertifika", status="error",
+            value=value, detail=detail, latency_ms=round(latency, 1),
+        )
+    except Exception:
+        return None
+
+
 async def do_ssl(domain: str) -> CheckItem:
     """SSL sertifika kontrolü"""
     start = time.monotonic()
+    target_ip = ""
     try:
         # SSRF kapısı: hedefi çöz, genel olduğunu doğrula ve BAĞLANTIYI O IP'ye
         # pinle. Hostname'e bağlanmak işletim sistemine ikinci bir çözümleme
@@ -592,22 +685,31 @@ async def do_ssl(domain: str) -> CheckItem:
                 detail=detail,
                 latency_ms=round(latency, 1)
             )
-    except ssl.SSLCertVerificationError as e:
+    except ssl.SSLCertVerificationError:
         latency = (time.monotonic() - start) * 1000
+        # Ham İngilizce OpenSSL metni yerine sebebi adlandır.
+        teshis = await _ssl_diagnose(domain, target_ip, latency)
+        if teshis:
+            return teshis
         return CheckItem(
             label="SSL Sertifika",
             status="error",
             value="Geçersiz sertifika",
-            detail=f"SSL doğrulama hatası: {str(e)[:100]}",
+            detail="Sertifika doğrulanamadı — SSL Araçları → Zincir Doğrulama'ya bakın",
             latency_ms=round(latency, 1)
         )
-    except Exception as e:
+    except Exception:
         latency = (time.monotonic() - start) * 1000
+        # "HTTPS yok" çoğu zaman YANLIŞTI: sitenin HTTPS'i vardı, zinciri
+        # eksikti. Önce gerçek sebebi bulmayı dene.
+        teshis = await _ssl_diagnose(domain, target_ip, latency)
+        if teshis:
+            return teshis
         return CheckItem(
             label="SSL Sertifika",
             status="warning",
             value="HTTPS yok",
-            detail=f"SSL bağlantısı kurulamadı — sitenin HTTPS'i olmayabilir",
+            detail="SSL bağlantısı kurulamadı — sitenin HTTPS'i olmayabilir",
             latency_ms=round(latency, 1)
         )
 

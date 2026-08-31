@@ -284,11 +284,41 @@ def get_store(name: str) -> Optional[tuple[Store, list[x509.Certificate], int]]:
     return entry
 
 
+# Kök depoları yavaş değişir ama sonsuza kadar geçerli değildir: CA'lar
+# eklenir, güvenden düşürülenler çıkarılır (E-Tugra 2023-24 gibi). Gömülü
+# veri bayatladığında araç SESSİZCE yanlış cevap vermeye başlar — "bu kök
+# Android'de yok" derken aslında eklenmiş olabilir. Bu yüzden bayatlık
+# görünür bir bulgu olarak raporlanır.
+STORE_STALE_DAYS = 180
+
+
 def store_health_findings() -> list[Finding]:
     """Depoların sağlığını bulgu olarak raporlar (500 yerine görünür uyarı)."""
     out: list[Finding] = []
     meta = load_store_meta()
     expected = meta.get("counts", {})
+
+    uretim = meta.get("generated_at", "")
+    if uretim:
+        try:
+            t = datetime.datetime.fromisoformat(uretim)
+            if t.tzinfo is None:
+                t = t.replace(tzinfo=datetime.timezone.utc)
+            yas = (datetime.datetime.now(datetime.timezone.utc) - t).days
+            if yas > STORE_STALE_DAYS:
+                out.append(Finding(
+                    label="Kök depoları bayatlamış",
+                    status="warning",
+                    oncelik=40,
+                    detail=(
+                        f"Gömülü kök sertifika depoları {yas} gün önce üretilmiş. "
+                        "Bu süreçte CA eklenmiş ya da güvenden düşürülmüş olabilir; "
+                        "platform sonuçları yanıltıcı olabilir."
+                    ),
+                    fix="backend/tools/build_trust_stores.py çalıştırıp dosyaları yayına kopyalayın.",
+                ))
+        except Exception:  # noqa: BLE001 — bozuk tarih bulgu üretmesin
+            pass
 
     for name in STORE_NAMES:
         entry = get_store(name)

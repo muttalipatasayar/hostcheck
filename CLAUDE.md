@@ -37,7 +37,31 @@ Migrations must be written **idempotently** (inspect `sa.inspect(op.get_bind()).
 
 ### Tests
 
-There is no test suite (no pytest, no vitest). Verify changes by running the app and exercising the affected endpoint or tab. `npm run build` is the closest thing to a frontend check.
+Backend has a pytest suite under `backend/tests/`. There is still no frontend
+test runner — `npm run build` remains the closest thing to a frontend check.
+
+```bash
+cd backend
+venv/bin/pip install -r requirements-dev.txt   # pytest; ÜRETİME kurulmaz
+venv/bin/python -m pytest                       # tümü
+venv/bin/python -m pytest -m "not network"      # ağsız (CI)
+```
+
+Kapsam bilinçli olarak dar: **sessizce yanlış cevap üretebilecek** yerler.
+SSRF kapısı ve girdi doğrulama (`test_guvenlik_kapilari.py`), zincir motorunun
+saf mantığı — joker eşleşmesi, SC-081v3 geçerlilik takvimi, yol kurma, güven
+depolarının tutarlılığı (`test_ssl_chain_core.py`) ve Hızlı Kontrol'ün SSL
+teşhisi (`test_quick_check_ssl.py`).
+
+İki kural:
+
+- **`conftest.py` rate limit'i kapatır.** Uçlar 10-20/dakika sınırlı; onlarca
+  doğrulama testi aynı istemciden gelince 400 yerine 429 görülüyor ve test
+  gerçek davranışı değil kendi kurgusunu ölçüyor. Sınırın kendisi
+  `test_rate_limit_calisiyor` içinde bilerek açılarak doğrulanır.
+- **Ağ gerektiren testler `@pytest.mark.network` ile işaretlenir.** Geri kalanı
+  tamamen ağsız çalışır; TLS el sıkışmaları sentetik sertifikalarla ve
+  monkeypatch ile taklit edilir.
 
 ## Architecture
 
