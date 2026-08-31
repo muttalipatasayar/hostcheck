@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from error_analysis import analyze_error, get_error_by_key
+from net_validation import assert_public_target, resolve_public_ips_async
 from rate_limiter import limiter
 
 try:
@@ -126,6 +127,13 @@ def _is_tr_domain(domain: str) -> bool:
     return any(domain.endswith(t) for t in tr_tlds)
 
 
+# Tek bir WHOIS yanıtından okunacak en fazla bayt. Sunucu sabit haritadan
+# ya da IANA'dan geldiği için saldırgan kontrolünde değildir; yine de arızalı
+# veya ele geçirilmiş bir registry sunucusu sınırsız veri göndererek belleği
+# doldurabilirdi.
+_MAX_WHOIS_BYTES = 1024 * 1024
+
+
 def _raw_whois(server: str, query: str, timeout: float = 8.0) -> str:
     """Port 43 üzerinden ham WHOIS sorgusu yap"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -133,11 +141,13 @@ def _raw_whois(server: str, query: str, timeout: float = 8.0) -> str:
         s.connect((server, 43))
         s.sendall((query + "\r\n").encode())
         chunks = []
-        while True:
+        total = 0
+        while total < _MAX_WHOIS_BYTES:
             data = s.recv(4096)
             if not data:
                 break
             chunks.append(data)
+            total += len(data)
     return b"".join(chunks).decode(errors='ignore')
 
 
@@ -542,14 +552,22 @@ async def do_ssl(domain: str) -> CheckItem:
     """SSL sertifika kontrolü"""
     start = time.monotonic()
     try:
+        # SSRF kapısı: hedefi çöz, genel olduğunu doğrula ve BAĞLANTIYI O IP'ye
+        # pinle. Hostname'e bağlanmak işletim sistemine ikinci bir çözümleme
+        # yaptırır ve arada DNS rebinding penceresi açılır.
+        target_ip = await assert_public_target(domain, 443)
+
         context = ssl.create_default_context()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
-        conn = context.wrap_socket(sock, server_hostname=domain)
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, lambda: conn.connect((domain, 443)))
-        cert = conn.getpeercert()
-        conn.close()
+
+        def _handshake():
+            raw = socket.create_connection((target_ip, 443), timeout=5)
+            # server_hostname domain kalır → SNI ve sertifika doğrulaması
+            # alan adına göre yapılır, IP'ye göre değil
+            with context.wrap_socket(raw, server_hostname=domain) as tls:
+                return tls.getpeercert()
+
+        cert = await loop.run_in_executor(None, _handshake)
         latency = (time.monotonic() - start) * 1000
 
         not_after_str = cert.get("notAfter", "")
@@ -594,6 +612,31 @@ async def do_ssl(domain: str) -> CheckItem:
         )
 
 
+# Yönlendirme zincirinde izlenecek en fazla adım
+_MAX_REDIRECTS = 5
+
+
+async def _safe_get(client: httpx.AsyncClient, url: str) -> httpx.Response:
+    """Yönlendirmeleri ELLE takip eder ve HER adımın hedefini doğrular.
+
+    `follow_redirects=True` bir SSRF kapısıydı: doğrulama yalnızca ilk URL'e
+    bakıyordu, saldırganın sitesi 302 ile http://127.0.0.1:8000/ gösterip
+    paneli iç ağa yönlendirebiliyordu. Her sıçramada hostu yeniden çözüp
+    genel olduğunu doğruluyoruz.
+    """
+    for _ in range(_MAX_REDIRECTS + 1):
+        host = httpx.URL(url).host
+        await resolve_public_ips_async(host)          # geçersizse HTTPException
+        resp = await client.get(url)
+        if resp.status_code not in (301, 302, 303, 307, 308):
+            return resp
+        location = resp.headers.get("location")
+        if not location:
+            return resp
+        url = str(httpx.URL(url).join(location))
+    raise httpx.TooManyRedirects("Çok fazla yönlendirme", request=None)
+
+
 async def do_http(domain: str) -> tuple[CheckItem, int | None]:
     """HTTP durum kodu kontrolü — kodu da döndür (analiz için)"""
     url = f"https://{domain}"
@@ -601,8 +644,8 @@ async def do_http(domain: str) -> tuple[CheckItem, int | None]:
     status_code = None
 
     try:
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
-            r = await client.get(url)
+        async with httpx.AsyncClient(timeout=8, follow_redirects=False) as client:
+            r = await _safe_get(client, url)
             status_code = r.status_code
             latency = (time.monotonic() - start) * 1000
 
@@ -651,8 +694,8 @@ async def do_http(domain: str) -> tuple[CheckItem, int | None]:
     except httpx.ConnectError:
         # HTTPS bağlanamadı, HTTP dene
         try:
-            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-                r = await client.get(f"http://{domain}")
+            async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
+                r = await _safe_get(client, f"http://{domain}")
                 status_code = r.status_code
                 latency = (time.monotonic() - start) * 1000
                 return CheckItem(
@@ -690,6 +733,11 @@ async def do_http(domain: str) -> tuple[CheckItem, int | None]:
 @limiter.limit("20/minute")
 async def quick_check(request: Request, payload: QuickCheckRequest):
     domain = validate_domain(payload.domain)
+    # SSRF kapısı — uç seviyesinde tek karar noktası. `validate_domain`
+    # yalnızca string doğrular; "127.0.0.1.nip.io" gibi isimler onu geçip
+    # iç adrese çözülüyordu. Burada net bir 400 döner; ayrıca do_ssl/do_http
+    # kendi içlerinde de doğrular (derinlemesine savunma).
+    await resolve_public_ips_async(domain, 443)
 
     # Tüm kontrolleri paralel çalıştır
     whois_task = do_whois(domain)
