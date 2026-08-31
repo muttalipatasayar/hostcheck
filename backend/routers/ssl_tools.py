@@ -20,6 +20,8 @@ from pydantic import BaseModel
 from net_validation import resolve_public_ips_async
 from rate_limiter import limiter
 
+import ssl_chain_core
+
 router = APIRouter(prefix="/api/ssl", tags=["ssl-tools"])
 
 # Kripto işleri için AYRILMIŞ havuz (screenshot.py / ftp deseni).
@@ -483,3 +485,268 @@ async def generate_csr(request: Request, payload: CSRGenerateRequest):
     ).decode()
 
     return CSRGenerateResponse(csr_pem=csr_pem, private_key_pem=key_pem)
+
+
+# ── Zincir Doğrulama ─────────────────────────────────────────────────────────
+#
+# Motor `backend/ssl_chain_core.py` içinde; burada yalnızca HTTP katmanı var
+# (projenin `dns_core` / `mail_analysis` deseni). Uç, YENİ BİR ROUTER DEĞİL —
+# mevcut `/api/ssl` router'ına ekleniyor ki `main.py`'ye dokunmak gerekmesin.
+
+# Zincir kontrolü için AYRILMIŞ havuz.
+#
+# `run_in_executor(None, …)` KULLANILMAZ: varsayılan havuzu
+# `resolve_public_ips_async`, whois ve dnspython paylaşıyor. Bir zincir
+# kontrolü el sıkışma + AIA + 12 doğrulama boyunca bir thread'i tutuyor;
+# havuz dolduğunda ALAKASIZ araçlar "Alan adı çözümlemesi zaman aşımına
+# uğradı" vermeye başlar.
+_CHAIN_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="ssl-chain")
+
+# Semafor, rate limit'in yapamadığını yapar: slowapi IP başına sayar ve
+# süreç içi deposunun genel bir tavanı yoktur. Farklı IP'lerden gelen eş
+# zamanlı istekler havuzu yine doldurabilir; taşan istek kuyrukta beklemek
+# yerine hızlıca Türkçe 503 alır.
+_CHAIN_SEM = asyncio.Semaphore(2)
+
+# SSL Checker'ın port listesini OLDUĞU GİBİ DEVRALMIYORUZ: 25 (SMTP),
+# 587 (submission) ve 21 (FTP) STARTTLS'tir, implicit TLS değil. Bu portlara
+# doğrudan ClientHello göndermek düz metin bir banner'a çarpar ve bağlantı
+# zaman aşımına kadar asılı kalır.
+CHAIN_TLS_PORTS = {443, 8443, 993, 995, 465, 636, 989, 990, 5061}
+STARTTLS_PORTS = {25, 587, 21}
+
+_CHAIN_TOTAL_TIMEOUT = 25.0
+
+
+class ChainFinding(BaseModel):
+    label: str
+    status: str  # healthy | warning | error | info
+    detail: str = ""
+    fix: str = ""
+    oncelik: int = 50
+
+
+class ChainCertInfo(BaseModel):
+    position: int
+    role: str
+    subject: str
+    issuer: str
+    common_name: str
+    organization: str
+    serial: str
+    not_before: str
+    not_after: str
+    days_remaining: int
+    expired: bool
+    not_yet_valid: bool
+    signature_algorithm: str
+    key_algorithm: str
+    key_size: Optional[int] = None
+    is_ca: bool
+    self_signed: bool
+    sha256: str
+    san: list[str] = []
+    source: str
+    aia_ca_issuers: list[str] = []
+    ocsp_urls: list[str] = []
+    sct_count: int = 0
+    key_usage: list[str] = []
+    ext_key_usage: list[str] = []
+
+
+class ChainPlatform(BaseModel):
+    key: str
+    ad: str
+    kapsam: str
+    gecis: str
+    sonuc: str            # guvenilir | guvenilmez | belirsiz | bilinmiyor
+    sunucu_zinciri: str   # A geçişi
+    aia_onarimli: str     # B geçişi
+    aciklama: str = ""
+    not_: str = ""
+    teknik: str = ""
+
+
+class ChainStoreInfo(BaseModel):
+    uretim_tarihi: str = ""
+    sayilar: dict[str, int] = {}
+
+
+class ChainCheckResponse(BaseModel):
+    domain: str
+    port: int
+    durum: str
+    baslik: str
+    ozet: str
+    protokol: str = ""
+    sifre_suiti: str = ""
+    ocsp_stapling: bool = False
+    sunulan_sertifika_sayisi: int
+    aia_ile_eklenen: int
+    zincir_sonucu: str
+    zincir: list[ChainCertInfo] = []
+    platformlar: list[ChainPlatform] = []
+    bulgular: list[ChainFinding] = []
+    onerilen_pem: str = ""
+    onerilen_pem_not: str = ""
+    depo_bilgisi: ChainStoreInfo = ChainStoreInfo()
+
+
+def _prepare_chain_domain(domain: str) -> str:
+    """Girdiyi temizler ve IDN alan adlarını A-label'a çevirir."""
+    # Null baytı SİLMİYORUZ, REDDEDİYORUZ. Silseydik "a\\x00b.com" sessizce
+    # "ab.com"a dönüşür ve teknisyene sorduğundan BAŞKA bir alan adının
+    # raporu gösterilirdi. `quick_check.validate_domain` de aynısını yapar.
+    if not domain or "\x00" in domain:
+        raise HTTPException(400, "Geçersiz domain adı")
+
+    d = domain.strip().lower()
+    for prefix in ("https://", "http://"):
+        if d.startswith(prefix):
+            d = d[len(prefix):]
+    d = d.split("/")[0].split("?")[0].split("#")[0]
+    if d.startswith("[") and "]" in d:  # IPv6 literali
+        d = d[1:d.index("]")]
+    elif d.count(":") == 1:
+        d = d.split(":")[0]
+
+    if not d:
+        raise HTTPException(400, "Domain adı zorunludur")
+    if len(d) > 253:
+        raise HTTPException(400, "Domain adı en fazla 253 karakter olabilir")
+
+    # Teknisyen "türkiye.com.tr" yapıştırabilmeli. A-label hem SNI hem
+    # hostname eşleşmesi için kullanılır.
+    if not d.isascii():
+        try:
+            import idna
+            d = idna.encode(d, uts46=True).decode("ascii")
+        except Exception:
+            raise HTTPException(400, "Alan adı çözümlenemedi — Türkçe karakterleri kontrol edin")
+
+    # `net_validation._DOMAIN_RE` punycode TLD'leri (xn--…) reddediyor;
+    # bu yüzden ssl_tools'un kendi kalıbını kullanıyoruz.
+    if not re.match(r"^[a-z0-9.\-]+$", d) or ".." in d or d.startswith(".") or d.endswith("."):
+        raise HTTPException(400, "Geçersiz domain adı")
+    return d
+
+
+def _chain_pipeline_sync(host: str, ips: list[str], port: int):
+    """El sıkışmaları executor'da yapar. Tüm IP'ler sırayla denenir.
+
+    `ips[0]` yerine listenin tamamı: makinede çalışmayan bir IPv6 varsayılan
+    rotası varsa `getaddrinfo` AAAA'yı öne koyduğu anda her dual-stack alan
+    adı zaman aşımına düşerdi. SSRF kapısı adreslerin HEPSİNİ zaten
+    doğruladı, dolayısıyla sıradakine geçmek bedava.
+    """
+    last_error: Optional[BaseException] = None
+    for ip in ips:
+        try:
+            hs = ssl_chain_core.fetch_chain_sync(host, ip, port, use_sni=True)
+            if not hs.certs:
+                raise ValueError("Sunucu hiç sertifika göndermedi")
+            # SNI'siz el sıkışma başarısız olabilir (sunucu SNI şart koşuyorsa);
+            # bu bir hata değil, yalnızca karşılaştırmayı atlarız.
+            no_sni_fp = None
+            try:
+                hs2 = ssl_chain_core.fetch_chain_sync(host, ip, port, use_sni=False)
+                if hs2.certs:
+                    no_sni_fp = ssl_chain_core._fp(hs2.certs[0])
+            except Exception:
+                pass
+            return hs, no_sni_fp
+        except Exception as e:  # noqa: BLE001
+            last_error = e
+            continue
+    raise last_error or ValueError("Bağlantı kurulamadı")
+
+
+@router.get("/chain-check", response_model=ChainCheckResponse)
+@limiter.limit("10/minute")
+async def chain_check(request: Request, domain: str, port: int = 443):
+    """Sertifika zincirini doğrular ve platform platform sonucu döner.
+
+    Sunucunun GERÇEKTEN gönderdiği zinciri alır, her güven deposuna karşı iki
+    kez doğrular (sunucunun zinciri / AIA ile onarılmış) ve hangi cihazın
+    kabul edip hangisinin reddedeceğini söyler.
+    """
+    if not ssl_chain_core.CHAIN_AVAILABLE:
+        raise HTTPException(
+            503,
+            "Zincir doğrulama kullanılamıyor: "
+            + (ssl_chain_core.CHAIN_UNAVAILABLE_REASON or "pyOpenSSL kurulu değil"),
+        )
+
+    host = _prepare_chain_domain(domain)
+
+    if port in STARTTLS_PORTS:
+        raise HTTPException(
+            400,
+            f"Port {port} STARTTLS kullanır, doğrudan TLS değil — zincir doğrulama "
+            "bu portu desteklemiyor. Mail sunucusu için Mail Sağlığı aracını kullanın.",
+        )
+    if port not in CHAIN_TLS_PORTS:
+        raise HTTPException(
+            400,
+            "Bu port sorgulanamaz. İzin verilenler: "
+            + ", ".join(str(p) for p in sorted(CHAIN_TLS_PORTS)),
+        )
+
+    # SSRF kapısı: çözümleme executor'da, bağlantı DOĞRULANMIŞ IP'ye.
+    ips = await resolve_public_ips_async(host, port)
+
+    # Havuz doluysa KUYRUĞA GİRME, hızlıca 503 dön. Kuyruğa girseydi istek
+    # 25 sn'lik zaman aşımı boyunca asılı kalır, kullanıcı da tarayıcıda
+    # donmuş bir sekme görürdü.
+    if _CHAIN_SEM.locked():
+        raise HTTPException(
+            503, "Zincir doğrulama şu an meşgul — birkaç saniye sonra tekrar deneyin"
+        )
+
+    async with _CHAIN_SEM:
+        loop = asyncio.get_running_loop()
+        try:
+            hs, no_sni_fp = await asyncio.wait_for(
+                loop.run_in_executor(_CHAIN_EXECUTOR, _chain_pipeline_sync, host, ips, port),
+                timeout=_CHAIN_TOTAL_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(504, f"Zincir doğrulama zaman aşımına uğradı — {host}:{port}")
+        except HTTPException:
+            raise
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(400, ssl_chain_core.handshake_error_message(e, host, port))
+
+        # AIA indirmeleri async I/O — event loop'ta kalır, thread tutmaz.
+        try:
+            aia_certs, aia_findings = await asyncio.wait_for(
+                ssl_chain_core.repair_chain_via_aia(hs.certs[0], hs.certs[1:], loop.time),
+                timeout=ssl_chain_core.AIA_TOTAL_BUDGET + 2,
+            )
+        except asyncio.TimeoutError:
+            aia_certs, aia_findings = [], [
+                ssl_chain_core.Finding(
+                    label="AIA süre bütçesi doldu",
+                    status="warning",
+                    detail="Eksik ara sertifikalar zamanında indirilemedi.",
+                )
+            ]
+
+        try:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    _CHAIN_EXECUTOR,
+                    lambda: ssl_chain_core.analyze(
+                        host, port, hs, aia_certs, aia_findings, no_sni_fp
+                    ),
+                ),
+                timeout=_CHAIN_TOTAL_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(504, "Zincir çözümlemesi zaman aşımına uğradı")
+
+    # Pydantic'te `not` ayrılmış sözcük; modelde `not_` olarak taşıyoruz.
+    for p in result["platformlar"]:
+        p["not_"] = p.pop("not", "")
+    return result

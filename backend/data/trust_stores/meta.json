@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-08-31T14:48:53+00:00",
+  "counts": {
+    "apple": 121,
+    "chrome": 100,
+    "microsoft": 203,
+    "mozilla": 138,
+    "android": 149,
+    "android7": 148
+  },
+  "sources": {
+    "ccadb": "https://ccadb.my.salesforce-sites.com/ccadb/RootCACertificatesIncludedByRSReportCSV",
+    "aosp": {
+      "android": "https://android.googlesource.com/platform/system/ca-certificates/+archive/refs/heads/main/files.tar.gz",
+      "android7": "https://android.googlesource.com/platform/system/ca-certificates/+archive/refs/heads/nougat-release/files.tar.gz"
+    }
+  },
+  "tls_use_case_filter": "Server Authentication",
+  "note": "tools/build_trust_stores.py ile üretildi. Tazelemek için scripti yeniden çalıştırın; kökler SHA-256'ya göre sıralı yazıldığı için diff yalnızca gerçek değişikliği gösterir."
+}

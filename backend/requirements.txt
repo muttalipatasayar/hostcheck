@@ -11,6 +11,7 @@ python-dotenv>=1.0.1
 slowapi>=0.1.9
 paramiko>=3.5.0
 cryptography>=44.0.0
+pyOpenSSL>=26,<27  # zincir doğrulama: sunucunun gönderdiği TAM zinciri almak
 websockets>=13.0
 playwright>=1.49.0
 python-multipart>=0.0.9  # FTP dosya yükleme (multipart form)

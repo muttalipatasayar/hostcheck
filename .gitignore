@@ -10,6 +10,12 @@ backend/.env
 *.pem
 *.key
 
+# İSTİSNA: platform kök sertifika depoları. Bunlar herkese açık CA KÖKLERİ
+# (CCADB ve AOSP'den üretiliyor), sır değil — zincir doğrulamanın çalışması
+# için depoda bulunmaları gerekiyor. Yukarıdaki *.pem kuralı özel anahtarları
+# engellemek için var; onu delmemek adına yalnızca bu tek dizini açıyoruz.
+!backend/data/trust_stores/*.pem
+
 # Veritabanı (yerelde üretilir, migration'lardan kurulur)
 backend/*.db
 backend/hostcheck.db
