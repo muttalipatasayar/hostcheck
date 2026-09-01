@@ -39,6 +39,7 @@ görünürdü.
 
 from __future__ import annotations
 
+import concurrent.futures
 import datetime
 import json
 import os
@@ -111,7 +112,7 @@ except Exception as _e:  # pragma: no cover
 
 # net_validation SSRF kapısı. HTTPException fırlatır; motor içinde onu
 # yakalayıp "genel değil" olarak yorumluyoruz (bkz. _resolve_public_or_none).
-from net_validation import resolve_public_ips  # noqa: E402
+from net_validation import resolve_public_ips_async  # noqa: E402
 
 
 # ── Sabitler ──────────────────────────────────────────────────────────────────
@@ -122,6 +123,18 @@ TRUST_STORE_DIR = os.path.join(_HERE, "data", "trust_stores")
 STORE_NAMES = ("apple", "chrome", "microsoft", "mozilla", "android", "android7")
 
 HANDSHAKE_TIMEOUT = 10.0
+
+# TLS el sıkışmaları için AYRILMIŞ havuz.
+#
+# `run_in_executor(None, ...)` KULLANILMAZ: varsayılan havuzu
+# `resolve_public_ips_async`, whois ve dnspython paylaşıyor. Bir el sıkışma
+# 10 sn'ye kadar bir thread tutar; havuz dolduğunda ALÂKASIZ araçlar
+# "Alan adı çözümlemesi zaman aşımına uğradı" vermeye başlar.
+#
+# Hem `/api/ssl/chain-check` hem Hızlı Kontrol'ün SSL teşhisi buradan geçer;
+# ikisinin toplam eşzamanlılığı bu havuzla sınırlıdır.
+CHAIN_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="ssl-chain")
 
 # Sunucunun gönderdiği zinciri bu sayıda sertifikada kırpıyoruz. İmza
 # doğrulaması çiftler üzerinde O(n²); OpenSSL'in 100 KB'lik max_cert_list
@@ -556,10 +569,27 @@ def handshake_error_message(e: BaseException, host: str, port: int) -> str:
 #   • YANIT GÖVDESİ ASLA YANKILANMAZ — çıktıya yalnızca X.509 olarak
 #     ayrıştırılabilmiş baytlar girer
 
-def _resolve_public_or_none(host: str) -> Optional[list[str]]:
-    """Host genel bir adrese çözümleniyorsa IP listesi, değilse None."""
+async def _resolve_public_or_none(host: str) -> Optional[list[str]]:
+    """Host genel bir adrese çözümleniyorsa IP listesi, değilse None.
+
+    GÜVENLİK — event loop'u bloklamamak ZORUNDA.
+
+    Bu fonksiyon `_fetch_aia_once` içinden, yani event loop üzerinde çağrılıyor.
+    Eskiden senkron `resolve_public_ips` çağırıyordu ve o da zaman aşımı
+    OLMAYAN `socket.getaddrinfo`'ya iniyordu.
+
+    Buradaki host SERTİFİKANIN AIA alanından geliyor: hedef alan adının sahibi
+    onu belirler, YANİ NAMESERVER'I DA SALDIRGANIN. Yanıt vermeyen bir
+    nameserver ile tek bir istek, tek worker'lı panelin event loop'unu
+    işletim sisteminin resolver zaman aşımı boyunca (resolv.conf'a göre
+    onlarca saniye) tamamen dondurabiliyordu — kimlik doğrulaması olmayan bir
+    uçtan tam servis kesintisi.
+
+    `resolve_public_ips_async` çözümlemeyi executor'a alır ve 5 sn'lik
+    `asyncio.wait_for` ile sınırlar.
+    """
     try:
-        ips = resolve_public_ips(host, 80)
+        ips = await resolve_public_ips_async(host, 80)
     except Exception:  # noqa: BLE001 — HTTPException dahil her şey "genel değil"
         return None
     return ips or None
@@ -744,7 +774,7 @@ async def _fetch_aia_once(
     if not host:
         return [], Finding(label="AIA adresi geçersiz", status="warning", detail="Host bulunamadı.")
 
-    ips = _resolve_public_or_none(host)
+    ips = await _resolve_public_or_none(host)
     if not ips:
         # Bu tam olarak SSRF denemesinin görüneceği yer. Yanıt gövdesi bir yana,
         # hedefe BAĞLANMIYORUZ bile.

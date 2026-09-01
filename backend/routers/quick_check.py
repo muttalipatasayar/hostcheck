@@ -628,8 +628,13 @@ async def _ssl_diagnose(domain: str, target_ip: str, latency: float):
         return None
     try:
         loop = asyncio.get_event_loop()
+        # PAYLAŞILAN varsayılan havuz DEĞİL: teşhis tam bir TLS el sıkışması
+        # yapıyor ve 10 sn'ye kadar thread tutuyor. Varsayılan havuzu whois ve
+        # dnspython ile paylaştığı için doyduğunda ALÂKASIZ kontroller zaman
+        # aşımına düşerdi.
         value, detail = await asyncio.wait_for(
-            loop.run_in_executor(None, _ssl_failure_reason, domain, target_ip),
+            loop.run_in_executor(
+                ssl_chain_core.CHAIN_EXECUTOR, _ssl_failure_reason, domain, target_ip),
             timeout=12.0,
         )
         return CheckItem(

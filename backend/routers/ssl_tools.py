@@ -505,8 +505,11 @@ async def generate_csr(request: Request, payload: CSRGenerateRequest):
 # kontrolü el sıkışma + AIA + 12 doğrulama boyunca bir thread'i tutuyor;
 # havuz dolduğunda ALAKASIZ araçlar "Alan adı çözümlemesi zaman aşımına
 # uğradı" vermeye başlar.
-_CHAIN_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
-    max_workers=2, thread_name_prefix="ssl-chain")
+# Havuz artık ssl_chain_core'da: Hızlı Kontrol'ün SSL teşhisi de aynı
+# bloklayan işi yapıyor ve ikisinin TOPLAM eşzamanlılığı sınırlı olmalı.
+# Ayrı havuzlar tutsaydık her biri kendi başına "sınırlı" olur ama toplamda
+# 4 thread'e çıkardık.
+_CHAIN_EXECUTOR = ssl_chain_core.CHAIN_EXECUTOR
 
 # Semafor, rate limit'in yapamadığını yapar: slowapi IP başına sayar ve
 # süreç içi deposunun genel bir tavanı yoktur. Farklı IP'lerden gelen eş

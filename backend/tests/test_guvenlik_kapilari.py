@@ -145,3 +145,83 @@ def test_rate_limit_calisiyor(istemci):
         limiter.enabled = False
     assert 429 in kodlar, "10/dakika sınırı tetiklenmedi"
     assert kodlar.count(400) >= 8, "sınırdan önceki istekler normal işlenmeli"
+
+
+# ── DoS: bloklayan iş event loop'ta olmamalı ─────────────────────────────────
+
+def test_aia_cozumlemesi_event_loopu_bloklamaz(monkeypatch):
+    """AIA hostunun NAMESERVER'I SALDIRGANIN.
+
+    Sertifikanın AIA alanını hedef alan adının sahibi belirler; dolayısıyla o
+    hostun nameserver'ını da o kontrol eder. Yanıt vermeyen bir nameserver ile
+    TEK bir istek, tek worker'lı panelin event loop'unu işletim sisteminin
+    resolver zaman aşımı boyunca dondurabiliyordu — auth'suz bir uçtan tam
+    servis kesintisi. Çözümleme executor'a alındı.
+    """
+    import asyncio
+    import socket
+    import time
+
+    import net_validation
+    import ssl_chain_core as m
+
+    def yavas_cozumleme(*a, **k):
+        time.sleep(2.0)
+        raise socket.gaierror("timeout")
+
+    monkeypatch.setattr(net_validation.socket, "getaddrinfo", yavas_cozumleme)
+
+    async def kalp_atisi(bayrak):
+        en_uzun, son = 0.0, time.monotonic()
+        while not bayrak.is_set():
+            await asyncio.sleep(0.05)
+            simdi = time.monotonic()
+            en_uzun = max(en_uzun, simdi - son)
+            son = simdi
+        return en_uzun
+
+    async def senaryo():
+        bayrak = asyncio.Event()
+        kalp = asyncio.create_task(kalp_atisi(bayrak))
+        await asyncio.sleep(0.2)
+        sonuc = await m._resolve_public_or_none("saldirgan-nameserver.example")
+        bayrak.set()
+        return sonuc, await kalp
+
+    sonuc, en_uzun_donma = asyncio.run(senaryo())
+    assert sonuc is None, "çözümlenemeyen host reddedilmeli"
+    assert en_uzun_donma < 0.5, (
+        f"event loop {en_uzun_donma:.2f} sn dondu — bloklayan çağrı geri gelmiş"
+    )
+
+
+def test_tls_isleri_paylasilan_havuzda_degil():
+    """El sıkışmalar AYRILMIŞ havuzda olmalı.
+
+    Varsayılan havuzu resolve_public_ips_async, whois ve dnspython paylaşıyor.
+    10 sn'ye kadar thread tutan bir el sıkışma oraya girerse, havuz dolduğunda
+    ALÂKASIZ araçlar zaman aşımına düşer.
+    """
+    import ssl_chain_core
+    from routers import ssl_tools
+
+    assert ssl_tools._CHAIN_EXECUTOR is ssl_chain_core.CHAIN_EXECUTOR
+    assert ssl_chain_core.CHAIN_EXECUTOR._max_workers == 2
+
+    # quick_check teşhisi de aynı havuzu kullanmalı
+    kaynak = open("routers/quick_check.py", encoding="utf-8").read()
+    assert "ssl_chain_core.CHAIN_EXECUTOR, _ssl_failure_reason" in kaynak, \
+        "do_ssl teşhisi hâlâ varsayılan havuzda"
+
+
+def test_aia_url_crlf_enjeksiyonu():
+    """AIA URL'i sertifikadan gelir; CRLF ile başlık enjekte edilememeli."""
+    import urllib.parse
+
+    for kotu in ["http://evil.com\r\nX-Injected: 1/ca.crt",
+                 "http://evil.com/ca.crt\r\nX-Injected: 1",
+                 "http://evil.com/ca.crt?x=1\r\nHost: internal"]:
+        p = urllib.parse.urlsplit(kotu)
+        host = p.hostname or ""
+        yol = (p.path or "/") + (("?" + p.query) if p.query else "")
+        assert "\r" not in host + yol and "\n" not in host + yol
