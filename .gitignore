@@ -36,3 +36,13 @@ Thumbs.db
 
 # Test önbelleği
 .pytest_cache/
+
+# Kuruluma özgü site ayarları (gerçek alan adı, yönetici adresi, sunucu yolları).
+# Depo herkese açık olabilir; bu dosya ASLA commit'lenmez.
+deploy/yerel.env
+
+# Güvenlik değerlendirme raporları — DEPOYA GİRMEZ.
+# Depo herkese açık. Bu dosyalar canlı sistemdeki düzeltilmemiş bulguları,
+# saldırı tekniklerini ve altyapı ayrıntılarını içeriyor; deploy/ altındaki
+# gerçek alan adıyla birleşince çalışan bir panele saldırı yol haritası olur.
+sast/

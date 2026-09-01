@@ -1,0 +1,13 @@
+# Depoda her şey LF. Windows'ta çalışanlar checkout'ta CRLF alır, commit'te
+# LF'e döner. Bu dosya olmadan /opt'a CRLF ile kopyalanan dosyalar kaynakla
+# karşılaştırıldığında TÜM SATIRLAR değişmiş görünüyordu ve gerçek fark
+# gizleniyordu.
+* text=auto eol=lf
+
+*.bat        text eol=crlf
+*.png        binary
+*.jpg        binary
+*.svg        text
+*.pem        text eol=lf
+*.ico        binary
+package-lock.json  -diff linguist-generated
