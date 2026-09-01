@@ -139,7 +139,12 @@ for imza in "object-src 'none'" "base-uri 'self'" "form-action 'self'" \
             'X-XSS-Protection"] = "0"' "no-store, private"; do
   grep -qF "$imza" "$DST/main.py" || hata "main.py sertleştirmesi kayıp: $imza — $YEDEK/backend.tgz'den geri alın"
 done
-grep -qF "unsafe-eval" "$DST/main.py" && hata "main.py'de 'unsafe-eval' geri gelmiş — dağıtımı durdurdum"
+# YORUMLARI AYIKLA. Sertleştirmenin kendisi main.py'de bir yorum satırıyla
+# belgeleniyor ("'unsafe-eval' KALDIRILDI: …") ve düz `grep -qF` onu da
+# yakalayıp dağıtımı YANLIŞ YERE durduruyordu. CSP temiz olduğu hâlde
+# kapı kapanıyordu. Artık yalnızca kod satırlarına bakılıyor.
+grep -v '^[[:space:]]*#' "$DST/main.py" | grep -qF "unsafe-eval" \
+  && hata "main.py'de 'unsafe-eval' geri gelmiş — dağıtımı durdurdum"
 tamam "CSP ve güvenlik başlığı sertleştirmeleri yerinde"
 
 # ── 4. Bağımlılık ────────────────────────────────────────────────────────────
