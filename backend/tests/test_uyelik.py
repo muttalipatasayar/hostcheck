@@ -8,7 +8,7 @@ import pytest
 
 from conftest import giris_yap, son_mail_metni, son_token, uye_olustur
 
-UYE = "ayse.yilmaz@natro.com"
+UYE = "test.uyesi@natro.com"
 UYE_TB = "jan@team.blue"
 ADMIN = "yonetici@natro.com"
 PAROLA = "Guclu-Parola-2026"
