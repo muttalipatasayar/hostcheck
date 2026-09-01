@@ -3,3 +3,4 @@
 #   venv/bin/python -m pytest
 -r requirements.txt
 pytest>=8.0
+pip-audit>=2.7        # bağımlılık zafiyet taraması: python -m pip_audit
