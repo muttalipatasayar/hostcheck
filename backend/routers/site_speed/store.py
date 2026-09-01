@@ -16,6 +16,16 @@ from models import SiteHiziOlcum
 # depolarda görülen sorunun kalıcı hâli olurdu).
 _MAX_KAYIT = 50
 
+# TOPLAM satır tavanı.
+#
+# GÜVENLİK: `_buda` yalnızca (domain, strategy) grubunun içini buduyordu.
+# `/api/site-speed/run` kimlik doğrulaması İSTEMİYOR; saldırgan her istekte
+# FARKLI bir alan adı vererek her kaydı kendi grubunda tek başına bırakır ve
+# grup içi budamayı tamamen atlar. 5/dakika sınırıyla bile günde ~7.200,
+# yılda ~2,6 milyon satır demek — SQLite dosyası sınırsız büyür ve diski
+# doldurur. Toplam tavan bu kaçağı kapatır.
+_MAX_TOPLAM_KAYIT = 5000
+
 
 def kaydet(db: Session, domain: str, strategy: str, sonuc: dict,
            motor: str = "yerel") -> SiteHiziOlcum:
@@ -52,11 +62,22 @@ def kaydet(db: Session, domain: str, strategy: str, sonuc: dict,
 
 
 def _buda(db: Session, domain: str, strategy: str) -> None:
-    fazla = (db.query(SiteHiziOlcum.id)
-               .filter(SiteHiziOlcum.domain == domain,
-                       SiteHiziOlcum.strategy == strategy)
-               .order_by(desc(SiteHiziOlcum.created_at), desc(SiteHiziOlcum.id))
-               .offset(_MAX_KAYIT).all())
+    """İki kademeli budama: grup içi, sonra toplam."""
+    _sil(db, (db.query(SiteHiziOlcum.id)
+                .filter(SiteHiziOlcum.domain == domain,
+                        SiteHiziOlcum.strategy == strategy)
+                .order_by(desc(SiteHiziOlcum.created_at), desc(SiteHiziOlcum.id))
+                .offset(_MAX_KAYIT).all()))
+
+    # Grup içi budama tek başına YETMEZ: farklı alan adları farklı gruplara
+    # düştüğü için hiçbiri eşiği aşmaz ve tablo sınırsız büyür. Tavanı aşan
+    # en ESKİ kayıtlar silinir; böylece yeni ölçümler her zaman saklanır.
+    _sil(db, (db.query(SiteHiziOlcum.id)
+                .order_by(desc(SiteHiziOlcum.created_at), desc(SiteHiziOlcum.id))
+                .offset(_MAX_TOPLAM_KAYIT).all()))
+
+
+def _sil(db: Session, fazla: list) -> None:
     if not fazla:
         return
     db.query(SiteHiziOlcum).filter(
