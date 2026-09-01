@@ -196,13 +196,32 @@ def _iskelet(baslik: str, govde_html: str) -> str:
 </body></html>"""
 
 
-async def dogrulama_maili(alici: str, ad_soyad: str, ham_token: str) -> None:
+async def dogrulama_maili(alici: str, ad_soyad: str, ham_token: str,
+                          istek_zamani: str = "", istek_ip: str = "") -> None:
+    """Hesap doğrulama bağlantısı.
+
+    Mailde kaydın NE ZAMAN ve HANGİ IP'den başlatıldığı yazıyor. Sebebi:
+    e-posta doğrulaması olan her sistemde artakalan bir risk var — üçüncü biri
+    sizin adresinizle kayıt başlatabilir ve doğrulama bağlantısı size gelir;
+    tıklarsanız hesap ONUN belirlediği parolayla açılır. Buna karşı tek
+    gerçek savunma alıcının "bunu ben başlatmadım" diyebilmesidir, o da ancak
+    zaman ve kaynak bilgisi verilirse mümkün olur. Aynı anda yalnızca EN SON
+    bağlantı geçerlidir (`_token_olustur` eskileri siler).
+    """
     link = f"{panel_adresi()}/api/uyelik/dogrula?token={ham_token}"
+    kaynak = ""
+    if istek_zamani:
+        kaynak = f"\nKayıt isteği: {istek_zamani}"
+        if istek_ip and istek_ip != "-":
+            kaynak += f" · {istek_ip} adresinden"
     metin = (
         f"Merhaba {ad_soyad},\n\n"
         "HostCheck Destek Paneli üyeliğinizi tamamlamak için aşağıdaki bağlantıya tıklayın:\n\n"
         f"{link}\n\n"
-        "Bağlantı 24 saat geçerlidir ve yalnızca bir kez kullanılabilir.\n"
+        f"{kaynak}\n\n"
+        "Bağlantı 24 saat geçerlidir. Bu kaydı SİZ başlatmadıysanız bağlantıya "
+        "tıklamayın — tıklarsanız hesap, kaydı başlatan kişinin belirlediği "
+        "parolayla açılır.\n"
         f"{_ALT}"
     )
     ad_g = _kacis(ad_soyad)
@@ -216,7 +235,11 @@ async def dogrulama_maili(alici: str, ad_soyad: str, ham_token: str) -> None:
              Düğme çalışmazsa bu adresi tarayıcınıza yapıştırın:<br>
              <span style="word-break:break-all;color:#2563eb;">{link}</span></p>
            <p style="margin:16px 0 0;font-size:13px;color:#6b7388;">
-             Bağlantı <strong>24 saat</strong> geçerlidir ve yalnızca bir kez kullanılabilir.</p>""",
+             Bağlantı <strong>24 saat</strong> geçerlidir.{_kacis(kaynak)}</p>
+           <p style="margin:12px 0 0;font-size:13px;color:#b45309;background:#fffbeb;
+                     border-left:3px solid #f59e0b;padding:10px 12px;border-radius:4px;">
+             Bu kaydı <strong>siz başlatmadıysanız</strong> bağlantıya tıklamayın —
+             tıklarsanız hesap, kaydı başlatan kişinin belirlediği parolayla açılır.</p>""",
     )
     await mail_gonder(alici, ad_soyad, "HostCheck — E-posta adresinizi doğrulayın", metin, html)
 

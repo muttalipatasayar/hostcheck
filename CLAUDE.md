@@ -98,7 +98,7 @@ proxy remains the boundary for those. Do not expose the backend directly.
 - Sessions are **server-side rows**, not JWTs, so suspending an account kills its
   open sessions on the next request.
 - Cookies carry the **`__Host-` prefix in production**. Sibling vhosts on this box
-  share `aipromt.com.tr`; without the prefix one of them could shadow the session
+  share `ornek.com`; without the prefix one of them could shadow the session
   cookie and pin a victim to the attacker's account.
 - CSRF is a synchronizer token: the `X-CSRF-Token` header is compared against
   `oturumlar.csrf` **in the database**, never against the cookie. The check lives

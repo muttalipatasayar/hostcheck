@@ -14,7 +14,7 @@ Doğrulama ve parola sıfırlama e-postaları buradan gider. Ücretsiz katman
 
 1. https://www.brevo.com üzerinden ücretsiz hesap açın.
 2. **Senders, Domains & Dedicated IPs → Domains → Add a domain** ile
-   **kendi kontrol ettiğiniz** bir alan adını ekleyin (örn. `aipromt.com.tr`)
+   **kendi kontrol ettiğiniz** bir alan adını ekleyin (örn. `ornek.com`)
    ve Brevo'nun verdiği **DKIM + SPF (Brevo code)** kayıtlarını DNS'e girin.
 
    > **`natro.com` KULLANMAYIN.** O alan adının DNS'i sizde değil; SPF/DKIM
@@ -31,9 +31,9 @@ SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USER=hesabinizin@giris-adresi     # Brevo'nun "Login" olarak gösterdiği değer
 SMTP_PASS=xsmtpsib-…                   # üretilen SMTP key (hesap parolası DEĞİL)
-MAIL_FROM=hostcheck@aipromt.com.tr     # Brevo'da DOĞRULANMIŞ gönderici
+MAIL_FROM=hostcheck@ornek.com     # Brevo'da DOĞRULANMIŞ gönderici
 MAIL_FROM_NAME=HostCheck Destek Paneli
-PUBLIC_BASE_URL=https://dns.aipromt.com.tr
+PUBLIC_BASE_URL=https://panel.ornek.com
 ```
 
 Dosya `hostcheck` kullanıcısına ait ve `600` izinli olmalı:
@@ -44,7 +44,24 @@ sudo chmod 600 /opt/hostcheck/backend/.env
 
 ---
 
-## 2. Dağıtım
+## 2. Kuruluma özgü ayarlar (bir kerelik)
+
+Gerçek alan adı, yönetici adresi ve sunucu yolları **depoda tutulmaz** —
+`deploy/yerel.env` `.gitignore`'dadır. Depo herkese açık olsa bile altyapı
+bilgisi dışarı sızmaz.
+
+```bash
+cd /path/to/hostcheck-src
+cp deploy/yerel.env.ornek deploy/yerel.env
+chmod 600 deploy/yerel.env
+$EDITOR deploy/yerel.env      # PANEL_URL, NGINX_SITE, WEB_KOKU, ADMIN_EPOSTALARI…
+```
+
+`ADMIN_EPOSTALARI` **boş bırakılamaz**: kodda varsayılanı yoktur (kaynak koda
+gömülü bir yönetici adresi, depo açıldığında kimin hedefleneceğini söyler),
+dolayısıyla boşsa hiç yönetici olmaz ve dağıtım betiği durur.
+
+## 3. Dağıtım
 
 ```bash
 sudo bash /path/to/hostcheck-src/deploy/uyelik-dagit.sh
@@ -73,14 +90,14 @@ Yedek yolu dağıtım betiğinin sonunda yazılır. Geri alma, yedekten sonra a�
 
 ---
 
-## 3. İlk yönetici hesabı
+## 4. İlk yönetici hesabı
 
 Yönetici, veritabanına elle eklenmez — normal kayıt akışından geçer ve
 `.env`'deki `ADMIN_EPOSTALARI` listesinde olduğu için doğrulandığı anda
 yönetici olur.
 
-1. https://dns.aipromt.com.tr — kenar çubuğunun altındaki **Üye Ol**
-2. `yonetici@sirketiniz.com`, ad soyad, en az 10 karakterli parola
+1. https://panel.ornek.com — kenar çubuğunun altındaki **Üye Ol**
+2. `yerel.env`'de yazdığınız yönetici adresi, ad soyad, en az 10 karakterli parola
 3. Gelen doğrulama e-postasındaki bağlantıya tıklayın
 4. Giriş yapın → kenar çubuğunda **Yönetim** sekmesi belirir
 
@@ -89,7 +106,7 @@ değiştirmek için `.env`'i düzenleyip servisi yeniden başlatmak gerekir.
 
 ---
 
-## 4. Günlük işletme
+## 5. Günlük işletme
 
 | İş | Nerede |
 |---|---|
@@ -105,7 +122,7 @@ bilgilendirme maili gider.
 
 ---
 
-## 5. Sorun giderme
+## 6. Sorun giderme
 
 **Doğrulama e-postası gelmiyor**
 ```bash
@@ -139,7 +156,7 @@ Migration hatasıysa geri alma betiğini çalıştırın.
 
 ---
 
-## 6. Bilinmesi gerekenler
+## 7. Bilinmesi gerekenler
 
 - **Üyelikten çıkış, Basic Auth'u temizlemez.** SSH/RDP/FTP hâlâ ayrı bir
   katman; panelden çıkış yapan birinin tarayıcısında o kimlik önbellekte

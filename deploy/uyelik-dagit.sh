@@ -13,11 +13,25 @@
 # ══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-SRC=${SRC:-/path/to/hostcheck-src}
+# Kuruluma özgü değerler (alan adı, yönetici adresi, yollar) depoda DEĞİL:
+# deploy/yerel.env .gitignore'da. Depo herkese açık olsa bile altyapı bilgisi
+# dışarı sızmaz. Şablon: deploy/yerel.env.ornek
+BETIK_DIZINI=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+YEREL="$BETIK_DIZINI/yerel.env"
+if [ ! -f "$YEREL" ]; then
+  printf '\033[0;31m✗ %s yok.\033[0m\n  Oluşturun:  cp %s/yerel.env.ornek %s\n' \
+    "$YEREL" "$BETIK_DIZINI" "$YEREL" >&2
+  exit 1
+fi
+# shellcheck disable=SC1090
+. "$YEREL"
+
+SRC=${SRC:-$(dirname "$BETIK_DIZINI")}
 DST=/opt/hostcheck/backend
-WEB=/var/www/dns.aipromt.com.tr
+WEB=${WEB_KOKU:?yerel.env içinde WEB_KOKU tanımlı değil}
 SVC=hostcheck-backend
-NGINX_SITE=/etc/nginx/sites-available/dns.aipromt.com.tr
+NGINX_SITE=${NGINX_SITE:?yerel.env içinde NGINX_SITE tanımlı değil}
+PANEL_URL=${PANEL_URL:?yerel.env içinde PANEL_URL tanımlı değil}
 YEDEK=/opt/hostcheck/uyelik-yedek-$(date +%Y%m%d-%H%M%S)
 PY=$DST/venv/bin/python
 # SMTP yapılandırılmamışsa hiç kimse üye olamaz. Bilerek atlamak için: SMTP_ZORUNLU=0
@@ -52,11 +66,14 @@ ekle_yoksa() {   # anahtar  varsayılan
     uyari "$1 eklendi (varsayılan: '${2:-boş}')"
   fi
 }
-ekle_yoksa IZINLI_MAIL_ALANLARI "natro.com,team.blue"
-ekle_yoksa ADMIN_EPOSTALARI     "yonetici@sirketiniz.com"
+# Yönetici adresi ZORUNLU. Kodda varsayılanı yok (fail-closed): boş kalırsa
+# hiç yönetici olmaz ve panelin yönetim tarafı kimseye açılmaz.
+[ -n "${ADMIN_EPOSTALARI:-}" ] || hata "yerel.env içinde ADMIN_EPOSTALARI boş — yönetici hesabı açılamaz"
+ekle_yoksa IZINLI_MAIL_ALANLARI "${IZINLI_MAIL_ALANLARI:-}"
+ekle_yoksa ADMIN_EPOSTALARI     "$ADMIN_EPOSTALARI"
 ekle_yoksa OTURUM_SURESI_SAAT   "12"
 ekle_yoksa OTURUM_UZUN_SURE_GUN "30"
-ekle_yoksa PUBLIC_BASE_URL      "https://dns.aipromt.com.tr"
+ekle_yoksa PUBLIC_BASE_URL      "$PANEL_URL"
 ekle_yoksa SMTP_HOST            "smtp-relay.brevo.com"
 ekle_yoksa SMTP_PORT            "587"
 ekle_yoksa SMTP_USER            ""
@@ -220,7 +237,7 @@ tamam "nginx yeniden yüklendi"
 
 # ── 10. Doğrulama ────────────────────────────────────────────────────────────
 bilgi "Canlı doğrulama"
-D=https://dns.aipromt.com.tr
+D=$PANEL_URL
 k() { curl -s -o /dev/null -w '%{http_code}' -m 10 "$@"; }
 say() { printf '  %-46s %s\n' "$1" "$2"; }
 say "GET /api/health"                   "$(k $D/api/health)  (200)"
@@ -239,11 +256,11 @@ curl -sI -m 10 $D/api/uyelik/ayarlar | grep -iE 'cache-control|vary' | sed 's/^/
 bilgi "Bitti"
 cat <<SON
   Yedek     : $YEDEK
-  Geri alma : sudo bash $SRC/deploy/uyelik-geri-al.sh $YEDEK
+  Geri alma : sudo bash $BETIK_DIZINI/uyelik-geri-al.sh $YEDEK
 
   SIRADAKİ ADIM — yönetici hesabını açın:
     1) $D adresine gidin, kenar çubuğunun altındaki "Üye Ol"a basın
-    2) yonetici@sirketiniz.com ile kaydolun
+    2) $ADMIN_EPOSTALARI adresiyle kaydolun
     3) Gelen doğrulama e-postasındaki bağlantıya tıklayın
     4) Giriş yapın — rol otomatik "Yönetici" olur (.env: ADMIN_EPOSTALARI)
 

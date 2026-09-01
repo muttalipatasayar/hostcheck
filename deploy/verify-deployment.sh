@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # HostCheck — yayın sonrası güvenlik doğrulaması.
-# Kullanım:  bash verify-deployment.sh dns.aipromt.com.tr
+# Kullanım:  bash verify-deployment.sh panel.ornek.com
 #
 # Doğrular:
 #   • HTTPS ayakta ve HTTP→HTTPS yönleniyor
@@ -13,7 +13,7 @@
 set -u
 HOST="${1:-}"
 if [ -z "$HOST" ]; then
-  echo "Kullanım: bash verify-deployment.sh dns.aipromt.com.tr"
+  echo "Kullanım: bash verify-deployment.sh panel.ornek.com"
   exit 2
 fi
 

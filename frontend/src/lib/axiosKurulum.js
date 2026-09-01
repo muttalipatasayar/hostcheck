@@ -60,7 +60,18 @@ export function axiosKur() {
       // Basic Auth penceresini iptal ettiğinde panelden atılırdı.
       const yol = hata?.config?.url || ''
       const uyelikUcu = /^\/api\/(uyelik|yonetim|hazir-yanitlar)/.test(yol)
-      if (hata?.response?.status === 401 && uyelikUcu && oturumDustuCagrisi) {
+      const durum = hata?.response?.status
+
+      // 403 + CSRF jetonu yok = oturum çerezi duruyor ama eşi (`hc_csrf`)
+      // kaybolmuş. İkisi birlikte yazılıyor, ama bir eklenti ya da gizlilik
+      // ayarı HttpOnly OLMAYAN çerezi tek başına silebiliyor. Bu durumda
+      // kullanıcı "giriş yapmış" görünür ama HİÇBİR yazma işlemi çalışmaz ve
+      // hata mesajı da bunu açıklamaz — kalıcı, sebebi görünmeyen bir tuzak.
+      // Oturumu düşürüp yeniden giriş istemek tek çıkış yolu.
+      if (durum === 403 && uyelikUcu && !csrfJetonu() && oturumDustuCagrisi) {
+        oturumDustuCagrisi()
+      }
+      if (durum === 401 && uyelikUcu && oturumDustuCagrisi) {
         oturumDustuCagrisi()
       }
       return Promise.reject(hata)

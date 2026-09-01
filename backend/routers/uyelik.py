@@ -198,7 +198,13 @@ async def kayit(request: Request, payload: KayitIstek, db: Session = Depends(get
     ham = _token_olustur(db, kullanici, "dogrulama",
                          timedelta(hours=ac.DOGRULAMA_SAAT))
     ac.denetim_yaz(db, "kayit", request=request, kullanici=kullanici)
-    await mailer.dogrulama_maili(kullanici.email, kullanici.ad_soyad, ham)
+    # Zaman ve kaynak IP maile yazılıyor: alıcı, kaydı kendisinin başlatıp
+    # başlatmadığını ancak böyle ayırt edebilir (bkz. mailer.dogrulama_maili).
+    await mailer.dogrulama_maili(
+        kullanici.email, kullanici.ad_soyad, ham,
+        istek_zamani=ac.simdi().strftime("%d.%m.%Y %H:%M UTC"),
+        istek_ip=ac.istemci_ip(request),
+    )
     return {"mesaj": _GENEL_KAYIT}
 
 
@@ -267,7 +273,11 @@ async def dogrulama_tekrar(request: Request, payload: EpostaIstek,
     if kullanici is not None and not kullanici.dogrulandi and kullanici.aktif:
         ham = _token_olustur(db, kullanici, "dogrulama",
                              timedelta(hours=ac.DOGRULAMA_SAAT))
-        await mailer.dogrulama_maili(kullanici.email, kullanici.ad_soyad, ham)
+        await mailer.dogrulama_maili(
+            kullanici.email, kullanici.ad_soyad, ham,
+            istek_zamani=ac.simdi().strftime("%d.%m.%Y %H:%M UTC"),
+            istek_ip=ac.istemci_ip(request),
+        )
     return {"mesaj": _GENEL_KAYIT}
 
 
@@ -292,14 +302,26 @@ def giris(request: Request, response: Response, payload: GirisIstek,
     dogru = ac.parola_dogrula(payload.parola,
                               kullanici.sifre_hash if kullanici else None)
 
-    if kilitli:
-        kalan = int((ac.naif(kullanici.kilit_bitis) - ac.simdi()).total_seconds() // 60) + 1
+    # KİLİT, DOĞRU PAROLAYI ENGELLEMEZ — bilerek.
+    #
+    # İki sorunu birden kapatıyor:
+    #
+    # 1. Hedefli servis dışı bırakma. Yönetici adresi kamuya açık (depo
+    #    GitHub'da, `.env.example`'da örnek olarak geçiyor, kurumsal adres zaten
+    #    tahmin edilebilir). Kilit doğru parolayı da bloklasaydı, saldırgan 15
+    #    dakikada bir 5 yanlış parola göndererek yöneticiyi paneline SÜREKLİ
+    #    sokmayabilirdi.
+    # 2. Hesap sayımı. Kilitli hesap 429, olmayan hesap 401 dönseydi, kilit
+    #    bir "bu adres kayıtlı mı" kâhini olurdu.
+    #
+    # Kaba kuvvet freni aynen duruyor: kilitliyken YANLIŞ parola yine
+    # reddediliyor ve sayaç artmıyor, yani saldırganın hızı 15 dakikada 5
+    # denemede sabit kalıyor. Doğru parolayı bilen zaten kilidin durduramayacağı
+    # taraftır.
+    if kilitli and not dogru:
         ac.denetim_yaz(db, "giris_kilitli", request=request, kullanici=kullanici)
-        raise HTTPException(
-            status_code=429,
-            detail=(f"Çok fazla hatalı deneme yapıldı. Hesabınız {kalan} dakika "
-                    "boyunca girişe kapalı."),
-        )
+        # Yanıt, sıradan hatalı parolayla BİREBİR aynı.
+        raise HTTPException(status_code=401, detail="E-posta veya parola hatalı.")
 
     if kullanici is None or not dogru:
         if kullanici is not None:

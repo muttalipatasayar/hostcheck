@@ -25,7 +25,7 @@ os.environ.setdefault("HOSTCHECK_DB_URL", f"sqlite:///{_TEST_DB}")
 # ona saygı duyulur.
 os.environ.setdefault("ENV", "development")          # SMTP yok → mail dosyaya
 os.environ.setdefault("IZINLI_MAIL_ALANLARI", "natro.com,team.blue")
-os.environ.setdefault("ADMIN_EPOSTALARI", "yonetici@sirketiniz.com")
+os.environ.setdefault("ADMIN_EPOSTALARI", "yonetici@natro.com")
 os.environ.setdefault("CORS_ORIGINS", "http://testserver,http://localhost:5173")
 
 # Geliştirme modunda mailler dosyaya yazılıyor; kaynak ağacı kirlenmesin.

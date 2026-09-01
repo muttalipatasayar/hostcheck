@@ -1,6 +1,6 @@
 # HostCheck — Subdomain Yayına Alma Rehberi (Linux VPS)
 
-Bu rehber HostCheck'i `dns.aipromt.com.tr` gibi bir subdomain'de,
+Bu rehber HostCheck'i `panel.ornek.com` gibi bir subdomain'de,
 **HTTPS** ve **iki katmanlı erişim** ile yayına almanız içindir.
 
 ## Güvenlik modeli (önce bunu okuyun)
@@ -27,7 +27,7 @@ uygular; tarayıcı bir kez kimlik penceresi açar, sonra kimliği aynı origin 
 ## Ön koşullar
 
 - Ubuntu/Debian bir VPS + root (veya sudo) SSH erişimi
-- `dns.aipromt.com.tr` için DNS **A kaydı** sunucunuzun IP'sine yönlenmiş olmalı
+- `panel.ornek.com` için DNS **A kaydı** sunucunuzun IP'sine yönlenmiş olmalı
   (DNS Toolbox aracının kendisiyle yayıldığını doğrulayabilirsiniz)
 - Açık portlar: **80** ve **443** (SSH için 22)
 
@@ -124,7 +124,7 @@ sudo htpasswd -c /etc/nginx/hostcheck.htpasswd admin      # parolayı sorar
 
 ```bash
 sudo cp /opt/hostcheck/deploy/nginx-hostcheck.conf /etc/nginx/sites-available/hostcheck
-sudo nano /etc/nginx/sites-available/hostcheck        # dns.aipromt.com.tr yerlerini değiştirin
+sudo nano /etc/nginx/sites-available/hostcheck        # panel.ornek.com yerlerini değiştirin
 sudo ln -s /etc/nginx/sites-available/hostcheck /etc/nginx/sites-enabled/
 sudo nginx -t                                         # sözdizimi testi
 sudo systemctl reload nginx
@@ -134,7 +134,7 @@ sudo systemctl reload nginx
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d dns.aipromt.com.tr
+sudo certbot --nginx -d panel.ornek.com
 # certbot ssl_certificate satırlarını otomatik ayarlar ve yenilemeyi kurar.
 sudo systemctl reload nginx
 ```
@@ -151,7 +151,7 @@ sudo ufw enable
 
 ## Doğrulama (yayın sonrası)
 
-1. `https://dns.aipromt.com.tr` açılıyor, kilit (HTTPS) yeşil.
+1. `https://panel.ornek.com` açılıyor, kilit (HTTPS) yeşil.
 2. **Genel araç**: DNS Toolbox → `example.com` → A sorgusu çalışıyor (kimlik sorulmuyor).
 3. **Yönetici araç**: SSH Erişimi → bir sunucuya Bağlan → tarayıcı **kimlik penceresi** açıyor;
    `admin` + parolanızla giriş → terminal geliyor. (İptal ederseniz "Yönetici erişimi gerekli" uyarısı.)

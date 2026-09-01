@@ -12,11 +12,17 @@
 # ══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
+BETIK_DIZINI=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+YEREL="$BETIK_DIZINI/yerel.env"
+[ -f "$YEREL" ] || { echo "✗ $YEREL yok (bkz. yerel.env.ornek)" >&2; exit 1; }
+# shellcheck disable=SC1090
+. "$YEREL"
+
 YEDEK=${1:-}
 DST=/opt/hostcheck/backend
-WEB=/var/www/dns.aipromt.com.tr
+WEB=${WEB_KOKU:?yerel.env içinde WEB_KOKU tanımlı değil}
 SVC=hostcheck-backend
-NGINX_SITE=/etc/nginx/sites-available/dns.aipromt.com.tr
+NGINX_SITE=${NGINX_SITE:?yerel.env içinde NGINX_SITE tanımlı değil}
 
 bilgi() { printf '\n\033[1;34m▸ %s\033[0m\n' "$*"; }
 tamam() { printf '  \033[0;32m✓\033[0m %s\n' "$*"; }
@@ -87,7 +93,7 @@ curl -fsS -m 8 http://127.0.0.1:8000/api/health >/dev/null || hata "sağlık ucu
 tamam "servis ayakta"
 
 bilgi "Doğrulama"
-D=https://dns.aipromt.com.tr
+D=${PANEL_URL:?}
 printf '  GET /api/hazir-yanitlar (anonim, artık 200 olmalı) → %s\n' \
   "$(curl -s -o /dev/null -w '%{http_code}' -m 10 $D/api/hazir-yanitlar)"
 printf '  GET /api/health → %s\n' "$(curl -s -o /dev/null -w '%{http_code}' -m 10 $D/api/health)"

@@ -33,9 +33,10 @@ from models import DenetimKaydi, Kullanici, Oturum
 
 # Çerez adları ÜRETİMDE `__Host-` önekli.
 #
-# Bu makinede `aipromt.com.tr`, `risale.aipromt.com.tr` ve `dns.aipromt.com.tr`
-# aynı kayıtlı alan adını paylaşıyor. Kardeş bir vhost'ta XSS bulan biri
-# `Set-Cookie: hc_oturum=...; Domain=aipromt.com.tr; Path=/` yazabilir;
+# Panel, aynı kayıtlı alan adını paylaşan başka vhost'larla birlikte
+# barındırılıyor (`panel.ornek.com`, `baska.ornek.com`, `ornek.com`). Kardeş
+# bir vhost'ta XSS bulan biri
+# `Set-Cookie: hc_oturum=...; Domain=ornek.com; Path=/` yazabilir;
 # tarayıcı iki çerezi de gönderir ve Starlette'in ayrıştırıcısı SONUNCUYU
 # kazandırır → oturum sabitleme. `__Host-` öneki tarayıcı tarafında
 # "Secure + Path=/ + Domain YOK" şartını zorunlu kılar, yani saldırgan bu
@@ -105,8 +106,16 @@ def izinli_alanlar() -> list[str]:
 
 
 def kurucu_adminler() -> set[str]:
-    """`.env` ile sabitlenen yönetici adresleri — panelden düşürülemezler."""
-    ham = os.getenv("ADMIN_EPOSTALARI", "yonetici@sirketiniz.com")
+    """`.env` ile sabitlenen yönetici adresleri — panelden düşürülemezler.
+
+    VARSAYILAN BOŞ, bilerek. Kaynak koda gömülü bir yönetici adresi iki
+    şekilde zarar verir: depo herkese açık olduğunda kimin hedeflenmesi
+    gerektiğini söyler, ve yapılandırmayı unutan bir kurulumda o adresin
+    sahibi farkında olmadan yönetici olur. Boş liste "henüz yönetici yok"
+    demektir — kilitlenme değil, güvenli taraf; `deploy/uyelik-dagit.sh`
+    boşsa dağıtımı durdurur.
+    """
+    ham = os.getenv("ADMIN_EPOSTALARI", "")
     return {a.strip().lower() for a in ham.split(",") if a.strip()}
 
 
@@ -178,6 +187,15 @@ def alan_kontrol(eposta: str) -> None:
     """
     alan = eposta.rsplit("@", 1)[1]
     izinli = izinli_alanlar()
+    if not izinli:
+        # Yapılandırma eksik. Boş liste "herkes girebilir" DEĞİL "kimse
+        # giremez" anlamına gelmeli; aksi hâlde bozuk bir .env kaydı
+        # internete açardı.
+        raise HTTPException(
+            status_code=503,
+            detail=("Üyelik yapılandırılmamış (IZINLI_MAIL_ALANLARI boş). "
+                    "Sunucu yöneticisine bildirin."),
+        )
     if alan not in izinli:
         liste = " ve ".join("@" + a for a in izinli)
         raise HTTPException(

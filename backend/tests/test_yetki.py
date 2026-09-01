@@ -10,7 +10,7 @@ import pytest
 from conftest import giris_yap, uye_olustur
 
 UYE = "uye@natro.com"
-ADMIN = "yonetici@sirketiniz.com"
+ADMIN = "yonetici@natro.com"
 IKINCI_ADMIN = "ikinci@team.blue"
 
 
@@ -27,7 +27,7 @@ def uye(istemci):
 
 @pytest.fixture
 def admin(istemci):
-    uye_olustur(istemci, ADMIN, ad="Talip Atasayar")
+    uye_olustur(istemci, ADMIN, ad="Yonetici Hesabi")
     return istemci, giris_yap(istemci, ADMIN)
 
 

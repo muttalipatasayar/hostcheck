@@ -10,7 +10,7 @@ from conftest import giris_yap, son_mail_metni, son_token, uye_olustur
 
 UYE = "ayse.yilmaz@natro.com"
 UYE_TB = "jan@team.blue"
-ADMIN = "yonetici@sirketiniz.com"
+ADMIN = "yonetici@natro.com"
 PAROLA = "Guclu-Parola-2026"
 
 
@@ -228,15 +228,68 @@ def test_yabanci_origin_reddedilir(istemci):
 
 # ── Kaba kuvvet ──────────────────────────────────────────────────────────────
 
-def test_hesap_kilidi_devreye_girer(istemci):
+def test_hesap_kilidi_yanlis_parolayi_frenler(istemci):
+    """Kilit kurulur ama kendini ELE VERMEZ.
+
+    Kilitli hesap 429, olmayan hesap 401 dönseydi kilit bir "bu adres kayıtlı
+    mı" kâhinine dönüşürdü. Yanıt her durumda aynı.
+    """
+    from database import SessionLocal
+    from models import Kullanici
+
     uye_olustur(istemci, "kilit@natro.com")
-    kodlar = [istemci.post("/api/uyelik/giris",
-                           json={"email": "kilit@natro.com", "parola": "Yanlis-Parola-1"}
-                           ).status_code for _ in range(6)]
-    assert kodlar[-1] == 429, kodlar
-    # Kilitliyken DOĞRU parola da geçmemeli, aksi hâlde kilit anlamsız olurdu.
-    r = istemci.post("/api/uyelik/giris", json={"email": "kilit@natro.com", "parola": PAROLA})
-    assert r.status_code == 429
+    yanitlar = [istemci.post("/api/uyelik/giris",
+                             json={"email": "kilit@natro.com", "parola": "Yanlis-Parola-1"})
+                for _ in range(6)]
+    assert {r.status_code for r in yanitlar} == {401}, [r.status_code for r in yanitlar]
+    assert {r.text for r in yanitlar} == {yanitlar[0].text}
+
+    db = SessionLocal()
+    try:
+        k = db.query(Kullanici).filter(Kullanici.email == "kilit@natro.com").first()
+        assert k.kilit_bitis is not None, "kilit kurulmadı"
+    finally:
+        db.close()
+
+
+def test_kilit_dogru_parolayi_engellemez(istemci):
+    """Hedefli servis dışı bırakma kapalı.
+
+    Yönetici adresi kamuya açık; kilit doğru parolayı da bloklasaydı saldırgan
+    15 dakikada bir 5 yanlış deneme yollayarak yöneticiyi kalıcı olarak dışarıda
+    tutabilirdi.
+    """
+    from database import SessionLocal
+    from models import Kullanici
+
+    uye_olustur(istemci, "kilit2@natro.com")
+    for _ in range(6):
+        istemci.post("/api/uyelik/giris",
+                     json={"email": "kilit2@natro.com", "parola": "Yanlis-Parola-1"})
+
+    r = istemci.post("/api/uyelik/giris", json={"email": "kilit2@natro.com", "parola": PAROLA})
+    assert r.status_code == 200, r.text
+
+    # Başarılı giriş kilidi ve sayacı temizler.
+    db = SessionLocal()
+    try:
+        k = db.query(Kullanici).filter(Kullanici.email == "kilit2@natro.com").first()
+        assert k.kilit_bitis is None and k.basarisiz_giris == 0
+    finally:
+        db.close()
+
+
+def test_kilitli_hesap_ile_olmayan_hesap_ayirt_edilemez(istemci):
+    uye_olustur(istemci, "kilit3@natro.com")
+    for _ in range(6):
+        istemci.post("/api/uyelik/giris",
+                     json={"email": "kilit3@natro.com", "parola": "Yanlis-Parola-1"})
+    kilitli = istemci.post("/api/uyelik/giris",
+                           json={"email": "kilit3@natro.com", "parola": "Yanlis-Parola-2"})
+    yok = istemci.post("/api/uyelik/giris",
+                       json={"email": "hicyok@natro.com", "parola": "Yanlis-Parola-2"})
+    assert kilitli.status_code == yok.status_code == 401
+    assert kilitli.json() == yok.json()
 
 
 def test_bilinmeyen_adres_ve_yanlis_parola_ayni_yaniti_verir(istemci):
@@ -289,3 +342,27 @@ def test_sifre_unuttum_hesap_varligini_sizdirmaz(istemci):
     yok = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "hicyok@natro.com"})
     assert var.status_code == yok.status_code == 202
     assert var.json() == yok.json()
+
+
+# ── Yapılandırma güvenliği ───────────────────────────────────────────────────
+
+def test_izinli_alan_listesi_bossa_kayit_kapanir(istemci, monkeypatch):
+    """Boş liste "herkes girebilir" DEĞİL "kimse giremez" demeli.
+
+    Bozuk ya da eksik bir `.env` kaydı, aksi hâlde paneli internete açardı.
+    """
+    monkeypatch.setenv("IZINLI_MAIL_ALANLARI", "")
+    r = istemci.post("/api/uyelik/kayit",
+                     json={"ad_soyad": "Yapilandirma Testi",
+                           "email": "kimse@natro.com", "parola": PAROLA})
+    assert r.status_code == 503, r.text
+    assert "yapılandırılmamış" in r.json()["detail"].lower()
+
+
+def test_yonetici_listesi_kodda_gomulu_degil(monkeypatch):
+    """Varsayılan BOŞ: depo herkese açık olduğunda kaynak kod kimin
+    hedefleneceğini söylememeli, yapılandırmayı unutan kurulumda da kimse
+    kendiliğinden yönetici olmamalı."""
+    import auth_core as ac
+    monkeypatch.delenv("ADMIN_EPOSTALARI", raising=False)
+    assert ac.kurucu_adminler() == set()
