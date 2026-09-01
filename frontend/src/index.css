@@ -47,6 +47,27 @@
   }
 }
 
+@layer base {
+  /* Görünür odak halkası — ölçümde `outline-style: none` çıkmıştı, yani
+     klavyeyle gezen biri nerede olduğunu göremiyordu. `:focus-visible`
+     kullanılıyor: fareyle tıklamada halka çıkmaz, yalnızca klavye/erişilebilirlik
+     gezinmesinde görünür. */
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid #3b7eff;
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  /* Hareket azaltma tercihi — animasyonlar vestibüler rahatsızlık yapabiliyor */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-btn font-medium text-white text-body-md transition-all duration-200;
@@ -258,3 +279,53 @@
 @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
 @keyframes slideUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
 @keyframes glowPulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+
+
+/* ── Yazdırma / PDF ───────────────────────────────────────────────────────────
+   Müşteri Raporu tarayıcının kendi "Yazdır → PDF olarak kaydet" işleviyle
+   çıkarılır; yeni bir bağımlılık eklenmez.
+
+   Yapıdan BAĞIMSIZ yöntem: önce her şey `visibility: hidden`, sonra yalnızca
+   rapor katmanı ve içindekiler tekrar görünür yapılır. Görünmez atalar
+   görünür torunları engellemez — DOM ağacının nasıl kurulduğu önemli olmaz.
+   (Önceki deneme `body > #root > div > div` gibi yapıya bağlı bir seçici
+   kullanıyordu ve `<main>` bir div olmadığı için pano kâğıda basılıyordu.) */
+@media print {
+  body * { visibility: hidden !important; }
+
+  .rapor-katman,
+  .rapor-katman * { visibility: visible !important; }
+
+  /* Akıştan çıkar ve sayfanın tepesine al — aksi hâlde görünmez ama yer
+     kaplayan pano raporu aşağı iterdi. */
+  .rapor-katman {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .rapor-katman > div {
+    display: block !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .rapor-sayfa {
+    max-width: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Araç çubuğu (Yazdır / Kopyala / Kapat) kâğıda basılmaz */
+  .yazdirma-gizle { display: none !important; }
+
+  /* Renkli durum işaretleri kâğıtta da görünsün */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* Satırlar sayfa sonunda ikiye bölünmesin */
+  tr, .rapor-sayfa pre { break-inside: avoid; page-break-inside: avoid; }
+
+  @page { margin: 14mm; }
+}

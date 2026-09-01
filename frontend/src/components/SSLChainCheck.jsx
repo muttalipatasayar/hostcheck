@@ -7,6 +7,7 @@ import {
 import axios from 'axios'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
 import CopyButton from './CopyButton'
+import { apiHataMesaji } from '../lib/apiHata'
 
 // ── Renkler ───────────────────────────────────────────────────────────────────
 //
@@ -225,7 +226,7 @@ export default function SSLChainCheck({ isActive }) {
       })
       setResult(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Zincir doğrulama başarısız')
+      setError(apiHataMesaji(err, 'Zincir doğrulama başarısız'))
     } finally {
       setLoading(false)
     }

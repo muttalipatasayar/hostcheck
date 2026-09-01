@@ -7,7 +7,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Üretim backend'i 8000'de (systemd, hostcheck kullanıcısı). Geliştirme
+        // kopyası 8001'de duruyor: HOSTCHECK_API=http://localhost:8001 npm run dev
+        target: process.env.HOSTCHECK_API || 'http://localhost:8000',
         changeOrigin: true,
         ws: true,
       }

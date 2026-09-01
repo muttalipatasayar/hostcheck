@@ -15,6 +15,7 @@ import Breadcrumb from './Breadcrumb'
 import FileTable from './FileTable'
 import InlineEditor from './InlineEditor'
 import { DropOverlay, UploadQueue } from './UploadDrop'
+import { apiHataMesaji } from '../../lib/apiHata'
 
 const EDIT_LIMIT = 1024 * 1024  // backend MAX_INLINE_EDIT_BYTES ile uyumlu
 
@@ -125,7 +126,7 @@ export default function FTPManager() {
     setUploads([])
   }
 
-  const opError = (err, fallback) => toast.error(err.response?.data?.detail || fallback)
+  const opError = (err, fallback) => toast.error(apiHataMesaji(err, fallback))
 
   // ── Dosya eylemleri ────────────────────────────────────────────────────────
   const doMkdir = async (name) => {
@@ -184,7 +185,7 @@ export default function FTPManager() {
         setUploads(prev => prev.map(u => u.id === id ? { ...u, pct: 100, status: 'tamam' } : u))
       } catch (err) {
         setUploads(prev => prev.map(u => u.id === id
-          ? { ...u, status: 'hata', error: err.response?.data?.detail || 'Yükleme başarısız' } : u))
+          ? { ...u, status: 'hata', error: apiHataMesaji(err, 'Yükleme başarısız') } : u))
       }
     }
     await ftp.refresh()

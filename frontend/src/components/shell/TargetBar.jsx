@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Search, Play, Filter } from 'lucide-react'
 import { useTarget } from '../../context/TargetContext'
+import { useAuth } from '../../context/AuthContext'
 import { getTool } from '../../lib/tools'
 
 // Kalıcı hedef çubuğu — sabit yükseklikte bir kabuk bölgesi; gizlenmez,
@@ -8,6 +9,8 @@ import { getTool } from '../../lib/tools'
 // - target:'domain' araçlar → hedef girişi + Çalıştır
 // - target:'host' (SSH/RDP) → hedef girişi; bağlantı formuna tek yönlü ön-doldurulur
 // - target:'none' (Hazır Yanıtlar) → yerel filtre; sorgu tetiklemez
+// - target:'gizli' (Yönetim) → çubuk boş kalır; kendi arama alanları var ve
+//   paylaşılan filtreyi kirletmemeli
 //
 // Görünürlük: ikon, girdi ve düğme TEK bir çerçevenin içindedir. Daha önce
 // girdi `bg-transparent` idi ve beyaz çubuğun üstünde gövdesiz duruyordu;
@@ -29,8 +32,11 @@ function fieldStyle(focused) {
 
 export default function TargetBar({ view }) {
   const { target, setTarget, commitTarget, filter, setFilter } = useTarget()
+  const { girisli } = useAuth()
   const [focused, setFocused] = useState(false)
-  const mode = getTool(view)?.target ?? 'none'
+  const arac = getTool(view)
+  // Kilitli sekmede filtre kutusu ölü arayüzdür: arayacak bir liste yok.
+  const mode = (arac?.uyeGerekli && !girisli) ? 'gizli' : (arac?.target ?? 'none')
 
   const focusProps = {
     onFocus: () => setFocused(true),
@@ -42,7 +48,7 @@ export default function TargetBar({ view }) {
       className="flex-shrink-0 flex items-center px-8"
       style={{ height: 64, background: '#ffffff', borderBottom: '1px solid rgba(0,6,30,0.09)' }}
     >
-      {mode === 'none' ? (
+      {mode === 'gizli' ? null : mode === 'none' ? (
         <div
           className="flex items-center gap-2.5 w-full pl-3.5 pr-2"
           style={fieldStyle(focused)}

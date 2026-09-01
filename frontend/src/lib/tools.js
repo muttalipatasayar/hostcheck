@@ -1,4 +1,4 @@
-import { Zap, Shield, Wrench, History, Terminal, Monitor, Globe, MessageSquare, Radar, ShieldAlert, Mail, FolderOpen } from 'lucide-react'
+import { LayoutGrid, Zap, Gauge, Shield, Wrench, History, Terminal, Monitor, Globe, MessageSquare, Radar, ShieldAlert, Mail, FolderOpen, ShieldCheck } from 'lucide-react'
 
 // Araç kataloğu — Sidebar, TargetBar ve (Aşama 2'de) komut paleti buradan okur.
 //
@@ -11,8 +11,14 @@ import { Zap, Shield, Wrench, History, Terminal, Monitor, Globe, MessageSquare, 
 //                  yalnızca açık Enter/Çalıştır ile çalışır
 // keepAlive: true → ilk ziyaretten sonra ağaçta kalır (display:none) —
 //                   canlı oturum sekme değişiminde kopmaz
+// uyeGerekli : true → giriş yapılmadan içerik görünmez (kenar çubuğunda kilit
+//                     ikonuyla durur; tıklanınca giriş kapısı açılır)
+// sadeceAdmin: true → yalnızca rol='admin' olan üyeye listelenir. Sunucu zaten
+//                     403 döndürüyor; buradaki filtre arayüz içindir.
 export const TOOLS = [
+  { id: 'genel-bakis',    label: 'Genel Bakış',    icon: LayoutGrid,    target: 'domain', autoRun: true,  keepAlive: false },
   { id: 'quick-check',    label: 'Hızlı Kontrol',  icon: Zap,           target: 'domain', autoRun: false, keepAlive: false },
+  { id: 'site-speed',     label: 'Site Hızı',      icon: Gauge,         target: 'domain', autoRun: false, keepAlive: false },
   { id: 'ssl-tools',      label: 'SSL Araçları',   icon: Shield,        target: 'domain', autoRun: false, keepAlive: false },
   { id: 'dns-toolbox',    label: 'DNS Toolbox',    icon: Wrench,        target: 'domain', autoRun: true,  keepAlive: false },
   { id: 'dns-history',    label: 'DNS History',    icon: History,       target: 'domain', autoRun: false, keepAlive: false },
@@ -23,9 +29,27 @@ export const TOOLS = [
   { id: 'rdp-access',     label: 'RDP Erişimi',    icon: Monitor,       target: 'host',   autoRun: false, keepAlive: true  },
   { id: 'ftp',            label: 'FTP Dosyaları',  icon: FolderOpen,    target: 'host',   autoRun: false, keepAlive: true  },
   { id: 'ip-lookup',      label: 'IP Sorgulama',   icon: Globe,         target: 'domain', autoRun: true,  keepAlive: false },
-  { id: 'hazir-yanitlar', label: 'Hazır Yanıtlar', icon: MessageSquare, target: 'none',   autoRun: false, keepAlive: false },
+  { id: 'hazir-yanitlar', label: 'Hazır Yanıtlar', icon: MessageSquare, target: 'none',   autoRun: false, keepAlive: false, uyeGerekli: true },
+  { id: 'yonetim',        label: 'Yönetim',        icon: ShieldCheck,   target: 'gizli',  autoRun: false, keepAlive: false, sadeceAdmin: true },
 ]
 
 export function getTool(id) {
   return TOOLS.find(t => t.id === id)
+}
+
+/** Oturum durumuna göre görünecek araçlar. Yetkisiz araçlar listeden düşer. */
+export function gorunurAraclar({ admin }) {
+  return TOOLS.filter(t => {
+    if (t.sadeceAdmin) return !!admin
+    return true            // uyeGerekli araçlar kilit ikonuyla listede kalır
+  })
+}
+
+/** Araç açılabilir mi — açılamıyorsa çağıran giriş kapısını gösterir. */
+export function aracErisilebilir(id, { girisli, admin }) {
+  const t = getTool(id)
+  if (!t) return true
+  if (t.sadeceAdmin) return !!admin
+  if (t.uyeGerekli) return !!girisli
+  return true
 }

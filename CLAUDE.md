@@ -53,6 +53,13 @@ saf mantığı — joker eşleşmesi, SC-081v3 geçerlilik takvimi, yol kurma, g
 depolarının tutarlılığı (`test_ssl_chain_core.py`) ve Hızlı Kontrol'ün SSL
 teşhisi (`test_quick_check_ssl.py`).
 
+Üyelik iki dosya ekledi ve ikisi de **kapı** testidir — "doğru kullanıcı
+yapabiliyor mu"dan çok "yanlış kullanıcı yapamıyor mu": alan adı kapısı,
+doğrulama, oturum ömrü, CSRF, kaba kuvvet (`test_uyelik.py`) ve üç katmanlı
+yetki ayrımı — anonim / üye / yönetici (`test_yetki.py`). `conftest.py` süiti
+geçici bir veritabanına yönlendirir ve rate limiti kapatır; limitin kendisi
+`test_ip_rate_limit_acikken_calisir` içinde bilerek geri açılır.
+
 İki kural:
 
 - **`conftest.py` rate limit'i kapatır.** Uçlar 10-20/dakika sınırlı; onlarca
@@ -67,9 +74,38 @@ teşhisi (`test_quick_check_ssl.py`).
 
 Two local processes. Vite (5173) proxies `/api` → FastAPI (8000) with `ws: true`, so HTTP **and** WebSockets share one origin in dev. Frontend code must therefore use relative paths (`/api/...`) and derive WebSocket URLs from `window.location` — hardcoding `localhost:8000` breaks the panel for anyone not on the serving machine.
 
-### No authentication — this is load-bearing
+### Three access tiers — know which one an endpoint is in
 
-Nothing in the API is authenticated. The SSH and RDP WebSocket endpoints will proxy a connection to any host for anyone who can reach them, so binding to `127.0.0.1` is the security boundary, not a preference. Do not change the host in `start.bat` / `start-backend.bat` / README without adding auth first.
+Since 31 Aug 2026 the panel has **application-level membership**, but it covers
+only part of the surface. Adding an endpoint means deciding which tier it joins:
+
+| Tier | Endpoints | Enforced by |
+|---|---|---|
+| **Open** | DNS, SSL, quick-check, screenshot, blacklist, mail-health, IP, site-speed, `/api/uyelik/*` | nothing |
+| **Membership** | `/api/hazir-yanitlar` (read = member, write = admin), `/api/yonetim/*` (admin) | `auth_core` dependencies, **in the app** |
+| **Nginx Basic Auth** | `/api/admin`, `/api/ssh`, `/api/rdp`, `/api/ftp` | reverse proxy, ambient credentials |
+
+The SSH and RDP WebSocket endpoints still proxy a connection to any host for
+anyone who gets past Basic Auth, so binding to `127.0.0.1` behind the reverse
+proxy remains the boundary for those. Do not expose the backend directly.
+
+**Membership rules that are load-bearing** (see `deploy/UYELIK.md`,
+`sast/uyelik-results.md`):
+
+- `auth_core.alan_kontrol()` is an **exact** domain match, never a suffix match —
+  suffix matching would admit `natro.com.evil.net`. Emails are ASCII-only, which
+  is what stops the Cyrillic `nаtro.com` homograph.
+- Sessions are **server-side rows**, not JWTs, so suspending an account kills its
+  open sessions on the next request.
+- Cookies carry the **`__Host-` prefix in production**. Sibling vhosts on this box
+  share `aipromt.com.tr`; without the prefix one of them could shadow the session
+  cookie and pin a victim to the attacker's account.
+- CSRF is a synchronizer token: the `X-CSRF-Token` header is compared against
+  `oturumlar.csrf` **in the database**, never against the cookie. The check lives
+  in `mevcut_kullanici` so a new state-changing endpoint cannot forget it.
+- bcrypt must never run on the event loop. Async endpoints use
+  `asyncio.to_thread`; `_HASH_KELEPCE` caps concurrent hashes at 4. One worker
+  serves SSH tunnels and Playwright too.
 
 ### Backend: one router per tool
 
@@ -158,7 +194,20 @@ Things that will bite you here:
 
 ### Data
 
-`models.py` contains only `HazirYanit` and `HazirYanitKategori`; the ticket/AI modules were removed. On the first `GET /api/hazir-yanitlar` with an empty table, `seed_if_empty()` loads `backend/data/hazirYanitlar.json` (89 entries). The backend must not read from `frontend/` — that coupling was removed deliberately so the backend can be deployed alone.
+`models.py` holds the response library (`HazirYanit`, `HazirYanitKategori`), the
+site-speed history (`SiteHiziOlcum`) and the membership tables (`Kullanici`,
+`Oturum`, `EpostaTokeni`, `DenetimKaydi`); the ticket/AI modules were removed.
+`seed_if_empty()` loads `backend/data/hazirYanitlar.json` (89 entries) **at
+startup** (`main._yasam_dongusu`), not on first `GET` — that endpoint now needs a
+session, so seeding there would leave the table empty until someone logged in.
+The backend must not read from `frontend/` — that coupling was removed
+deliberately so the backend can be deployed alone.
+
+SQLite runs in **WAL** with `foreign_keys=ON` (`database.py`). Both matter:
+`delete` journal mode blocked every reader on each commit, and FK constraints are
+off by default in SQLite, so `ondelete="CASCADE"` silently does nothing without
+the pragma. `HOSTCHECK_DB_URL` overrides the path — `tests/conftest.py` uses it to
+keep the suite out of the working database.
 
 In `hazir_yanitlar.py`, the `/kategoriler` routes are declared **before** `/{yanit_id}`; reordering them makes FastAPI match `kategoriler` as an int path param and break the category endpoints.
 

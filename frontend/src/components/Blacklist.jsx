@@ -6,6 +6,7 @@ import {
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 const STATUS_CONFIG = {
   healthy: { icon: CheckCircle2,  color: '#4a6cf7', dot: 'status-dot-healthy', label: 'Temiz' },
@@ -26,7 +27,7 @@ export default function Blacklist() {
       const res = await axios.post('/api/blacklist/check', { target: value })
       setResult(res.data)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Kara liste kontrolü başarısız')
+      toast.error(apiHataMesaji(err, 'Kara liste kontrolü başarısız'))
     } finally {
       setLoading(false)
     }

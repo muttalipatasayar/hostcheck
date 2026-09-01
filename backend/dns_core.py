@@ -83,3 +83,34 @@ async def resolve_async(domain: str, rtype: str, *,
     except Exception as exc:
         status, msg = classify_dns_error(exc)
         return {'status': status, 'records': [], 'ttl': None, 'error': msg}
+
+
+# ── Kayıt alan adı (kaba eTLD+1) ─────────────────────────────────────────────
+#
+# Neden gerekli: destek çağrıları neredeyse her zaman "www.musteri.com" diye
+# gelir. Alt alan adını apex gibi sorgulamak yanlış alarm üretir — www'nin
+# kendi NS'i, WHOIS kaydı, SPF/DMARC'ı YOKTUR ve olmaması normaldir. Ölçüldü:
+# www.wikipedia.org "3 başlıkta sorun" derken wikipedia.org "1 sorun" diyordu.
+#
+# Kayıt/e-posta politikası apex'e, sertifika ve HTTP ise TAM HOSTA aittir;
+# çağıran taraf hangisini kullanacağına buna göre karar verir.
+#
+# Tam Public Suffix List taşınmıyor — listeyi güncel tutmanın bakım maliyeti
+# bu araca değmez. Türkiye'de ve genelde yaygın iki seviyeli uzantılar elle
+# listelendi; kaçırılan bir uzantıda sonuç "bir seviye fazla geniş" olur,
+# sessizce yanlış olmaz.
+_IKINCI_SEVIYE = {
+    "com", "net", "org", "gov", "edu", "co", "biz", "info", "name",
+    "tv", "web", "gen", "k12", "av", "bel", "pol", "tsk", "bbs", "nom",
+    "ac", "sch", "mil", "int",
+}
+
+
+def kayit_alan_adi(host: str) -> str:
+    """`www.ornek.com.tr` → `ornek.com.tr`, `ornek.com` → `ornek.com`."""
+    parcalar = (host or "").lower().strip(".").split(".")
+    if len(parcalar) <= 2:
+        return ".".join(parcalar)
+    if parcalar[-2] in _IKINCI_SEVIYE and len(parcalar) >= 3:
+        return ".".join(parcalar[-3:])
+    return ".".join(parcalar[-2:])

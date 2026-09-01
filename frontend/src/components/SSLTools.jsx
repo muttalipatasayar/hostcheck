@@ -12,6 +12,7 @@ import { SSL_TABS } from '../lib/sslTabs'
 import CopyButton from './CopyButton'
 import SSLChainCheck from './SSLChainCheck'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 
@@ -206,7 +207,7 @@ function SSLChecker({ isActive }) {
       })
       setResult(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Sorgulama başarısız')
+      setError(apiHataMesaji(err, 'Sorgulama başarısız'))
     } finally {
       setLoading(false)
     }
@@ -484,7 +485,7 @@ function CSRDecode() {
       const res = await axios.post('/api/ssl/csr-decode', { csr_pem: csr })
       setResult(res.data)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'CSR çözümlenemedi')
+      toast.error(apiHataMesaji(err, 'CSR çözümlenemedi'))
     } finally {
       setLoading(false)
     }
@@ -598,7 +599,7 @@ function PFXConvert() {
         const text = await err.response.data.text()
         try { toast.error(JSON.parse(text).detail) } catch { toast.error('PFX dönüşümü başarısız') }
       } else {
-        toast.error(err.response?.data?.detail || 'PFX dönüşümü başarısız')
+        toast.error(apiHataMesaji(err, 'PFX dönüşümü başarısız'))
       }
     } finally {
       setLoading(false)
@@ -712,7 +713,7 @@ function CSRGenerate() {
       setResult(res.data)
       toast.success('CSR ve Private Key oluşturuldu')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'CSR oluşturulamadı')
+      toast.error(apiHataMesaji(err, 'CSR oluşturulamadı'))
     } finally {
       setLoading(false)
     }

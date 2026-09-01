@@ -5,8 +5,12 @@ import {
   Layers, AlertTriangle, Save, Hash, Tag, Eye, Loader2,
 } from 'lucide-react'
 import axios from 'axios'
+import toast from 'react-hot-toast'
 import { useTarget } from '../context/TargetContext'
+import { useAuth } from '../context/AuthContext'
 import { useHotkeys } from '../hooks/useHotkeys'
+import { apiHataMesaji } from '../lib/apiHata'
+import UyeKapisi from './auth/UyeKapisi'
 
 // ─── Sabit kategoriler (built-in, API'den gelmiyor) ───────────────────────────
 
@@ -49,7 +53,11 @@ function Highlight({ text, query }) {
 
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
 
-export default function HazirYanitlar() {
+export default function HazirYanitlar({ onGiris, onKayit }) {
+  // Okuma üyelik, yazma yöneticilik ister. Sunucu her iki kapıyı da uyguluyor
+  // (401/403); buradaki kontroller kullanıcıya çalışmayacak düğme göstermemek
+  // için — yetkilendirme arayüzde DEĞİL, backend'de.
+  const { girisli, admin, yukleniyor: oturumYukleniyor } = useAuth()
   const [responses,   setResponses]   = useState([])
   const [customCats,  setCustomCats]  = useState([])   // { id, name, color }
   const [loading,     setLoading]     = useState(true)
@@ -71,22 +79,27 @@ export default function HazirYanitlar() {
   // ── API yükle ──────────────────────────────────────────────────────────────
 
   const loadAll = useCallback(async () => {
-    try {
-      // Bağımsız istekler — biri hata verse diğeri yüklenmeye devam eder
-      const [rRes, kRes] = await Promise.allSettled([
-        axios.get('/api/hazir-yanitlar'),
-        axios.get('/api/hazir-yanitlar/kategoriler'),
-      ])
-      if (rRes.status === 'fulfilled') setResponses(rRes.value.data)
-      if (kRes.status === 'fulfilled') setCustomCats(kRes.value.data)
-    } catch {
-      // beklenmedik hata
-    } finally {
-      setLoading(false)
+    // Bağımsız istekler — biri hata verse diğeri yüklenmeye devam eder
+    const [rRes, kRes] = await Promise.allSettled([
+      axios.get('/api/hazir-yanitlar'),
+      axios.get('/api/hazir-yanitlar/kategoriler'),
+    ])
+    if (rRes.status === 'fulfilled') setResponses(rRes.value.data)
+    if (kRes.status === 'fulfilled') setCustomCats(kRes.value.data)
+    // Hatalar eskiden sessizce yutuluyordu: oturum düştüğünde kullanıcı boş
+    // bir liste görüp "yanıtlar silinmiş" sanıyordu. 401 ayrı ele alınıyor,
+    // onu AuthContext zaten kapıya çeviriyor.
+    if (rRes.status === 'rejected' && rRes.reason?.response?.status !== 401) {
+      toast.error(apiHataMesaji(rRes.reason, 'Hazır yanıtlar yüklenemedi'))
     }
+    setLoading(false)
   }, [])
 
-  useEffect(() => { loadAll() }, [loadAll])
+  useEffect(() => {
+    if (!girisli) { setLoading(false); return }
+    setLoading(true)
+    loadAll()
+  }, [loadAll, girisli])
 
   useEffect(() => {
     if (addCatMode) newCatRef.current?.focus()
@@ -146,8 +159,8 @@ export default function HazirYanitlar() {
         setResponses(prev => [data, ...prev])
       }
       setModal(null)
-    } catch {
-      // hata mesajı gösterilebilir
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Yanıt kaydedilemedi'))
     }
   }, [])
 
@@ -156,7 +169,10 @@ export default function HazirYanitlar() {
       await axios.delete(`/api/hazir-yanitlar/${id}`)
       setResponses(prev => prev.filter(r => r.id !== id))
       if (detailId === id) setDetailId(null)
-    } catch {}
+      toast.success('Yanıt silindi')
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Yanıt silinemedi'))
+    }
   }, [detailId])
 
   const handleCopy = useCallback(r => {
@@ -167,7 +183,9 @@ export default function HazirYanitlar() {
       try {
         const { data } = await axios.post(`/api/hazir-yanitlar/${r.id}/use`)
         setResponses(prev => prev.map(x => x.id === r.id ? data : x))
-      } catch {}
+      } catch {
+        // Sayaç kozmetik; kopyalama başarılı olduğu için kullanıcıyı rahatsız etme.
+      }
     })
   }, [])
 
@@ -176,7 +194,9 @@ export default function HazirYanitlar() {
     try {
       const { data } = await axios.patch(`/api/hazir-yanitlar/${id}/pin`)
       setResponses(prev => prev.map(r => r.id === id ? data : r))
-    } catch {} finally {
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Sabitleme değiştirilemedi'))
+    } finally {
       setSavingId(null)
     }
   }, [])
@@ -197,7 +217,9 @@ export default function HazirYanitlar() {
       setCustomCats(prev => [...prev, data])
       setNewCatName('')
       setAddCatMode(false)
-    } catch {}
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Kategori eklenemedi'))
+    }
   }, [newCatName, allCats, customCats])
 
   const handleDeleteCat = useCallback(async (dbId, catName) => {
@@ -205,13 +227,15 @@ export default function HazirYanitlar() {
       await axios.delete(`/api/hazir-yanitlar/kategoriler/${dbId}`)
       setCustomCats(prev => prev.filter(c => c.id !== dbId))
       if (activeCat === catName) setActiveCat('Tümü')
-    } catch {}
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Kategori silinemedi'))
+    }
   }, [activeCat])
 
   const detailResponse = detailId ? responses.find(r => r.id === detailId) : null
 
   const mkCard = r => ({
-    r, catMeta: CAT_META,
+    r, catMeta: CAT_META, admin,
     isCopied:  copiedId === r.id,
     isPinned:  r.is_pinned,
     isSaving:  savingId === r.id,
@@ -225,6 +249,19 @@ export default function HazirYanitlar() {
   })
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  // Oturum yoklaması sürerken kapıyı da listeyi de gösterme — ekran zıplar.
+  if (oturumYukleniyor) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#3b7eff' }} />
+      </div>
+    )
+  }
+
+  if (!girisli) {
+    return <UyeKapisi onGiris={onGiris} onKayit={onKayit} />
+  }
 
   if (loading) {
     return (
@@ -267,14 +304,16 @@ export default function HazirYanitlar() {
               <p className="text-label-sm font-medium uppercase tracking-wider" style={{ color: '#9da5be' }}>
                 Kategoriler
               </p>
-              <button
-                onClick={() => { setAddCatMode(v => !v); setNewCatName('') }}
-                className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-80"
-                style={{ background: addCatMode ? 'rgba(37,99,235,0.1)' : 'rgba(0,6,30,0.06)', color: addCatMode ? '#2563eb' : '#6b7388' }}
-                title="Yeni kategori ekle"
-              >
-                {addCatMode ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-              </button>
+              {admin && (
+                <button
+                  onClick={() => { setAddCatMode(v => !v); setNewCatName('') }}
+                  className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-80"
+                  style={{ background: addCatMode ? 'rgba(37,99,235,0.1)' : 'rgba(0,6,30,0.06)', color: addCatMode ? '#2563eb' : '#6b7388' }}
+                  title="Yeni kategori ekle"
+                >
+                  {addCatMode ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                </button>
+              )}
             </div>
 
             {allCats.map(({ id, label, icon: Icon, color, custom, dbId }) => {
@@ -297,7 +336,7 @@ export default function HazirYanitlar() {
                       {count}
                     </span>
                   </button>
-                  {custom && (
+                  {custom && admin && (
                     <button
                       onClick={() => handleDeleteCat(dbId, id)}
                       className="opacity-0 group-hover/catrow:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded hover:opacity-60 ml-0.5 flex-shrink-0"
@@ -312,7 +351,7 @@ export default function HazirYanitlar() {
             })}
 
             {/* Yeni kategori formu */}
-            {addCatMode && (
+            {addCatMode && admin && (
               <div className="mt-1 px-1">
                 <div className="flex items-center gap-1.5">
                   <input
@@ -345,10 +384,12 @@ export default function HazirYanitlar() {
           {/* Alt butonlar */}
           <div className="px-3 py-3 flex-shrink-0 flex flex-col gap-2"
             style={{ borderTop: '1px solid rgba(0,6,30,0.08)' }}>
-            <button onClick={() => setModal({ mode: 'add' })}
-              className="btn-primary w-full flex items-center justify-center gap-2 text-body-sm">
-              <Plus className="w-4 h-4" />Yeni Yanıt
-            </button>
+            {admin && (
+              <button onClick={() => setModal({ mode: 'add' })}
+                className="btn-primary w-full flex items-center justify-center gap-2 text-body-sm">
+                <Plus className="w-4 h-4" />Yeni Yanıt
+              </button>
+            )}
             <button onClick={handleExport}
               className="btn-ghost w-full flex items-center justify-center gap-2 text-label-sm">
               <Download className="w-3.5 h-3.5" />Dışa Aktar
@@ -385,10 +426,12 @@ export default function HazirYanitlar() {
                   <X className="w-3.5 h-3.5" /> Temizle
                 </button>
               )}
-              <button onClick={() => setModal({ mode: 'add' })}
-                className="btn-ghost flex items-center gap-1.5 text-body-sm">
-                <Plus className="w-4 h-4" /> Yeni
-              </button>
+              {admin && (
+                <button onClick={() => setModal({ mode: 'add' })}
+                  className="btn-ghost flex items-center gap-1.5 text-body-sm">
+                  <Plus className="w-4 h-4" /> Yeni
+                </button>
+              )}
             </div>
           </div>
 
@@ -404,7 +447,9 @@ export default function HazirYanitlar() {
                   {query ? 'Sonuç bulunamadı' : 'Bu kategoride yanıt yok'}
                 </p>
                 <p className="text-body-md" style={{ color: '#6b7388' }}>
-                  {query ? `"${query}" ile eşleşen yanıt bulunamadı` : 'Yeni Yanıt ile ekleyebilirsiniz'}
+                  {query ? `"${query}" ile eşleşen yanıt bulunamadı`
+                    : admin ? 'Yeni Yanıt ile ekleyebilirsiniz'
+                    : 'Bu kategoriye henüz yanıt eklenmemiş'}
                 </p>
                 {query && (
                   <button onClick={() => setQuery('')} className="mt-4 btn-ghost text-body-sm">
@@ -433,6 +478,7 @@ export default function HazirYanitlar() {
         <DetailModal
           r={detailResponse}
           catMeta={CAT_META}
+          admin={admin}
           isCopied={copiedId === detailResponse.id}
           isPinned={detailResponse.is_pinned}
           useCount={detailResponse.use_count}
@@ -501,7 +547,7 @@ function SectionHeader({ icon: Icon, label, count, color }) {
 // ─── Yanıt kartı ─────────────────────────────────────────────────────────────
 
 function ResponseCard({
-  r, catMeta, isCopied, isPinned, isSaving, useCount, showCategory, query,
+  r, catMeta, admin, isCopied, isPinned, isSaving, useCount, showCategory, query,
   onClick, onCopy, onPin, onEdit, onDelete,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -544,19 +590,23 @@ function ResponseCard({
               <ActionBtn onClick={e => { e.stopPropagation(); onCopy() }} title="Hızlı kopyala" color="#6b7388">
                 <Copy className="w-3.5 h-3.5" />
               </ActionBtn>
-              <ActionBtn onClick={e => { e.stopPropagation(); onPin() }} title={isPinned ? 'Sabitlemeyi kaldır' : 'Sabitle'}
-                color={isPinned ? '#f59e0b' : '#6b7388'}>
-                {isSaving
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <Star className="w-3.5 h-3.5" style={isPinned ? { fill: '#f59e0b' } : {}} />
-                }
-              </ActionBtn>
-              <ActionBtn onClick={e => { e.stopPropagation(); onEdit() }} title="Düzenle" color="#6b7388">
-                <Pencil className="w-3.5 h-3.5" />
-              </ActionBtn>
-              <ActionBtn onClick={e => { e.stopPropagation(); setConfirmDelete(true) }} title="Sil" color="#6b7388">
-                <Trash2 className="w-3.5 h-3.5" />
-              </ActionBtn>
+              {admin && (
+                <>
+                  <ActionBtn onClick={e => { e.stopPropagation(); onPin() }} title={isPinned ? 'Sabitlemeyi kaldır' : 'Sabitle'}
+                    color={isPinned ? '#f59e0b' : '#6b7388'}>
+                    {isSaving
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Star className="w-3.5 h-3.5" style={isPinned ? { fill: '#f59e0b' } : {}} />
+                    }
+                  </ActionBtn>
+                  <ActionBtn onClick={e => { e.stopPropagation(); onEdit() }} title="Düzenle" color="#6b7388">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </ActionBtn>
+                  <ActionBtn onClick={e => { e.stopPropagation(); setConfirmDelete(true) }} title="Sil" color="#6b7388">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </ActionBtn>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -626,7 +676,7 @@ function ActionBtn({ onClick, title, color, children }) {
 
 // ─── Detay modalı ─────────────────────────────────────────────────────────────
 
-function DetailModal({ r, catMeta, isCopied, isPinned, useCount, onClose, onCopy, onPin, onEdit, onDelete }) {
+function DetailModal({ r, catMeta, admin, isCopied, isPinned, useCount, onClose, onCopy, onPin, onEdit, onDelete }) {
   const color = catMeta[r.category]?.color ?? '#6b7388'
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -678,6 +728,7 @@ function DetailModal({ r, catMeta, isCopied, isPinned, useCount, onClose, onCopy
         <div className="px-6 py-4 flex-shrink-0 flex items-center justify-between flex-wrap gap-3"
           style={{ borderTop: '1px solid rgba(0,6,30,0.08)', background: '#f8f9fc' }}>
           <div className="flex items-center gap-2 flex-wrap">
+            {admin && <>
             <button onClick={onPin}
               className="flex items-center gap-1.5 px-3 py-2 rounded-btn text-body-sm transition-colors"
               style={isPinned ? { background: 'rgba(245,158,11,0.1)', color: '#d97706' } : { background: 'rgba(0,6,30,0.05)', color: '#6b7388' }}>
@@ -706,6 +757,7 @@ function DetailModal({ r, catMeta, isCopied, isPinned, useCount, onClose, onCopy
                   style={{ color: '#6b7388' }}>İptal</button>
               </div>
             )}
+            </>}
           </div>
           <button onClick={onCopy}
             className="flex items-center gap-2 px-6 py-2.5 rounded-btn font-semibold text-body-md transition-all"

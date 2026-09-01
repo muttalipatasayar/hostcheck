@@ -24,14 +24,42 @@ WorkingDirectory=/opt/hostcheck/backend
 EnvironmentFile=/opt/hostcheck/backend/.env
 
 # ── ÖNEMLİ: TEK worker ────────────────────────────────────────────────────────
-# RDP biletleri ve FTP oturumları SÜREÇ İÇİ tutulur. Birden fazla worker olursa
-# bilet bir worker'da üretilip WebSocket başka worker'a düşer → RDP/FTP kırılır.
+# RDP biletleri, FTP oturumları ve Site Hızı iş kuyruğu SÜREÇ İÇİ tutulur.
+# Birden fazla worker olursa bilet bir worker'da üretilip WebSocket başka
+# worker'a düşer → RDP/FTP kırılır; Site Hızı'nda ise yoklama isteği işi
+# başlatan sürece düşmeyip iş "kayıp" görünür.
 # Ölçekleme gerekirse sticky-session'lı ayrı bir mimari gerekir.
+# --forwarded-allow-ips: uvicorn'un varsayılanıyla aynı, AÇIKÇA yazılıyor.
+# Rate limit anahtarı (slowapi `get_remote_address`) `request.client.host`u
+# okuyor; bu değeri ProxyHeadersMiddleware Nginx'in X-Forwarded-For'undan
+# üretiyor. İleride bir uvicorn sürümü varsayılanı değiştirirse giriş limiti
+# SESSİZCE tek bir kovaya (127.0.0.1) düşerdi — kaba kuvvet freni kaybolurdu.
 ExecStart=/opt/hostcheck/backend/venv/bin/uvicorn main:app \
-    --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+    --host 127.0.0.1 --port 8000 --workers 1 --no-access-log \
+    --forwarded-allow-ips=127.0.0.1
 
 Restart=always
 RestartSec=3
+
+# ── Kaynak sınırı ─────────────────────────────────────────────────────────────
+# Panel iki ayrı Chromium iş yükü çalıştırır: ekran görüntüsü (2 worker) ve
+# Site Hızı ölçümü (1 worker) — en kötü durumda 3 tarayıcı aynı anda.
+#
+# ÖLÇÜM YAPARKEN RSS TOPLAMAYIN. Tek bir Chromium 6 işletim sistemi süreci
+# doğurur (browser + renderer + gpu + utility) ve bunlar aynı kütüphaneleri
+# haritalar; RSS o sayfaları her süreçte yeniden sayar. cgroup muhasebesi
+# (MemoryMax'in dayandığı şey) paylaşılan sayfayı BİR KEZ sayar, yani doğru
+# vekil metrik PSS'tir (/proc/PID/smaps_rollup).
+#
+# Bu makinede ölçülenler (PSS toplamı / yanıltıcı RSS toplamı):
+#   • boşta                                    ~85 MB  /  ~105 MB
+#   • tek Site Hızı ölçümü                    ~440 MB  /  ~710 MB
+#   • Site Hızı + 2 screenshot (hafif sayfa)  ~640 MB  / ~1330 MB
+#   • Site Hızı + 2 screenshot (haber sitesi) ~1030 MB / ~2170 MB   ← en kötü
+# Ölçüm biter bitmez tabana döner; sızıntı yok.
+#
+# En kötü durumda bile 2G'nin yarısı kullanılıyor → 2G YETERLİ.
+MemoryMax=2G
 
 # ── Sertleştirme ──────────────────────────────────────────────────────────────
 NoNewPrivileges=true

@@ -7,6 +7,7 @@ import {
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 // ISO 3166-1 alpha-2 → bayrak emoji
 const flagEmoji = (code) => {
@@ -106,7 +107,7 @@ export default function IPLookup() {
       const res = await axios.get('/api/ip/lookup', { params: { q } })
       setResult(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Sorgulama başarısız')
+      setError(apiHataMesaji(err, 'Sorgulama başarısız'))
     } finally {
       setLoading(false)
     }

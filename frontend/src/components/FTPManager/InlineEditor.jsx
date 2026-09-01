@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Save, X, Loader2, FileEdit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useHotkeys } from '../../hooks/useHotkeys'
+import { apiHataMesaji } from '../../lib/apiHata'
 
 // Satır içi metin düzenleyici — bilinçli olarak sade bir <textarea>
 // (CodeMirror yok); 1 MB üstü dosyalar backend'de 413 ile reddedilir.
@@ -17,7 +18,7 @@ export default function InlineEditor({ path, ftp, onClose }) {
   useEffect(() => {
     ftp.readFile(path)
       .then(res => { setContent(res.data.content); setOriginal(res.data.content) })
-      .catch(err => setLoadError(err.response?.data?.detail || 'Dosya okunamadı'))
+      .catch(err => setLoadError(apiHataMesaji(err, 'Dosya okunamadı')))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
@@ -29,7 +30,7 @@ export default function InlineEditor({ path, ftp, onClose }) {
       setOriginal(content)
       toast.success('Kaydedildi')
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Kaydedilemedi')
+      toast.error(apiHataMesaji(err, 'Kaydedilemedi'))
     } finally {
       setSaving(false)
     }

@@ -16,6 +16,7 @@ import { useRefitOnVisible } from '../hooks/useRefitOnVisible'
 import RemoteWindowFrame from './remote/RemoteWindowFrame'
 import SavedConnectionsList from './remote/SavedConnectionsList'
 import ConnectionHeader from './remote/ConnectionHeader'
+import { apiHataMesaji } from '../lib/apiHata'
 
 // Windows sunucular çoğunlukla NLA ister; "Otomatik" pazarlığı bazı
 // sunucu/guacd ikililerinde başarısız olur — açık seçim şart
@@ -250,7 +251,7 @@ export default function RDPAccess() {
       })
       .catch((err) => {
         if (clientRef.current !== client) return
-        fail(err?.response?.data?.detail || 'Bağlantı oturumu oluşturulamadı')
+        fail(apiHataMesaji(err, 'Bağlantı oturumu oluşturulamadı'))
       })
   }, [form, fitDisplay, fail, saved, setStatus, setErrorMsg])
 

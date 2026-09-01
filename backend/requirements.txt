@@ -9,6 +9,7 @@ dnspython>=2.7.0
 httpx>=0.28.1
 python-dotenv>=1.0.1
 slowapi>=0.1.9
+bcrypt>=4.1          # üyelik parola hashleme (paramiko da transitif olarak kuruyor)
 paramiko>=3.5.0
 cryptography>=44.0.0
 pyOpenSSL>=26,<27  # zincir doğrulama: sunucunun gönderdiği TAM zinciri almak

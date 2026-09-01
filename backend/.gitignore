@@ -5,3 +5,13 @@ __pycache__/
 .env
 hostcheck.db
 *.db
+# WAL yan dosyaları — `*.db` bunları YAKALAMAZ (uzantı `.db-wal`).
+*.db-wal
+*.db-shm
+# Dağıtım/geliştirme yedekleri
+*.db.yedek-*
+*.yedek-*
+*.oncesi-*
+# Geliştirmede mailler dosyaya yazılıyor
+data/mail-out/
+.pytest_cache/

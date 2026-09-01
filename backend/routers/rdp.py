@@ -1,4 +1,5 @@
 import asyncio
+import codecs
 import logging
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -12,6 +13,16 @@ logger = logging.getLogger(__name__)
 
 GUACD_HOST = "127.0.0.1"
 GUACD_PORT = 4822
+
+# guacd sessiz kaldığında tarayıcıya "3.nop;" gönderme aralığı.
+# Tarayıcıdaki Guacamole.Tunnel.receiveTimeout 15 sn'dir; bu süreden ÖNCE
+# bir şey gönderilmezse tünel "Server timeout" ile kapanır. Eski değer
+# 60 sn idi ve bu eşiğin çok üzerindeydi.
+_KEEPALIVE_SECONDS = 10.0
+
+# Yarım kalan komut tamponunun üst sınırı — bozuk ya da kötü niyetli bir
+# akışın sınırsız bellek tüketmesini engeller.
+_MAX_BUFFER_CHARS = 16 * 1024 * 1024
 
 
 # ─── Bağlantı bileti deposu ───────────────────────────────────────────────────
@@ -90,16 +101,91 @@ async def _guac_write(writer: asyncio.StreamWriter, *args):
     await writer.drain()
 
 
-async def _guac_read_one(reader: asyncio.StreamReader) -> str:
-    """Read exactly one Guacamole instruction (terminated by semicolon)."""
-    buf = bytearray()
-    while True:
-        ch = await reader.readexactly(1)
-        buf += ch
-        if ch == b";":
-            return buf.decode("utf-8")
-        if len(buf) > 131072:
-            raise ValueError("Guacamole instruction too large")
+def _split_instructions(buf: str) -> tuple[list[str], str]:
+    """Tampondaki TAM komutları ayırır; yarım kalan kuyruğu geri döndürür.
+
+    Guacamole komutu `UZUNLUK.DEĞER(,UZUNLUK.DEĞER)*;` biçimindedir ve uzunluk
+    KARAKTER sayısıdır — ayırıcı ancak uzunluk kadar ilerledikten sonra
+    okunabilir. Değerin içinde `;` geçebileceğinden noktalı virgüle bakarak
+    bölmek YANLIŞTIR.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(buf)
+    while i < n:
+        j = i
+        while True:
+            dot = buf.find(".", j)
+            if dot < 0:                       # uzunluk öneki henüz tamamlanmadı
+                return out, buf[i:]
+            try:
+                length = int(buf[j:dot])
+            except ValueError:
+                raise ValueError("guacd akışı bozuk: uzunluk öneki okunamadı")
+            end = dot + 1 + length
+            if end >= n:                      # ayırıcı henüz gelmedi
+                return out, buf[i:]
+            sep = buf[end]
+            if sep == ";":
+                out.append(buf[i:end + 1])
+                i = end + 1
+                break
+            if sep != ",":
+                raise ValueError("guacd akışı bozuk: beklenmeyen ayırıcı")
+            j = end + 1
+    return out, ""
+
+
+class _GuacStream:
+    """guacd'ın TCP akışını TAM Guacamole komutlarına böler.
+
+    NEDEN ZORUNLU: tarayıcıdaki Guacamole.WebSocketTunnel her WebSocket
+    mesajını BAĞIMSIZ ayrıştırır — mesajlar arasında tampon TUTMAZ. Yarım
+    komut içeren tek bir mesaj tüneli anında "Incomplete instruction"
+    (SERVER_ERROR / 519) ile kapatır. guacd'dan gelen ham TCP parçaları ise
+    komut sınırına denk gelmez: tek bir ekran çizimi 64 KB'lik okuma
+    penceresini rahatlıkla aşar. Bu yüzden çerçeveyi burada, komut sınırında
+    kurmak şart.
+
+    Ayrıca UTF-8 çözümü artımlıdır: çok baytlı bir karakter iki okumaya
+    bölünse bile bozulmaz. Eski kod `errors="replace"` kullanıyordu; bu,
+    bölünen karakteri `?` ile değiştirip uzunluk önekini değerle uyumsuz
+    hâle getiriyordu (pano metnindeki Türkçe harfler).
+    """
+
+    def __init__(self, reader: asyncio.StreamReader):
+        self._reader = reader
+        self._decoder = codecs.getincrementaldecoder("utf-8")()
+        self._buf = ""
+        self._pending: list[str] = []
+
+    async def _fill(self, timeout: float) -> None:
+        data = await asyncio.wait_for(self._reader.read(65536), timeout=timeout)
+        if not data:
+            raise ConnectionResetError("guacd bağlantıyı kapattı")
+        self._buf += self._decoder.decode(data)
+        if len(self._buf) > _MAX_BUFFER_CHARS:
+            raise ValueError("guacd komutu izin verilen boyutu aştı")
+        found, self._buf = _split_instructions(self._buf)
+        self._pending.extend(found)
+
+    async def read_instruction(self, timeout: float) -> str:
+        """El sıkışması için: tek bir tam komut döndürür."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while not self._pending:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            await self._fill(remaining)
+        return self._pending.pop(0)
+
+    async def read_batch(self, timeout: float) -> list[str]:
+        """Aktarım için: biriken tüm tam komutları tek seferde döndürür."""
+        if not self._pending:
+            await self._fill(timeout)
+        batch, self._pending = self._pending, []
+        return batch
 
 
 def _guac_parse(msg: str):
@@ -170,11 +256,13 @@ async def rdp_tunnel(websocket: WebSocket):
             return
 
         # ── Guacamole el sıkışması ───────────────────────────────────────────
+        stream = _GuacStream(reader)
+
         # 1. rdp protokolünü seç
         await _guac_write(writer, "select", "rdp")
 
         # 2. guacd'ın desteklediği argüman listesini al
-        args_msg = await asyncio.wait_for(_guac_read_one(reader), timeout=10.0)
+        args_msg = await stream.read_instruction(timeout=10.0)
         opcode, supported_args = _guac_parse(args_msg)
         if opcode != "args":
             await safe_send(
@@ -183,7 +271,17 @@ async def rdp_tunnel(websocket: WebSocket):
             )
             return
 
-        # 3. guacd'ın beklediği sırayla bağlantı değerlerini gönder
+        # 3. İstemci yeteneklerini bildir — guacamole-client'ın yaptığı sıra.
+        #    Bunlar gönderilmezse guacd ekran ölçüsünü ve görüntü kodlamasını
+        #    varsayılanlarından seçer. Tarayıcı tarafında ses/video oynatıcı
+        #    kurulmadığı için o iki liste bilerek BOŞ bırakılıyor: aksi hâlde
+        #    guacd oynatılamayacak ses akışları gönderir.
+        await _guac_write(writer, "size", params["width"], params["height"], "96")
+        await _guac_write(writer, "audio")
+        await _guac_write(writer, "video")
+        await _guac_write(writer, "image", "image/png", "image/jpeg")
+
+        # 4. guacd'ın beklediği sırayla bağlantı değerlerini gönder
         param_map = {
             "hostname":                   params["hostname"],
             "port":                       params["port"],
@@ -206,11 +304,23 @@ async def rdp_tunnel(websocket: WebSocket):
             "enable-theming":             "true",
             "enable-font-smoothing":      "true",
         }
-        connect_vals = [param_map.get(arg, "") for arg in supported_args]
+        # args listesinin İLK ögesi bir bağlantı parametresi DEĞİL, guacd'ın
+        # protokol sürümüdür ("VERSION_1_5_0") ve aynen geri yollanmalıdır —
+        # istemcinin sürüm pazarlığındaki cevabı budur. param_map'te
+        # karşılığı olmadığı için eskiden boş gidiyordu; guacd bunu
+        # "sürüm bildirmeyen eski istemci" sayıp protokolü 1.0.0'a düşürüyor,
+        # sonraki tüm davranışı (timezone, required, ölçek) o sürüme göre
+        # seçiyordu.
+        connect_vals = []
+        for index, arg in enumerate(supported_args):
+            if index == 0 and arg.startswith("VERSION_"):
+                connect_vals.append(arg)
+            else:
+                connect_vals.append(param_map.get(arg, ""))
         await _guac_write(writer, "connect", *connect_vals)
 
-        # 4. ready sinyalini al
-        ready_msg = await asyncio.wait_for(_guac_read_one(reader), timeout=15.0)
+        # 5. ready sinyalini al
+        ready_msg = await stream.read_instruction(timeout=15.0)
         op, _ = _guac_parse(ready_msg)
 
         if op == "error":
@@ -228,38 +338,68 @@ async def rdp_tunnel(websocket: WebSocket):
 
         # ── Çift yönlü veri aktarımı ─────────────────────────────────────────
         async def guacd_to_browser():
-            """guacd → tarayıcı (çizim & kontrol komutları)."""
+            """guacd → tarayıcı (çizim & kontrol komutları).
+
+            Her WebSocket mesajı TAM komut(lar) içerir. Ham TCP parçalarını
+            olduğu gibi iletmek RDP'yi kullanılamaz hâle getiriyordu: ilk
+            ekran çizimi 64 KB'lik okuma penceresini aştığı anda mesaj yarım
+            bir komutla bitiyor, tarayıcıdaki tünel bunu "Incomplete
+            instruction" sayıp bağlantıyı SERVER_ERROR (519) ile kapatıyordu.
+            """
             while True:
                 try:
-                    data = await asyncio.wait_for(reader.read(65536), timeout=60.0)
-                    if not data:
-                        break
-                    await websocket.send_text(data.decode("utf-8", errors="replace"))
+                    batch = await stream.read_batch(timeout=_KEEPALIVE_SECONDS)
                 except asyncio.TimeoutError:
-                    # Bağlantıyı canlı tut
+                    # guacd sessiz — tarayıcının 15 sn'lik tünel zaman aşımına
+                    # yakalanmamak için canlılık işareti gönder
                     try:
                         await websocket.send_text("3.nop;")
+                        continue
                     except Exception:
                         break
+                except ValueError:
+                    logger.warning("guacd akışı ayrıştırılamadı — tünel kapatılıyor")
+                    break
+                except Exception:
+                    break
+                if not batch:
+                    continue
+                try:
+                    await websocket.send_text("".join(batch))
                 except Exception:
                     break
 
-        relay_task = asyncio.create_task(guacd_to_browser())
-
-        try:
+        async def browser_to_guacd():
+            """tarayıcı → guacd (klavye, fare, pano)."""
             while True:
-                msg = await websocket.receive()
+                try:
+                    msg = await websocket.receive()
+                except Exception:
+                    break
                 if msg.get("type") == "websocket.disconnect":
                     break
-                if "text" in msg and msg["text"]:
-                    writer.write(msg["text"].encode("utf-8"))
+                text = msg.get("text")
+                if not text:
+                    continue
+                try:
+                    writer.write(text.encode("utf-8"))
                     await writer.drain()
+                except Exception:
+                    break
+
+        # Hangi yön önce biterse diğerini de kapat. Eskiden yalnızca tarayıcı
+        # tarafı bekleniyordu: guacd düştüğünde soket, tarayıcı kendi 15 sn'lik
+        # zaman aşımına düşene kadar açık kalıyordu.
+        tasks = [
+            asyncio.create_task(guacd_to_browser()),
+            asyncio.create_task(browser_to_guacd()),
+        ]
+        try:
+            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         finally:
-            relay_task.cancel()
-            try:
-                await relay_task
-            except asyncio.CancelledError:
-                pass
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     except asyncio.TimeoutError:
         await safe_send(

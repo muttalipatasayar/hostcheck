@@ -354,7 +354,7 @@ export default function QuickCheck() {
       const res = await axios.post('/api/quick-check/', { domain: d })
       setResult(res.data)
     } catch (err) {
-      toast.error('Kontrol çalıştırılamadı — backend çalışıyor mu?')
+      toast.error(apiHataMesaji(err, 'Kontrol çalıştırılamadı'))
       console.error(err)
     } finally {
       setLoading(false)

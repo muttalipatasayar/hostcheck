@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import axios from 'axios'
 import { RECORD_TYPES, TYPE_MAP } from '../lib/dnsRecordTypes'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 // ── Yardımcı bileşenler ───────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ export default function DNSToolbox() {
       })
       setResult(res.data)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Sorgu başarısız')
+      toast.error(apiHataMesaji(err, 'Sorgu başarısız'))
     } finally {
       setLoading(false)
     }

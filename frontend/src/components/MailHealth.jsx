@@ -6,6 +6,7 @@ import {
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 const STATUS_CONFIG = {
   healthy: { color: '#4a6cf7', dot: 'status-dot-healthy', icon: CheckCircle2 },
@@ -36,7 +37,7 @@ export default function MailHealth() {
       })
       setResult(res.data)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Mail sağlık kontrolü başarısız')
+      toast.error(apiHataMesaji(err, 'Mail sağlık kontrolü başarısız'))
     } finally {
       setLoading(false)
     }

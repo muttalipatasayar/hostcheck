@@ -50,3 +50,48 @@ class TicketStore:
             return None
         expires_at, params = entry
         return params if expires_at > now else None
+
+
+# ── Origin doğrulaması ────────────────────────────────────────────────────────
+
+import os
+from urllib.parse import urlparse
+
+
+def _allowed_origins() -> set[str]:
+    """CORS ile AYNI listeyi kullanır — tek yapılandırma noktası."""
+    raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    return {o.strip().rstrip("/") for o in raw.split(",") if o.strip()}
+
+
+async def check_origin(websocket: WebSocket) -> bool:
+    """El sıkışmadan ÖNCE çağrılır; origin izinli değilse soketi kapatır.
+
+    Neden gerekli: WebSocket el sıkışması Same-Origin Policy'ye TABİ DEĞİLDİR
+    ve `CORSMiddleware` WS'i hiç görmez. Basic Auth ise "ambient"tır —
+    tarayıcı Authorization başlığını cross-origin WS el sıkışmasına da
+    otomatik ekler. Yani Nginx auth_basic bu saldırıyı DURDURMAZ: kötü
+    niyetli bir sayfa operatörün tarayıcısından wss://panel/api/ssh/ws
+    açıp panelin iç ağ erişimini ödünç alabilir (CSWSH).
+
+    Origin başlığı hiç yoksa istek tarayıcıdan gelmiyordur (curl, betik) —
+    bu durumda ağ sınırı (127.0.0.1 binding + Nginx auth) tek koruma olarak
+    kalır ve bağlantıya izin verilir; CSWSH yalnızca tarayıcı kaynaklı bir
+    saldırıdır.
+    """
+    origin = websocket.headers.get("origin")
+    if not origin:
+        return True
+
+    allowed = _allowed_origins()
+    if origin.rstrip("/") in allowed:
+        return True
+
+    # Aynı origin'den gelen istek: Nginx tek origin'den servis ettiğinde
+    # Origin, isteğin Host'uyla aynıdır ve CORS_ORIGINS'te yazmasa da meşrudur.
+    host = websocket.headers.get("host", "")
+    if host and urlparse(origin).netloc == host:
+        return True
+
+    await websocket.close(code=1008, reason="Origin izin verilmiyor")
+    return False

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { Search, Clock, Shield, Building2, Server, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { useTarget, useCommittedTarget } from '../context/TargetContext'
+import { apiHataMesaji } from '../lib/apiHata'
 
 export default function DNSHistory() {
   const [loading, setLoading] = useState(false)
@@ -18,7 +19,7 @@ export default function DNSHistory() {
       const res = await axios.post('/api/dns-history/lookup', { domain: d })
       setResult(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Sorgu sırasında bir hata oluştu.')
+      setError(apiHataMesaji(err, 'Sorgu sırasında bir hata oluştu.'))
     } finally {
       setLoading(false)
     }
