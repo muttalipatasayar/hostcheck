@@ -1,0 +1,45 @@
+HostCheck — Hosting Destek Paneli
+Telif Hakkı (c) 2026 Muttalip Atasayar. Tüm hakları saklıdır.
+Copyright (c) 2026 Muttalip Atasayar. All rights reserved.
+
+TÜRKÇE
+
+Bu yazılım ve beraberindeki tüm dosyalar özel mülkiyettir ve telif hakkıyla
+korunmaktadır.
+
+Telif hakkı sahibinin önceden verilmiş açık ve yazılı izni olmaksızın; bu
+yazılımın tamamının veya bir bölümünün kopyalanması, çoğaltılması,
+değiştirilmesi, birleştirilmesi, yayımlanması, dağıtılması, alt lisansının
+verilmesi, satılması veya türev çalışma oluşturulması YASAKTIR.
+
+Kaynak kodun herkese açık bir depoda görüntülenebilir olması, yukarıdaki
+hakların hiçbirinin devredildiği anlamına gelmez.
+
+YAZILIM, AÇIK VEYA ÖRTÜLÜ HİÇBİR GARANTİ VERİLMEKSİZİN "OLDUĞU GİBİ"
+SUNULMAKTADIR. TELİF HAKKI SAHİBİ, YAZILIMIN KULLANIMINDAN DOĞAN HİÇBİR
+İDDİA, ZARAR VEYA SORUMLULUKTAN MESUL TUTULAMAZ.
+
+ENGLISH
+
+This software and all accompanying files are proprietary and protected by
+copyright.
+
+No part of this software may be copied, reproduced, modified, merged,
+published, distributed, sublicensed, sold, or used to create derivative
+works without the prior express written permission of the copyright holder.
+
+The fact that the source code is viewable in a public repository does not
+grant any of the rights above.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+ÜÇÜNCÜ TARAF BİLEŞENLER / THIRD-PARTY COMPONENTS
+
+Bu depo, kendi lisansları altında dağıtılan üçüncü taraf bağımlılıklar
+kullanır (bkz. backend/requirements.txt, frontend/package.json). Bu lisans
+onları kapsamaz.
+
+backend/data/trust_stores/ altındaki kök sertifikalar CCADB ve AOSP'den
+alınmış kamuya açık CA kökleridir; kendi yayın koşullarına tabidir.
