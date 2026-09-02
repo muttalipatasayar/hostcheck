@@ -50,6 +50,10 @@ export default function GirisModal({ acilisKipi = 'giris', sifirlamaTokeni = '',
   const [beniHatirla, setBeniHatirla] = useState(false)
   const [gonderiliyor, setGonderiliyor] = useState(false)
   const [basari, setBasari] = useState(null)   // { baslik, metin }
+  // Giriş "doğrulanmadı" diye reddedildiğinde beliren kurtarma yolu. Bu
+  // olmadan kaydolup bağlantıya tıklamamış biri tamamen sıkışıyordu: giriş
+  // 403, şifremi unuttum sessiz, yeni bağlantı isteme yolu yok.
+  const [dogrulamaGerek, setDogrulamaGerek] = useState(false)
   const ilkAlanRef = useRef(null)
 
   // Modal açıkken Escape yalnızca modalı kapatsın (scope yığınının tepesi).
@@ -88,6 +92,21 @@ export default function GirisModal({ acilisKipi = 'giris', sifirlamaTokeni = '',
     setKip(yeni)
     setParola('')
     setBasari(null)
+    setDogrulamaGerek(false)
+  }
+
+  const dogrulamaTekrarGonder = async () => {
+    setGonderiliyor(true)
+    try {
+      const { data } = await axios.post('/api/uyelik/dogrulama-tekrar',
+        { email: eposta.trim() })
+      setDogrulamaGerek(false)
+      setBasari({ baslik: 'Doğrulama bağlantısı yeniden gönderildi', metin: data.mesaj })
+    } catch (err) {
+      toast.error(apiHataMesaji(err, 'Bağlantı gönderilemedi'))
+    } finally {
+      setGonderiliyor(false)
+    }
   }
 
   const gonder = async (e) => {
@@ -113,6 +132,12 @@ export default function GirisModal({ acilisKipi = 'giris', sifirlamaTokeni = '',
         kipDegistir('giris')
       }
     } catch (err) {
+      // 403 + "doğrulan…" = hesap var, parola doğru, ama e-posta doğrulanmamış.
+      // Kullanıcıya çıkış yolunu göster.
+      const detay = err?.response?.data?.detail || ''
+      if (err?.response?.status === 403 && detay.toLocaleLowerCase('tr-TR').includes('doğrulan')) {
+        setDogrulamaGerek(true)
+      }
       toast.error(apiHataMesaji(err, 'İşlem tamamlanamadı'))
     } finally {
       setGonderiliyor(false)
@@ -244,6 +269,27 @@ export default function GirisModal({ acilisKipi = 'giris', sifirlamaTokeni = '',
                       En az {ayarlar.parola_min || 10} karakter, bir harf ve bir rakam içermeli.
                     </p>
                   )}
+                </div>
+              )}
+
+              {dogrulamaGerek && (
+                <div className="rounded-card px-3.5 py-3 flex items-start gap-2.5"
+                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.22)' }}>
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#d97706' }} />
+                  <div className="min-w-0">
+                    <p className="text-body-sm font-medium mb-1" style={{ color: '#b45309' }}>
+                      E-posta adresiniz henüz doğrulanmadı
+                    </p>
+                    <p className="text-label-md leading-relaxed mb-2" style={{ color: '#6b7388' }}>
+                      Gelen kutunuzdaki bağlantıya tıklamanız gerekiyor. Bağlantı
+                      elinizde yoksa yenisini isteyin.
+                    </p>
+                    <button type="button" onClick={dogrulamaTekrarGonder} disabled={gonderiliyor}
+                      className="btn-secondary text-label-md py-1.5 px-3">
+                      {gonderiliyor && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Yeni doğrulama bağlantısı gönder
+                    </button>
+                  </div>
                 </div>
               )}
 

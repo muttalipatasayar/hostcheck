@@ -389,11 +389,35 @@ async def sifre_unuttum(request: Request, payload: EpostaIstek,
     ac.origin_kontrol(request)
     eposta = ac.eposta_normalize(payload.email)
     kullanici = db.query(Kullanici).filter(Kullanici.email == eposta).first()
-    if kullanici is not None and kullanici.aktif and kullanici.dogrulandi:
-        ham = _token_olustur(db, kullanici, "sifre",
-                             timedelta(minutes=ac.SIFRE_SIFIRLAMA_DAKIKA))
-        ac.denetim_yaz(db, "sifre_sifirlama_istek", request=request, kullanici=kullanici)
-        await mailer.sifre_sifirlama_maili(kullanici.email, kullanici.ad_soyad, ham)
+
+    if kullanici is not None and kullanici.aktif:
+        if kullanici.dogrulandi:
+            ham = _token_olustur(db, kullanici, "sifre",
+                                 timedelta(minutes=ac.SIFRE_SIFIRLAMA_DAKIKA))
+            ac.denetim_yaz(db, "sifre_sifirlama_istek", request=request,
+                           kullanici=kullanici)
+            await mailer.sifre_sifirlama_maili(kullanici.email, kullanici.ad_soyad, ham)
+        else:
+            # DOĞRULANMAMIŞ HESAP ÇIKMAZI.
+            #
+            # Eskiden burada hiçbir şey yapılmıyordu ve kullanıcı yine "bağlantı
+            # gönderildi" kutusunu görüyordu. Sonuç: kaydolmuş ama doğrulama
+            # bağlantısına tıklamamış biri tamamen sıkışıyordu — giriş 403
+            # ("doğrulanmadı"), şifremi unuttum sessizce hiçbir şey yapmıyor,
+            # arayüzde yeni doğrulama isteme yolu da yok. Semptomu "mail hiç
+            # gelmiyor" oluyordu, oysa mail hiç GÖNDERİLMİYORDU.
+            #
+            # Doğru davranış: kullanıcının gerçekten ihtiyacı olan maili
+            # göndermek. Yanıt gövdesi değişmediği için hesap sayımı
+            # korumasını da bozmuyor.
+            ham = _token_olustur(db, kullanici, "dogrulama",
+                                 timedelta(hours=ac.DOGRULAMA_SAAT))
+            ac.denetim_yaz(db, "dogrulama_tekrar", request=request, kullanici=kullanici)
+            await mailer.dogrulama_maili(
+                kullanici.email, kullanici.ad_soyad, ham,
+                istek_zamani=ac.simdi().strftime("%d.%m.%Y %H:%M UTC"),
+                istek_ip=ac.istemci_ip(request),
+            )
     return {"mesaj": _GENEL_SIFRE}
 
 

@@ -337,6 +337,40 @@ def test_sifre_sifirlama_akisi(istemci):
     assert r.status_code == 400
 
 
+def test_dogrulanmamis_hesap_sifre_unuttumda_sikismaz(istemci):
+    """Doğrulanmamış kullanıcı için "şifremi unuttum" DOĞRULAMA maili gönderir.
+
+    Eskiden bu koşulda hiçbir şey gönderilmiyordu ama kullanıcı yine "bağlantı
+    gönderildi" görüyordu. Kaydolup bağlantıya tıklamamış biri tamamen
+    sıkışıyordu: giriş 403, şifremi unuttum sessiz, arayüzde yeni bağlantı
+    isteme yolu yok. Semptom "mail gelmiyor"du; gerçek sebep mailin hiç
+    GÖNDERİLMEMESİydi.
+    """
+    uye_olustur(istemci, "sikismis@natro.com", dogrula=False)
+    r = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "sikismis@natro.com"})
+    assert r.status_code == 202
+    metin = son_mail_metni()
+    assert "dogrula?token=" in metin, "doğrulama bağlantısı gönderilmedi"
+
+    # Gelen bağlantı gerçekten hesabı doğrulamalı.
+    r = istemci.get(f"/api/uyelik/dogrula?token={son_token()}", follow_redirects=False)
+    assert "dogrulama=ok" in r.headers["location"]
+    assert istemci.post("/api/uyelik/giris",
+                        json={"email": "sikismis@natro.com",
+                              "parola": PAROLA}).status_code == 200
+
+
+def test_dogrulanmamis_hesapta_da_yanit_ayni(istemci):
+    """Kurtarma yolu eklendi ama hesap sayımı koruması bozulmadı."""
+    uye_olustur(istemci, "bekleyen2@natro.com", dogrula=False)
+    uye_olustur(istemci, "dogrulanmis2@natro.com")
+    a = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "bekleyen2@natro.com"})
+    b = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "dogrulanmis2@natro.com"})
+    c = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "hicyok2@natro.com"})
+    assert a.status_code == b.status_code == c.status_code == 202
+    assert a.json() == b.json() == c.json()
+
+
 def test_sifre_unuttum_hesap_varligini_sizdirmaz(istemci):
     var = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "sifirla@natro.com"})
     yok = istemci.post("/api/uyelik/sifre-unuttum", json={"email": "hicyok@natro.com"})
