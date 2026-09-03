@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import ipaddress
 import socket
 import ssl
@@ -25,8 +26,43 @@ except ImportError:
 import dns_core
 
 # Hızlı public DNS resolver — sistem DNS'ini bypass et
-PUBLIC_DNS = ['8.8.8.8', '1.1.1.1']
+# Sıra bilinçlidir. Bu kurulumun ağında 8.8.8.8'e giden UDP/53 sorguların
+# ~%90'ında yanıtsız kalıyor (ölçüldü: 10 denemede 1 başarılı). Liste onunla
+# başlarken HER sorgu önce onun zaman aşımını bekliyordu — medyan 1674 ms;
+# 1.1.1.1 başa alınınca 2.4 ms. 8.8.8.8 listeden ÇIKARILMADI, yedeğe alındı:
+# engel kalkarsa kendiliğinden tekrar sıraya girer.
+#
+# Not: bu yalnızca bir hızlandırmadır. Doğruluğu sağlayan şey resolver'ın
+# gerçekten yedeğe geçebilmesidir — bkz. dns_core.sure_paylastir.
+PUBLIC_DNS = ['1.1.1.1', '9.9.9.9', '8.8.8.8']
 DNS_TIMEOUT = 3.0  # saniye
+
+# ── Ayrılmış thread havuzu ve eşzamanlılık kelepçesi ─────────────────────────
+#
+# Hızlı Kontrol tek istekte WHOIS, NS, A (+gethostbyname), MX ve SSL el
+# sıkışmasını `asyncio.gather` ile AYNI ANDA açıyor — yani istek başına ~6
+# bloklayan thread. Varsayılan havuz bu makinede 10 thread ve onu SSRF kapısı
+# (`net_validation.resolve_public_ips_async`), `mailer` ve diğer araçlar
+# paylaşıyor: İKİ eşzamanlı Hızlı Kontrol havuzu doldurup alakasız uçları
+# düşürüyordu. (SSRF kapısı zaman aşımında 504 verir — yani sonuç hizmet
+# kesintisi, doğrulama atlatma DEĞİL.)
+#
+# Havuz istek başına maliyet × kelepçe kadar: kelepçeyi geçen her istek
+# kendi 6 thread'ini kuyruğa girmeden bulur. Kuyruk bilerek YOK — thread
+# beklerken kontrolün kendi `wait_for` bütçesi işlerdi ve araç sağlıklı bir
+# sunucu için "zaman aşımı" derdi; bu panelde yavaş cevap kabul edilebilir,
+# YANLIŞ cevap değildir.
+_QC_ISTEK_BASINA_THREAD = 6
+_QC_ESZAMANLI_ISTEK = 4
+
+_QC_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=_QC_ISTEK_BASINA_THREAD * _QC_ESZAMANLI_ISTEK,
+    thread_name_prefix="quick-check")
+
+# Kelepçe uç seviyesindedir: sıra beklemek kontrollerin `wait_for`
+# PENCERESİNİN DIŞINDA kalsın. slowapi IP başına sayar, süreç geneli tavanı
+# yoktur — farklı IP'lerden gelen istekler havuzu yine doldururdu.
+_QC_KELEPCE = asyncio.Semaphore(_QC_ESZAMANLI_ISTEK)
 
 
 def make_resolver() -> 'dns.resolver.Resolver':
@@ -431,7 +467,7 @@ async def do_whois(domain: str) -> CheckItem:
 
     try:
         return await asyncio.wait_for(
-            loop.run_in_executor(None, _query_whois),
+            loop.run_in_executor(_QC_EXECUTOR, _query_whois),
             timeout=12.0
         )
     except asyncio.TimeoutError:
@@ -457,7 +493,7 @@ async def do_dns_ns(domain: str) -> CheckItem:
         if DNS_AVAILABLE:
             resolver = make_resolver()
             loop = asyncio.get_event_loop()
-            answers = await loop.run_in_executor(None, lambda: resolver.resolve(domain, 'NS'))
+            answers = await loop.run_in_executor(_QC_EXECUTOR, lambda: resolver.resolve(domain, 'NS'))
             ns_list = [str(r).rstrip('.') for r in answers]
             latency = (time.monotonic() - start) * 1000
             return CheckItem(
@@ -488,7 +524,7 @@ async def do_dns_a(domain: str) -> CheckItem:
         if DNS_AVAILABLE:
             resolver = make_resolver()
             loop = asyncio.get_event_loop()
-            answers = await loop.run_in_executor(None, lambda: resolver.resolve(domain, 'A'))
+            answers = await loop.run_in_executor(_QC_EXECUTOR, lambda: resolver.resolve(domain, 'A'))
             ips = [str(r) for r in answers]
             latency = (time.monotonic() - start) * 1000
             return CheckItem(
@@ -500,7 +536,7 @@ async def do_dns_a(domain: str) -> CheckItem:
             )
         else:
             loop = asyncio.get_event_loop()
-            ip = await loop.run_in_executor(None, socket.gethostbyname, domain)
+            ip = await loop.run_in_executor(_QC_EXECUTOR, socket.gethostbyname, domain)
             latency = (time.monotonic() - start) * 1000
             return CheckItem(
                 label="DNS / A Kaydı",
@@ -526,7 +562,7 @@ async def do_dns_mx(domain: str) -> CheckItem:
         if DNS_AVAILABLE:
             resolver = make_resolver()
             loop = asyncio.get_event_loop()
-            answers = await loop.run_in_executor(None, lambda: resolver.resolve(domain, 'MX'))
+            answers = await loop.run_in_executor(_QC_EXECUTOR, lambda: resolver.resolve(domain, 'MX'))
             mx_list = [(r.preference, str(r.exchange).rstrip('.')) for r in answers]
             mx_list.sort()
             mx_str = ", ".join([f"{pref} {exc}" for pref, exc in mx_list[:3]])
@@ -665,7 +701,7 @@ async def do_ssl(domain: str) -> CheckItem:
             with context.wrap_socket(raw, server_hostname=domain) as tls:
                 return tls.getpeercert()
 
-        cert = await loop.run_in_executor(None, _handshake)
+        cert = await loop.run_in_executor(_QC_EXECUTOR, _handshake)
         latency = (time.monotonic() - start) * 1000
 
         not_after_str = cert.get("notAfter", "")
@@ -854,9 +890,10 @@ async def quick_check(request: Request, payload: QuickCheckRequest):
     ssl_task = do_ssl(domain)
     http_task = do_http(domain)
 
-    whois_r, ns_r, a_r, mx_r, ssl_r, (http_r, http_code) = await asyncio.gather(
-        whois_task, ns_task, a_task, mx_task, ssl_task, http_task
-    )
+    async with _QC_KELEPCE:
+        whois_r, ns_r, a_r, mx_r, ssl_r, (http_r, http_code) = await asyncio.gather(
+            whois_task, ns_task, a_task, mx_task, ssl_task, http_task
+        )
 
     checks = [whois_r, ns_r, a_r, mx_r, ssl_r, http_r]
 

@@ -8,14 +8,23 @@ from typing import Optional
 
 import dns.resolver
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 import dns_core
+from rate_limiter import limiter
 
 router = APIRouter(prefix="/api/dns-history", tags=["dns-history"])
 
-PUBLIC_DNS = ['8.8.8.8', '1.1.1.1']
+# Sıra bilinçlidir. Bu kurulumun ağında 8.8.8.8'e giden UDP/53 sorguların
+# ~%90'ında yanıtsız kalıyor (ölçüldü: 10 denemede 1 başarılı). Liste onunla
+# başlarken HER sorgu önce onun zaman aşımını bekliyordu — medyan 1674 ms;
+# 1.1.1.1 başa alınınca 2.4 ms. 8.8.8.8 listeden ÇIKARILMADI, yedeğe alındı:
+# engel kalkarsa kendiliğinden tekrar sıraya girer.
+#
+# Not: bu yalnızca bir hızlandırmadır. Doğruluğu sağlayan şey resolver'ın
+# gerçekten yedeğe geçebilmesidir — bkz. dns_core.sure_paylastir.
+PUBLIC_DNS = ['1.1.1.1', '9.9.9.9', '8.8.8.8']
 DNS_TIMEOUT = 4.0
 ST_BASE = "https://api.securitytrails.com/v1"
 
@@ -65,17 +74,23 @@ REGISTRAR_PATTERNS = [
 ]
 
 
+# Tek WHOIS yanıtından okunacak üst sınır (quick_check ile aynı gerekçe)
+_MAX_WHOIS_BYTES = 1024 * 1024
+
+
 def _raw_whois(server: str, query: str, timeout: float = 8.0) -> str:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(timeout)
         s.connect((server, 43))
         s.sendall((query + "\r\n").encode())
         chunks = []
-        while True:
+        total = 0
+        while total < _MAX_WHOIS_BYTES:
             data = s.recv(4096)
             if not data:
                 break
             chunks.append(data)
+            total += len(data)
     return b"".join(chunks).decode(errors='ignore')
 
 
@@ -163,8 +178,11 @@ class DNSHistoryResponse(BaseModel):
 
 # ── Endpoint ──────────────────────────────────────────────────────────────────
 
+# WHOIS sorgusu ham TCP/43 bağlantısı açar ve varsayılan thread havuzunu
+# kullanır; limitsiz bırakmak havuzu tüketmeye açıktı.
 @router.post("/lookup", response_model=DNSHistoryResponse)
-async def lookup_history(payload: DNSHistoryRequest):
+@limiter.limit("20/minute")
+async def lookup_history(request: Request, payload: DNSHistoryRequest):
     domain = payload.domain.strip().lower()
     domain = re.sub(r'^https?://', '', domain).split('/')[0].split('?')[0]
 

@@ -225,3 +225,40 @@ def test_aia_url_crlf_enjeksiyonu():
         host = p.hostname or ""
         yol = (p.path or "/") + (("?" + p.query) if p.query else "")
         assert "\r" not in host + yol and "\n" not in host + yol
+
+
+# ── RBL hedefi: çözümlenen adres de doğrulanmalı ─────────────────────────────
+#
+# `validate_host` YALNIZCA string'e bakar, ismi çözmez. `127.0.0.1` literal'i
+# reddediliyordu ama aynı adres `127.0.0.1.nip.io` / `localtest.me` ile
+# geçiyordu. Dışarı bağlantı açılmadığı için SSRF değil; yine de belgelenmiş
+# bir kontrolün literal'i engelleyip takma adı geçirmesi tutarsız ve dahili
+# adresleme üçüncü taraf RBL bölgesine sızıyordu.
+
+@pytest.mark.parametrize("cozumlenen,gecmeli", [
+    (["127.0.0.1"],                 False),
+    (["10.0.0.5"],                  False),
+    (["192.168.1.1"],               False),
+    (["169.254.169.254"],           False),   # bulut metadata
+    (["8.8.8.8"],                   True),
+    (["127.0.0.1", "8.8.8.8"],      True),    # genel olan kalır
+])
+def test_rbl_hedefi_ozel_adrese_cozulurse_reddedilir(monkeypatch, cozumlenen, gecmeli):
+    import asyncio
+    import routers.blacklist as bl
+
+    async def sahte_resolve(domain, rtype, **kw):
+        return {"status": "found", "records": list(cozumlenen), "ttl": 60, "error": None}
+
+    monkeypatch.setattr(bl.dns_core, "resolve_async", sahte_resolve)
+
+    async def calistir():
+        return await bl._resolve_target_ips("ornek.test")
+
+    if gecmeli:
+        sonuc = asyncio.run(calistir())
+        assert sonuc and all(bl.is_public_ip(ip) for ip in sonuc)
+    else:
+        with pytest.raises(HTTPException) as e:
+            asyncio.run(calistir())
+        assert e.value.status_code == 400

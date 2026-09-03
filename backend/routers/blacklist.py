@@ -28,7 +28,7 @@ from pydantic import BaseModel
 
 import dns_core
 from error_analysis import get_error_by_key
-from net_validation import validate_host
+from net_validation import is_public_ip, validate_host
 from rate_limiter import limiter
 from routers.quick_check import ErrorAnalysis
 
@@ -111,8 +111,10 @@ def _make_rbl_resolver() -> dns.asyncresolver.Resolver:
             raise ValueError("sistem resolver'ı bulunamadı")
     except Exception:
         r = dns_core.make_async_resolver()  # son çare: public resolver
-    r.timeout = QUERY_TIMEOUT
-    r.lifetime = QUERY_TIMEOUT
+    # QUERY_TIMEOUT TOPLAM bütçedir; sunucu başına düşen pay dns_core ile aynı
+    # kuralla hesaplanır. İkisini eşitlemek listedeki ilk sunucuya bütçenin
+    # tamamını verip diğerlerini denenmeden bırakıyordu (bkz. dns_core).
+    r.timeout, r.lifetime = dns_core.sure_paylastir(list(r.nameservers), QUERY_TIMEOUT)
     return r
 
 
@@ -209,7 +211,24 @@ async def _resolve_target_ips(cleaned: str) -> list[str]:
     res = await dns_core.resolve_async(cleaned, "A", timeout=QUERY_TIMEOUT)
     if res["status"] != "found" or not res["records"]:
         raise HTTPException(400, f"Alan adı IPv4 adresine çözülemedi: {res['error'] or 'A kaydı yok'}")
-    return res["records"][:MAX_IPS]
+
+    # DNS YANITI DA KULLANICI GİRDİSİDİR (CLAUDE.md kuralı). `validate_host`
+    # `127.0.0.1`'i reddediyordu ama AYNI adresi `127.0.0.1.nip.io` /
+    # `localtest.me` üzerinden gelince geçiriyordu — kontrol yalnızca string'e
+    # bakıyor, ismi çözmüyor.
+    #
+    # Burada dışarı bağlantı açılmadığı için bu SSRF değil: RBL sorgusu sabit
+    # bir public bölgeye gider. Yine de kapatılıyor, çünkü (1) belgelenmiş bir
+    # kontrolün literal'i engelleyip takma adı geçirmesi tutarsız, (2) dahili
+    # adresleme üçüncü taraf RBL bölge işletmecisine sızıyor ve (3) teknisyene
+    # "127.0.0.1 listede değil" gibi anlamsız bir sonuç dönüyordu.
+    genel = [ip for ip in res["records"] if is_public_ip(ip)]
+    if not genel:
+        raise HTTPException(
+            400,
+            "Alan adı özel / yerel bir adrese çözümleniyor — RBL kontrolü yapılamaz",
+        )
+    return genel[:MAX_IPS]
 
 
 @router.post("/check", response_model=BlacklistResponse)

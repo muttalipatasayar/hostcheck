@@ -13,26 +13,51 @@ import dns.asyncresolver
 import dns.exception
 import dns.resolver
 
-DEFAULT_NAMESERVERS = ['8.8.8.8', '1.1.1.1']
+# Sıra bilinçlidir. Bu kurulumun ağında 8.8.8.8'e giden UDP/53 sorguların
+# ~%90'ında yanıtsız kalıyor (ölçüldü: 10 denemede 1 başarılı). Liste onunla
+# başlarken HER sorgu önce onun zaman aşımını bekliyordu — medyan 1674 ms;
+# 1.1.1.1 başa alınınca 2.4 ms. 8.8.8.8 listeden ÇIKARILMADI, yedeğe alındı:
+# engel kalkarsa kendiliğinden tekrar sıraya girer.
+#
+# Not: bu yalnızca bir hızlandırmadır. Doğruluğu sağlayan şey resolver'ın
+# gerçekten yedeğe geçebilmesidir — bkz. dns_core.sure_paylastir.
+DEFAULT_NAMESERVERS = ['1.1.1.1', '9.9.9.9', '8.8.8.8']
 DEFAULT_TIMEOUT = 3.0  # saniye
+
+
+# `timeout` argümanı TOPLAM bütçedir (dnspython'da `lifetime`), tek sunucuya
+# ayrılan süre değil — her çağrı yeri onu zaten dış `asyncio.wait_for` ile
+# eşleştirdiği için tek anlamlı okuma bu.
+#
+# Neden ayrı: dnspython'da `timeout` bir sunucuya yapılan TEK denemenin,
+# `lifetime` ise sorgunun TAMAMININ bütçesidir. İkisi eşitken listedeki İLK
+# sunucu bütçenin hepsini yiyor ve dnspython ikinciye geçemeden
+# `LifetimeTimeout` fırlatıyordu: PUBLIC_DNS listeleri yedeklilik sağlıyor
+# görünüp aslında ölü koddu. 8.8.8.8'e giden UDP/53 bu ağda filtrelendiğinde
+# panelin TÜM DNS teşhisi ("NS yanıt vermiyor", "Çözümlenemiyor") sessizce
+# yanlış cevap üretti — oysa 1.1.1.1 ve 9.9.9.9 anında yanıtlıyordu.
+#
+# Bölüşüm eşit: toplam bütçe değişmez, dolayısıyla hiçbir uç bugünkünden daha
+# uzun sürmez; tek sunucu verildiğinde (DNS yayılma) davranış birebir aynıdır.
+
+def sure_paylastir(nameservers: list[str], timeout) -> tuple[float, float]:
+    """(tek_deneme_suresi, toplam_butce) — toplam bütçe korunur."""
+    t = DEFAULT_TIMEOUT if timeout is None else float(timeout)
+    return t / max(1, len(nameservers)), t
 
 
 def make_resolver(nameservers=None, timeout=None) -> dns.resolver.Resolver:
     """Senkron resolver — run_in_executor içinde kullanılır."""
     r = dns.resolver.Resolver(configure=False)
     r.nameservers = list(nameservers or DEFAULT_NAMESERVERS)
-    t = DEFAULT_TIMEOUT if timeout is None else float(timeout)
-    r.timeout = t
-    r.lifetime = t
+    r.timeout, r.lifetime = sure_paylastir(r.nameservers, timeout)
     return r
 
 
 def make_async_resolver(nameservers=None, timeout=None) -> dns.asyncresolver.Resolver:
     r = dns.asyncresolver.Resolver(configure=False)
     r.nameservers = list(nameservers or DEFAULT_NAMESERVERS)
-    t = DEFAULT_TIMEOUT if timeout is None else float(timeout)
-    r.timeout = t
-    r.lifetime = t
+    r.timeout, r.lifetime = sure_paylastir(r.nameservers, timeout)
     return r
 
 

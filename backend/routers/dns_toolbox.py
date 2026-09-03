@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import re
 import time
 from typing import Optional
@@ -6,16 +7,52 @@ from typing import Optional
 import dns.resolver
 import dns.reversename
 import dns.rdatatype
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 import dns_core
 from mail_analysis import parse_dkim, parse_dmarc, parse_spf
+from rate_limiter import limiter
 
 router = APIRouter(prefix="/api/dns-toolbox", tags=["dns-toolbox"])
 
-PUBLIC_DNS = ['8.8.8.8', '1.1.1.1', '9.9.9.9']
+# Sıra bilinçlidir. Bu kurulumun ağında 8.8.8.8'e giden UDP/53 sorguların
+# ~%90'ında yanıtsız kalıyor (ölçüldü: 10 denemede 1 başarılı). Liste onunla
+# başlarken HER sorgu önce onun zaman aşımını bekliyordu — medyan 1674 ms;
+# 1.1.1.1 başa alınınca 2.4 ms. 8.8.8.8 listeden ÇIKARILMADI, yedeğe alındı:
+# engel kalkarsa kendiliğinden tekrar sıraya girer.
+#
+# Not: bu yalnızca bir hızlandırmadır. Doğruluğu sağlayan şey resolver'ın
+# gerçekten yedeğe geçebilmesidir — bkz. dns_core.sure_paylastir.
+PUBLIC_DNS = ['1.1.1.1', '9.9.9.9', '8.8.8.8']
 DNS_TIMEOUT = 5.0
+
+# ── Ayrılmış thread havuzu (ssl_chain_core.CHAIN_EXECUTOR deseni) ────────────
+#
+# `run_in_executor(None, …)` KULLANILMAZ. Varsayılan havuz bu makinede 10
+# thread ve onu `net_validation.resolve_public_ips_async` (SSRF kapısı),
+# whois, SSL el sıkışmaları ve `mailer` paylaşıyor.
+#
+# Ölçüldü: DKIM otomatik keşfi batch başına 5 bloklayan sorgu açıyor ve
+# `wait_for` süresi dolduğunda thread İPTAL EDİLEMİYOR (run_in_executor
+# future'ı iptal edilse de thread resolver bütçesi bitene kadar çalışır).
+# İKİ eşzamanlı otomatik keşif — auth'suz bir uçta, tek IP'den, rate limitin
+# çok altında — varsayılan havuzun tamamını tutuyordu: alakasız bir işin
+# kuyrukta bekleme süresi 0.001s'den 0.704s'ye çıktı. Yani SSRF doğrulaması
+# ve üyelik e-postaları DNS Toolbox yüzünden gecikiyordu.
+#
+# Boyut, keşif batch'inden (5) geniş seçildi: keşif çalışırken sıradan tek
+# sorgulara EN AZ 3 thread kalır, böylece kuyrukta bekleyen bir sorgu dış
+# `wait_for` bütçesini aşıp sessizce "kayıt yok" demez.
+_DNS_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=8, thread_name_prefix="dns-toolbox")
+
+# Otomatik keşif (19 selector, 4 batch) süreç genelinde TEK çalışır.
+# Rate limit IP başına sayar ve süreç geneli bir tavanı yoktur; farklı
+# IP'lerden gelen eşzamanlı keşifler havuzu yine doldururdu. Bekleme dış
+# `wait_for` PENCERESİNİN DIŞINDA olur — sırasını bekleyen istek yavaşlar,
+# yanlış cevap almaz.
+_KESIF_KELEPCE = asyncio.Semaphore(1)
 
 
 def make_resolver() -> dns.resolver.Resolver:
@@ -185,7 +222,7 @@ def _query_sync(queried_domain: str, rtype: str) -> tuple[list[DNSRecord], int]:
 
 async def _run_query(queried_domain: str, rtype: str):
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _query_sync, queried_domain, rtype)
+    return await loop.run_in_executor(_DNS_EXECUTOR, _query_sync, queried_domain, rtype)
 
 
 # ── Endpoint ──────────────────────────────────────────────────────────────────
@@ -214,13 +251,18 @@ def _try_dkim_selector(domain: str, selector: str) -> tuple[list[DNSRecord], int
 
 
 async def _dkim_auto_discover(domain: str) -> tuple[list[DNSRecord], str, int] | None:
-    """Yaygın selectorları paralel dener, ilk bulunanı döner."""
+    """Yaygın selectorları paralel dener, ilk bulunanı döner.
+
+    Kelepçe (`_KESIF_KELEPCE`) TÜM fan-out'u sarar: sıra beklemek dış
+    `wait_for` penceresinin dışında kalsın, aksi halde kuyrukta bekleyen bir
+    selector zaman aşımına düşüp "bu selector yok" gibi görünürdü.
+    """
     loop = asyncio.get_event_loop()
 
     async def try_one(sel):
         try:
             result = await asyncio.wait_for(
-                loop.run_in_executor(None, _try_dkim_selector, domain, sel),
+                loop.run_in_executor(_DNS_EXECUTOR, _try_dkim_selector, domain, sel),
                 timeout=4.0,
             )
             if result:
@@ -230,19 +272,25 @@ async def _dkim_auto_discover(domain: str) -> tuple[list[DNSRecord], str, int] |
         return None
 
     # 5'er batch halinde dene — hepsini aynı anda açmak yerine
-    for i in range(0, len(COMMON_SELECTORS), 5):
-        batch = COMMON_SELECTORS[i:i+5]
-        tasks = [try_one(s) for s in batch]
-        results = await asyncio.gather(*tasks)
-        for res in results:
-            if res:
-                sel, (recs, ms) = res
-                return recs, sel, ms
+    async with _KESIF_KELEPCE:
+        for i in range(0, len(COMMON_SELECTORS), 5):
+            batch = COMMON_SELECTORS[i:i+5]
+            tasks = [try_one(s) for s in batch]
+            results = await asyncio.gather(*tasks)
+            for res in results:
+                if res:
+                    sel, (recs, ms) = res
+                    return recs, sel, ms
     return None
 
 
+# DKIM otomatik keşfi tek istekte 20 selector sorgular; uç auth'suz olduğu
+# için limitsiz bırakmak DNS amplifikasyonu demekti (panelin çıkış IP'si
+# public resolver'larca hız sınırına takılır ve araç sessizce yanlış
+# "kayıt yok" üretmeye başlar).
 @router.post("/query", response_model=DNSQueryResponse)
-async def dns_query(payload: DNSQueryRequest):
+@limiter.limit("30/minute")
+async def dns_query(request: Request, payload: DNSQueryRequest):
     domain = payload.domain.strip().lower()
     domain = re.sub(r'^https?://', '', domain).split('/')[0].split('?')[0]
     rtype = payload.record_type.upper()
@@ -258,7 +306,9 @@ async def dns_query(payload: DNSQueryRequest):
 
     # ── DKIM — özel akış ──────────────────────────────────────────────────────
     if rtype == 'DKIM':
-        selector = (payload.selector or '').strip().lower()
+        selector = (payload.selector or '').strip().lower()[:63]
+        if selector and not re.match(r'^[a-z0-9._-]+$', selector):
+            raise HTTPException(status_code=400, detail="Geçersiz DKIM selector formatı")
 
         if selector:
             # Belirli selector sorgusu
