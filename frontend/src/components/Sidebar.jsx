@@ -1,7 +1,10 @@
 import { clsx } from 'clsx'
-import { ChevronRight, Server, X } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronRight, KeyRound, LogOut, Server, ShieldCheck, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { TOOLS } from '../lib/tools'
 import { useApiHealth } from '../hooks/useApiHealth'
+import { useYonetici } from '../context/YoneticiContext'
 
 // Gösterge artık GERÇEK: /api/health yoklanıyor. Eskiden sabit metindi ve
 // backend çökmüşken bile "Sistem Sağlıklı" yazıyordu.
@@ -13,7 +16,21 @@ const SAGLIK = {
 
 export default function Sidebar({ activeView, onNavigate, onKapat }) {
   const { durum, gecikmeMs } = useApiHealth()
+  const { yonetici, girisYap, cikisYap } = useYonetici()
+  const [giriliyor, setGiriliyor] = useState(false)
   const s = SAGLIK[durum] || SAGLIK.bilinmiyor
+
+  // Tarayıcının Basic Auth penceresi açılır; parola bu uygulamaya hiç gelmez.
+  const yoneticiGirisi = async () => {
+    setGiriliyor(true)
+    try {
+      if (await girisYap()) toast.success('Yönetici modu açık — düzenleme etkin')
+      else toast.error('Giriş yapılmadı')
+    } finally {
+      setGiriliyor(false)
+    }
+  }
+
   return (
     <aside
       className="flex flex-col h-full w-60 px-3 py-5 gap-1"
@@ -94,21 +111,43 @@ export default function Sidebar({ activeView, onNavigate, onKapat }) {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — yönetici durumu. Kimlik Nginx Basic Auth'ta; bu blok yalnızca
+          arayüzü açıp kapatır, hiçbir kapıyı kendisi tutmaz. */}
       <div className="pt-3 flex-shrink-0">
         <div className="tonal-divider mb-3" />
-        <div className="px-3 flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-label-sm font-semibold"
-            style={{ background: 'rgba(59,127,255,0.12)', color: '#3b7eff' }}
+        {yonetici ? (
+          <div className="px-3 flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>Yönetici</p>
+              <p className="text-label-sm truncate" style={{ color: '#6b7388' }}>Düzenleme etkin</p>
+            </div>
+            <button
+              onClick={cikisYap}
+              title="Yönetici modundan çık — kimliği tamamen düşürmek için tarayıcıyı kapatın"
+              aria-label="Yönetici modundan çık"
+              className="p-1.5 rounded-btn flex-shrink-0"
+              style={{ color: '#6b7388' }}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={yoneticiGirisi}
+            disabled={giriliyor}
+            className="btn-ghost w-full flex items-center justify-center gap-2 text-body-sm"
+            title="Hazır yanıtları düzenlemek için yönetici kimliği"
           >
-            D
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-body-sm font-medium truncate" style={{ color: '#1a1d2e' }}>Destek Uzmanı</p>
-            <p className="text-label-sm truncate" style={{ color: '#6b7388' }}>Aktif oturum</p>
-          </div>
-        </div>
+            <KeyRound className="w-4 h-4" />
+            {giriliyor ? 'Bekleniyor…' : 'Yönetici Girişi'}
+          </button>
+        )}
       </div>
     </aside>
   )

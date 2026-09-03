@@ -20,6 +20,7 @@ import FTPManager from './components/FTPManager'
 import IPLookup from './components/IPLookup'
 import CommandPalette from './components/shell/CommandPalette'
 import { TargetProvider, useTarget } from './context/TargetContext'
+import { YoneticiProvider } from './context/YoneticiContext'
 import { HotkeyProvider, useHotkeys } from './hooks/useHotkeys'
 import { getTool } from './lib/tools'
 
@@ -193,10 +194,12 @@ function AppShell() {
 
 export default function App() {
   return (
-    <TargetProvider>
-      <HotkeyProvider>
-        <AppShell />
-      </HotkeyProvider>
-    </TargetProvider>
+    <YoneticiProvider>
+      <TargetProvider>
+        <HotkeyProvider>
+          <AppShell />
+        </HotkeyProvider>
+      </TargetProvider>
+    </YoneticiProvider>
   )
 }

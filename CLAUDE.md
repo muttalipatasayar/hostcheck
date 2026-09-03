@@ -90,6 +90,22 @@ Adding an endpoint means deciding which tier it joins:
 | **Open** | DNS, SSL, quick-check, screenshot, blacklist, mail-health, IP, site-speed, `GET /api/hazir-yanitlar` | nothing |
 | **Nginx Basic Auth** | `/api/admin`, `/api/ssh`, `/api/rdp`, `/api/ftp`, and `/api/hazir-yanitlar` **write methods** (`limit_except GET HEAD`) | reverse proxy, ambient credentials |
 
+**The UI has an "admin mode", but it is NOT application auth.**
+`context/YoneticiContext.jsx` holds one boolean: *has this browser authenticated
+to Nginx?* It is set by clicking "Yönetici Girişi", which calls
+`GET /api/admin/ping` — the same probe SSH/RDP/FTP already use — and lets the
+browser's native Basic Auth dialog do the work. The password never reaches
+JavaScript and is never stored by us; the browser caches it, keyed by origin +
+realm. **All four protected locations must keep the same `auth_basic $auth_realm`
+string**, or logging in once stops carrying over and every edit re-prompts.
+
+The boolean gates only *rendering*. Flipping it by hand in devtools opens no
+door — the write still hits Nginx and returns 401. A `localStorage` flag
+remembers the intent across reloads so a returning admin is re-probed silently;
+an anonymous visitor is never probed, because a 401 would pop the dialog at
+them. "Çıkış" clears the flag but **cannot** clear the browser's cached
+credential — only closing the browser does that. That matters on shared machines.
+
 Two consequences that bite:
 
 - **Hazır Yanıtlar write protection lives ONLY in `deploy/nginx-hostcheck.conf`.**

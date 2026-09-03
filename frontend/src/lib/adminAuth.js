@@ -19,3 +19,23 @@ export async function ensureAdminAccess() {
     return true
   }
 }
+
+/** Yönetici kimliği GERÇEKTEN var mı?
+ *
+ * `ensureAdminAccess`ten ayrı, çünkü semantiği farklı: o, "bağlanmayı engelleme"
+ * amaçlı ve ağ hatasında iyimser davranıp `true` döner (asıl uç kendi hatasını
+ * gösterir). Burada iyimserlik YANLIŞ olur — çalışmayacak bir düzenleme
+ * arayüzü açardık. Şüphede kalırsa `false`.
+ *
+ * DİKKAT: Bu istek 401 alırsa tarayıcı Basic Auth penceresini AÇAR. Bu yüzden
+ * anonim ziyaretçi için KENDİLİĞİNDEN çağrılmamalı — yalnızca kullanıcı
+ * "Yönetici Girişi"ne bastığında ya da daha önce giriş yaptığı biliniyorken.
+ */
+export async function yoneticiMi() {
+  try {
+    await axios.get('/api/admin/ping')
+    return true
+  } catch {
+    return false
+  }
+}
