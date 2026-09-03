@@ -42,6 +42,13 @@ hata()  { printf '\033[0;31m  ✗ %s\033[0m\n' "$*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || hata "sudo ile çalıştırın"
 [ -d "$SRC" ] || hata "kaynak yok: $SRC"
 
+# Kaynak GERÇEKTEN düzeltmeyi içeriyor mu. Bu kontrol olmadan eski bir
+# checkout sessizce dağıtılır ve betik "başarılı" der.
+grep -q "sure_paylastir" "$SRC/dns_core.py" \
+  || hata "kaynakta düzeltme yok ($SRC/dns_core.py içinde sure_paylastir bulunamadı)"
+grep -q "_DNS_EXECUTOR" "$SRC/routers/dns_toolbox.py" \
+  || hata "kaynakta ayrılmış havuz yok: routers/dns_toolbox.py"
+
 bilgi "Yedek alınıyor → $YEDEK"
 mkdir -p "$YEDEK/routers"
 for f in "${DOSYALAR[@]}"; do
@@ -68,16 +75,35 @@ ok "import temiz"
 
 bilgi "Servis yeniden başlatılıyor"
 systemctl restart "$SVC"
-sleep 3
-systemctl is-active --quiet "$SVC" || hata "servis ayağa kalkmadı: journalctl -u $SVC -n 50"
-ok "$SVC çalışıyor"
+
+# Sabit `sleep 3` YETMİYOR: yalnızca `import main` ~2.6 sn sürüyor, üstüne
+# uvicorn açılışı, Alembic ve hazır yanıt tohumlaması biniyor. Ölçümde servis
+# 4 sn'de henüz dinlemiyordu; sabit bekleme, SAĞLIKLI bir dağıtımı
+# "başarısız" gösterip aşağıdaki duman testini ham bir traceback ile
+# patlatıyordu. 60 sn'ye kadar yokla.
+hazir=0
+for _ in $(seq 1 60); do
+  systemctl is-active --quiet "$SVC" \
+    || { journalctl -u "$SVC" -n 50 --no-pager; hata "servis ayağa kalkmadı"; }
+  if curl -fsS -m 3 http://127.0.0.1:8000/api/health >/dev/null 2>&1; then hazir=1; break; fi
+  sleep 1
+done
+[ "$hazir" = "1" ] || { journalctl -u "$SVC" -n 50 --no-pager; hata "servis 60 sn içinde sağlık ucuna yanıt vermedi"; }
+ok "$SVC çalışıyor ve yanıt veriyor"
 
 bilgi "Duman testi — DNS artık yedeğe düşebiliyor mu?"
 for tip in A NS MX; do
   yanit=$(curl -s -m 30 -X POST http://127.0.0.1:8000/api/dns-toolbox/query \
     -H 'Content-Type: application/json' \
     -d "{\"domain\":\"example.com\",\"record_type\":\"$tip\"}")
-  durum=$(printf '%s' "$yanit" | "$DST/venv/bin/python" -c 'import sys,json;print(json.load(sys.stdin)["status"])')
+  # `|| true`: yanıt boş ya da JSON değilse `set -e` betiği ham bir
+  # JSONDecodeError ile düşürüyordu; hangi adımda ne olduğu görünmüyordu.
+  durum=$(printf '%s' "$yanit" | "$DST/venv/bin/python" -c \
+    'import sys,json
+try:
+    print(json.load(sys.stdin).get("status","<status yok>"))
+except Exception:
+    print("<JSON değil>")' 2>/dev/null || true)
   [ "$durum" = "found" ] || hata "$tip sorgusu '$durum' döndü (beklenen: found) — geri al: $YEDEK"
   ok "$tip → found"
 done
