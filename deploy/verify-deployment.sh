@@ -6,6 +6,7 @@
 #   • HTTPS ayakta ve HTTP→HTTPS yönleniyor
 #   • Genel araçlar auth'suz erişilebilir (200)
 #   • SSH/RDP/FTP/admin uçları auth ZORUNLU kılıyor (401)  ← en kritik
+#   • Hazır Yanıtlar: okuma açık (200), YAZMA auth zorunlu (401)  ← en kritik
 #
 # 401 beklenen yerde 200/404 görürseniz: YÖNETİCİ UÇLARI AÇIKTA. Nginx
 # auth_basic yapılandırmasını ve htpasswd yolunu düzeltin.
@@ -45,6 +46,31 @@ check "DNS Toolbox sorgusu" "200" \
        -d '{"domain":"example.com","record_type":"A"}' \
        "$BASE/api/dns-toolbox/query")"
 check "IP Sorgulama" "200" "$(code "$BASE/api/ip/lookup?q=8.8.8.8")"
+check "Hazır Yanıtlar okunabiliyor" "200" "$(code "$BASE/api/hazir-yanitlar")"
+
+# Hazır yanıt YAZMA uçlarının TEK koruması Nginx'teki `limit_except GET HEAD`
+# bloğudur — uygulamada karşılığı yok (üyelik 3 Eylül 2026'da geri alındı).
+# Burada 201/200/422 görürseniz kütüphane internete YAZILABİLİR durumdadır:
+# 89 hazır metin müşterilere kopyalanıyor, yani kimlik avı bağlantısı
+# dağıtmanın doğrudan yolu. deploy/nginx-hostcheck.conf ile karşılaştırın.
+echo "── Hazır Yanıtlar YAZMA (auth OLMADAN 401 dönmeli) ────"
+check "POST /api/hazir-yanitlar kilitli" "401" \
+  "$(code -X POST -H 'Content-Type: application/json' \
+       -d '{"title":"x","content":"x","category":"Genel"}' \
+       "$BASE/api/hazir-yanitlar")"
+check "DELETE /api/hazir-yanitlar/1 kilitli" "401" \
+  "$(code -X DELETE "$BASE/api/hazir-yanitlar/1")"
+check "PATCH .../1/pin kilitli" "401" \
+  "$(code -X PATCH "$BASE/api/hazir-yanitlar/1/pin")"
+check "POST .../kategoriler kilitli" "401" \
+  "$(code -X POST -H 'Content-Type: application/json' \
+       -d '{"name":"x","color":"#111111"}' \
+       "$BASE/api/hazir-yanitlar/kategoriler")"
+
+echo "── Kaldırılan üyelik uçları (404 dönmeli) ─────────────"
+check "uyelik/kayit yok" "404" \
+  "$(code -X POST -H 'Content-Type: application/json' -d '{}' "$BASE/api/uyelik/kayit")"
+check "yonetim/kullanicilar yok" "404" "$(code "$BASE/api/yonetim/kullanicilar")"
 
 echo "── Yönetici uçları (auth OLMADAN 401 dönmeli) ─────────"
 check "admin/ping kilitli"   "401" "$(code "$BASE/api/admin/ping")"

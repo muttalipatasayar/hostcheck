@@ -1,10 +1,20 @@
-"""Hazır yanıt kütüphanesi — ÜYELERE açık, yazma yalnızca YÖNETİCİYE.
+"""Hazır yanıt kütüphanesi — okuma HERKESE AÇIK, yazma Nginx Basic Auth arkasında.
 
-Erişim modeli 31 Ağustos'a kadar şöyleydi: okuma internete tamamen açık,
-yazma tek bir paylaşılan Nginx Basic Auth parolasına bağlı. İki sorun vardı:
-müşteriye kopyalanan metinler herkese görünüyordu ve bir yanıtı kimin
-değiştirdiği kaydedilmiyordu. Artık okuma üyelik, yazma yöneticilik ister ve
-her yazma `denetim_kayitlari`'na düşer.
+31 Ağustos'ta bu uçlar uygulama içi üyeliğin (kurumsal e-posta ile kayıt)
+arkasına alınmıştı; 3 Eylül'de o karar geri alındı. Erişim modeli yeniden
+üyelik ÖNCESİNDEKİ hâlinde:
+
+  GET    → herkese açık (teknisyen panelde arama yapar)
+  POST / PUT / PATCH / DELETE → Nginx'te `location /api/hazir-yanitlar` içindeki
+           `limit_except GET HEAD { auth_basic ... }` bloğu ile korunur.
+
+Yazma korumasının UYGULAMADA karşılığı yoktur; tek kapı Nginx'tir. Backend'i
+doğrudan (127.0.0.1:8000 dışında) yayına açmak ya da o `limit_except` bloğunu
+düşürmek kütüphaneyi internete yazılabilir bırakır — bkz. `deploy/nginx-hostcheck.conf`.
+
+Üyelikten kalan sertleştirmeler BİLEREK korundu: yazma uçlarındaki rate limit,
+`MAX_CONTENT_LEN` ve kategori rengi regex'i erişim denetimi değil, kimlik
+doğrulamadan bağımsız kaynak/enjeksiyon korumalarıdır.
 
 `/kategoriler` rotaları `/{yanit_id}`'den ÖNCE tanımlı kalmalı — sıra
 bozulursa FastAPI `kategoriler`'i int yol parametresi sanar ve kategori
@@ -18,13 +28,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-import auth_core as ac
 from database import get_db
-from models import HazirYanit, HazirYanitKategori, Kullanici
+from models import HazirYanit, HazirYanitKategori
 from rate_limiter import limiter
 
-# `content` üst sınırsızdı (`Text` + `min_length=1`) ve yazma uçları hem
-# auth'suz hem limitsizdi: SQLite dosyası disk dolana kadar büyütülebiliyordu.
+# `content` üst sınırsızdı (`Text` + `min_length=1`) ve yazma uçları limitsizdi:
+# SQLite dosyası disk dolana kadar büyütülebiliyordu.
 MAX_CONTENT_LEN = 20_000
 
 # Kategori rengi doğrudan `style` özniteliğine giriyor; serbest metin
@@ -77,8 +86,9 @@ def seed_if_empty(db: Session):
     """Tablo boşsa hazirYanitlar.json'u yükle.
 
     Açılışta (`main._yasam_dongusu`) BİR KEZ çağrılır. Eskiden her
-    `GET /api/hazir-yanitlar` isteğinde çağrılıyordu; uç üyelik kapısının
-    arkasına geçince ilk üye giriş yapana kadar tablo boş kalacaktı.
+    `GET /api/hazir-yanitlar` isteğinde çağrılıyordu; uç yeniden anonime
+    açılınca oraya geri taşımak mümkün ama gereksiz — her listeleme isteğinde
+    bir `COUNT(*)` demek olurdu.
     """
     if db.query(HazirYanit).count() > 0:
         return
@@ -100,16 +110,14 @@ def seed_if_empty(db: Session):
 
 @router.get("/kategoriler", response_model=List[KategoriResponse])
 @limiter.limit("60/minute")
-def list_kategoriler(request: Request, db: Session = Depends(get_db),
-                     _uye: Kullanici = Depends(ac.require_uye)):
+def list_kategoriler(request: Request, db: Session = Depends(get_db)):
     return db.query(HazirYanitKategori).order_by(HazirYanitKategori.id.asc()).all()
 
 
 @router.post("/kategoriler", response_model=KategoriResponse, status_code=201)
 @limiter.limit("20/minute")
 def create_kategori(request: Request, payload: KategoriCreate,
-                    db: Session = Depends(get_db),
-                    admin: Kullanici = Depends(ac.require_admin)):
+                    db: Session = Depends(get_db)):
     existing = db.query(HazirYanitKategori).filter(
         HazirYanitKategori.name == payload.name
     ).first()
@@ -119,55 +127,44 @@ def create_kategori(request: Request, payload: KategoriCreate,
     db.add(row)
     db.commit()
     db.refresh(row)
-    ac.denetim_yaz(db, "kategori_ekle", request=request, kullanici=admin,
-                   hedef=f"kategori:{row.id}", detay=row.name)
     return row
 
 
 @router.delete("/kategoriler/{kategori_id}", status_code=204)
 @limiter.limit("20/minute")
 def delete_kategori(request: Request, kategori_id: int,
-                    db: Session = Depends(get_db),
-                    admin: Kullanici = Depends(ac.require_admin)):
+                    db: Session = Depends(get_db)):
     row = db.query(HazirYanitKategori).filter(
         HazirYanitKategori.id == kategori_id
     ).first()
     if not row:
         raise HTTPException(status_code=404, detail="Kategori bulunamadı")
-    ad = row.name
     db.delete(row)
     db.commit()
-    ac.denetim_yaz(db, "kategori_sil", request=request, kullanici=admin,
-                   hedef=f"kategori:{kategori_id}", detay=ad)
 
 # ── Yanıtlar ──────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=List[YanitResponse])
 @limiter.limit("60/minute")
-def list_yanitlar(request: Request, db: Session = Depends(get_db),
-                  _uye: Kullanici = Depends(ac.require_uye)):
+def list_yanitlar(request: Request, db: Session = Depends(get_db)):
     return db.query(HazirYanit).order_by(HazirYanit.id.asc()).all()
 
 
 @router.post("", response_model=YanitResponse, status_code=201)
 @limiter.limit("20/minute")
 def create_yanit(request: Request, payload: YanitCreate,
-                 db: Session = Depends(get_db),
-                 admin: Kullanici = Depends(ac.require_admin)):
+                 db: Session = Depends(get_db)):
     row = HazirYanit(**payload.model_dump())
     db.add(row)
     db.commit()
     db.refresh(row)
-    ac.denetim_yaz(db, "yanit_ekle", request=request, kullanici=admin,
-                   hedef=f"yanit:{row.id}", detay=row.title)
     return row
 
 
 @router.put("/{yanit_id}", response_model=YanitResponse)
 @limiter.limit("30/minute")
 def update_yanit(request: Request, yanit_id: int, payload: YanitUpdate,
-                 db: Session = Depends(get_db),
-                 admin: Kullanici = Depends(ac.require_admin)):
+                 db: Session = Depends(get_db)):
     row = db.query(HazirYanit).filter(HazirYanit.id == yanit_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Yanıt bulunamadı")
@@ -175,29 +172,22 @@ def update_yanit(request: Request, yanit_id: int, payload: YanitUpdate,
         setattr(row, field, value)
     db.commit()
     db.refresh(row)
-    ac.denetim_yaz(db, "yanit_guncelle", request=request, kullanici=admin,
-                   hedef=f"yanit:{row.id}", detay=row.title)
     return row
 
 
 @router.delete("/{yanit_id}", status_code=204)
 @limiter.limit("30/minute")
-def delete_yanit(request: Request, yanit_id: int, db: Session = Depends(get_db),
-                 admin: Kullanici = Depends(ac.require_admin)):
+def delete_yanit(request: Request, yanit_id: int, db: Session = Depends(get_db)):
     row = db.query(HazirYanit).filter(HazirYanit.id == yanit_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Yanıt bulunamadı")
-    baslik = row.title
     db.delete(row)
     db.commit()
-    ac.denetim_yaz(db, "yanit_sil", request=request, kullanici=admin,
-                   hedef=f"yanit:{yanit_id}", detay=baslik)
 
 
 @router.patch("/{yanit_id}/pin", response_model=YanitResponse)
 @limiter.limit("60/minute")
-def toggle_pin(request: Request, yanit_id: int, db: Session = Depends(get_db),
-               admin: Kullanici = Depends(ac.require_admin)):
+def toggle_pin(request: Request, yanit_id: int, db: Session = Depends(get_db)):
     row = db.query(HazirYanit).filter(HazirYanit.id == yanit_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Yanıt bulunamadı")
@@ -209,13 +199,8 @@ def toggle_pin(request: Request, yanit_id: int, db: Session = Depends(get_db),
 
 @router.post("/{yanit_id}/use", response_model=YanitResponse)
 @limiter.limit("60/minute")
-def increment_use(request: Request, yanit_id: int, db: Session = Depends(get_db),
-                  _uye: Kullanici = Depends(ac.require_uye)):
-    """Kullanım sayacı — her ÜYE artırabilir (yanıtı panoya kopyalayınca).
-
-    Sayaç yönetim panelindeki "en çok kullanılan yanıtlar" listesini besliyor;
-    yalnızca yöneticiye açık olsaydı hiç dolmazdı.
-    """
+def increment_use(request: Request, yanit_id: int, db: Session = Depends(get_db)):
+    """Kullanım sayacı — yanıtı panoya kopyalayan herkes artırır."""
     row = db.query(HazirYanit).filter(HazirYanit.id == yanit_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Yanıt bulunamadı")

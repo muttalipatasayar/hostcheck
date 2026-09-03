@@ -53,12 +53,13 @@ saf mantığı — joker eşleşmesi, SC-081v3 geçerlilik takvimi, yol kurma, g
 depolarının tutarlılığı (`test_ssl_chain_core.py`) ve Hızlı Kontrol'ün SSL
 teşhisi (`test_quick_check_ssl.py`).
 
-Üyelik iki dosya ekledi ve ikisi de **kapı** testidir — "doğru kullanıcı
-yapabiliyor mu"dan çok "yanlış kullanıcı yapamıyor mu": alan adı kapısı,
-doğrulama, oturum ömrü, CSRF, kaba kuvvet (`test_uyelik.py`) ve üç katmanlı
-yetki ayrımı — anonim / üye / yönetici (`test_yetki.py`). `conftest.py` süiti
-geçici bir veritabanına yönlendirir ve rate limiti kapatır; limitin kendisi
-`test_ip_rate_limit_acikken_calisir` içinde bilerek geri açılır.
+`test_hazir_yanitlar_erisim.py` Hazır Yanıtlar'ın **erişim sözleşmesini**
+sabitler: okuma anonim çalışıyor mu, yazma uygulamada gerçekten AÇIK mı
+(koruma Nginx'te — testin mesajı bunu söyler), üyelik uçları 404 mü, üyelik
+tabloları şemadan düştü mü. Ayrıca üyelikten kalan ve bilerek korunan
+sertleştirmeleri (içerik uzunluk sınırı, kategori rengi regex'i, yazma
+uçlarındaki rate limit) doğrular. `conftest.py` süiti geçici bir veritabanına
+yönlendirir ve rate limiti kapatır.
 
 İki kural:
 
@@ -74,38 +75,33 @@ geçici bir veritabanına yönlendirir ve rate limiti kapatır; limitin kendisi
 
 Two local processes. Vite (5173) proxies `/api` → FastAPI (8000) with `ws: true`, so HTTP **and** WebSockets share one origin in dev. Frontend code must therefore use relative paths (`/api/...`) and derive WebSocket URLs from `window.location` — hardcoding `localhost:8000` breaks the panel for anyone not on the serving machine.
 
-### Three access tiers — know which one an endpoint is in
+### No authentication in the app — the boundary is Nginx
 
-Since 31 Aug 2026 the panel has **application-level membership**, but it covers
-only part of the surface. Adding an endpoint means deciding which tier it joins:
+The panel has **no application-level auth**. Membership (corporate-email signup,
+roles, admin panel) shipped 31 Aug 2026 and was **reverted 3 Sep 2026**; every
+`auth_core` / `uyelik` / `yonetim` module is gone and migration
+`0004_uyelik_kaldir` drops the four tables. Do not reintroduce a login without
+being asked — the revert was a product decision, not a bug.
+
+Adding an endpoint means deciding which tier it joins:
 
 | Tier | Endpoints | Enforced by |
 |---|---|---|
-| **Open** | DNS, SSL, quick-check, screenshot, blacklist, mail-health, IP, site-speed, `/api/uyelik/*` | nothing |
-| **Membership** | `/api/hazir-yanitlar` (read = member, write = admin), `/api/yonetim/*` (admin) | `auth_core` dependencies, **in the app** |
-| **Nginx Basic Auth** | `/api/admin`, `/api/ssh`, `/api/rdp`, `/api/ftp` | reverse proxy, ambient credentials |
+| **Open** | DNS, SSL, quick-check, screenshot, blacklist, mail-health, IP, site-speed, `GET /api/hazir-yanitlar` | nothing |
+| **Nginx Basic Auth** | `/api/admin`, `/api/ssh`, `/api/rdp`, `/api/ftp`, and `/api/hazir-yanitlar` **write methods** (`limit_except GET HEAD`) | reverse proxy, ambient credentials |
 
-The SSH and RDP WebSocket endpoints still proxy a connection to any host for
-anyone who gets past Basic Auth, so binding to `127.0.0.1` behind the reverse
-proxy remains the boundary for those. Do not expose the backend directly.
+Two consequences that bite:
 
-**Membership rules that are load-bearing** (see `deploy/UYELIK.md`,
-`sast/uyelik-results.md`):
-
-- `auth_core.alan_kontrol()` is an **exact** domain match, never a suffix match —
-  suffix matching would admit `natro.com.evil.net`. Emails are ASCII-only, which
-  is what stops the Cyrillic `nаtro.com` homograph.
-- Sessions are **server-side rows**, not JWTs, so suspending an account kills its
-  open sessions on the next request.
-- Cookies carry the **`__Host-` prefix in production**. Sibling vhosts on this box
-  share `ornek.com`; without the prefix one of them could shadow the session
-  cookie and pin a victim to the attacker's account.
-- CSRF is a synchronizer token: the `X-CSRF-Token` header is compared against
-  `oturumlar.csrf` **in the database**, never against the cookie. The check lives
-  in `mevcut_kullanici` so a new state-changing endpoint cannot forget it.
-- bcrypt must never run on the event loop. Async endpoints use
-  `asyncio.to_thread`; `_HASH_KELEPCE` caps concurrent hashes at 4. One worker
-  serves SSH tunnels and Playwright too.
+- **Hazır Yanıtlar write protection lives ONLY in `deploy/nginx-hostcheck.conf`.**
+  `routers/hazir_yanitlar.py` has no dependency guarding POST/PUT/PATCH/DELETE.
+  Drop that `limit_except` block, move the router behind a different prefix, or
+  serve the backend from anywhere but that vhost, and the 89-entry library
+  becomes world-writable — and those texts get copied to customers, so it is a
+  phishing-distribution path. `test_hazir_yanitlar_erisim.py` pins the contract
+  from the app side; nothing but review pins the Nginx side.
+- The SSH and RDP WebSocket endpoints proxy a connection to any host for anyone
+  who gets past Basic Auth, so binding to `127.0.0.1` behind the reverse proxy
+  remains the boundary. Do not expose the backend directly.
 
 ### Backend: one router per tool
 
@@ -194,12 +190,12 @@ Things that will bite you here:
 
 ### Data
 
-`models.py` holds the response library (`HazirYanit`, `HazirYanitKategori`), the
-site-speed history (`SiteHiziOlcum`) and the membership tables (`Kullanici`,
-`Oturum`, `EpostaTokeni`, `DenetimKaydi`); the ticket/AI modules were removed.
-`seed_if_empty()` loads `backend/data/hazirYanitlar.json` (89 entries) **at
-startup** (`main._yasam_dongusu`), not on first `GET` — that endpoint now needs a
-session, so seeding there would leave the table empty until someone logged in.
+`models.py` holds the response library (`HazirYanit`, `HazirYanitKategori`) and
+the site-speed history (`SiteHiziOlcum`); the ticket/AI and membership modules
+were removed. `seed_if_empty()` loads `backend/data/hazirYanitlar.json` (89
+entries) **at startup** (`main._yasam_dongusu`), not on first `GET` — it moved
+there when the endpoint was behind membership and stayed, because seeding in the
+handler put a `COUNT(*)` on every list request.
 The backend must not read from `frontend/` — that coupling was removed
 deliberately so the backend can be deployed alone.
 

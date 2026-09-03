@@ -3,13 +3,10 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import { COMMANDS } from '../../lib/commands'
 import { fuzzyScore } from '../../lib/fuzzy'
 import { useHotkeys } from '../../hooks/useHotkeys'
-import { useAuth } from '../../context/AuthContext'
-import { aracErisilebilir } from '../../lib/tools'
 
 // Ctrl+K komut paleti. Açıkken hotkey yığınının tepesindedir: Escape ve ok
 // tuşları yalnızca paleti yönetir, alttaki scope'lara düşmez.
 export default function CommandPalette({ onRun, onClose }) {
-  const { girisli, admin } = useAuth()
   const [query, setQuery] = useState('')
   const [cursor, setCursor] = useState(0)
   const inputRef = useRef(null)
@@ -17,22 +14,16 @@ export default function CommandPalette({ onRun, onClose }) {
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  // Yetkisiz araçların komutları listelenmez. Filtre BURADA, `lib/commands.js`'te
-  // değil: `COMMANDS` modül seviyesinde sabit bir dizi ve oturum durumunu göremez.
-  const izinliKomutlar = useMemo(
-    () => COMMANDS.filter(cmd => aracErisilebilir(cmd.view, { girisli, admin })),
-    [girisli, admin])
-
   const matches = useMemo(() => {
     const q = query.trim()
-    if (!q) return izinliKomutlar.slice(0, 12)
-    return izinliKomutlar
+    if (!q) return COMMANDS.slice(0, 12)
+    return COMMANDS
       .map(cmd => ({ cmd, score: Math.max(fuzzyScore(q, cmd.label), fuzzyScore(q, cmd.hint || '') - 5) }))
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 12)
       .map(x => x.cmd)
-  }, [query, izinliKomutlar])
+  }, [query])
 
   // İmleci liste değişince sınırla
   useEffect(() => { setCursor(c => Math.min(c, Math.max(matches.length - 1, 0))) }, [matches])

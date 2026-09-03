@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # .env, router'lardan ÖNCE yüklenmeli: modül seviyesinde `os.getenv` okuyan
-# her router (screenshot, site_speed, ftp, auth_core) aksi hâlde geliştirmede
+# her router (screenshot, site_speed, ftp) aksi hâlde geliştirmede
 # .env'i hiç görmez ve üretim varsayılanlarına düşerdi.
 load_dotenv()
 
@@ -22,7 +22,6 @@ from routers import genel_bakis
 from routers import site_speed
 from routers import ftp as ftp_router
 from routers import admin
-from routers import uyelik, yonetim
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +33,8 @@ run_migrations()
 async def _yasam_dongusu(_app: FastAPI):
     """Hazır yanıt havuzunu açılışta tohumla.
 
-    Eskiden tohumlama `GET /api/hazir-yanitlar` içinde yapılıyordu; o uç artık
-    üyelik istiyor. Orada kalsaydı ilk üye giriş yapana kadar tablo boş kalır,
-    yönetim panelindeki istatistikler sıfır gösterirdi.
+    Eskiden tohumlama `GET /api/hazir-yanitlar` içinde yapılıyordu; her
+    listeleme isteğine bir `COUNT(*)` ekliyordu. Açılışta bir kez yeterli.
 
     Import değil LIFESPAN aşamasında: `import main` tek başına veritabanına
     yazmasın (testler bunu yapıyor). Ayrıca sarmalanmış — bozuk seed JSON'u
@@ -66,8 +64,7 @@ app = FastAPI(
     docs_url="/docs" if os.getenv("ENV", "production") == "development" else None,
     redoc_url=None,
     # /openapi.json `docs_url=None` iken bile AÇIK kalır ve tüm uç şemasını
-    # (artık üyelik ve yönetim uçlarını da) anonim olarak servis eder.
-    # Üretimde kapatılıyor.
+    # (SSH/RDP/FTP dahil) anonim olarak servis eder. Üretimde kapatılıyor.
     openapi_url="/openapi.json" if os.getenv("ENV", "production") == "development" else None,
 )
 
@@ -77,12 +74,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         # API yanıtları önbelleğe ALINMAMALI. Panel Cloudflare arkasında ve
-        # zone'da bir "Cache Everything" kuralı olsaydı bir üyenin hazır yanıt
-        # kütüphanesi anonim bir ziyaretçiye servis edilebilirdi. `Vary: Cookie`
-        # ara önbellekleri de oturuma göre ayırır.
+        # zone'da bir "Cache Everything" kuralı olsaydı Basic Auth arkasındaki
+        # bir teknisyenin FTP/SSH yanıtı anonim bir ziyaretçiye servis
+        # edilebilirdi. `Vary: Authorization` ara önbellekleri kimliğe göre ayırır.
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store, private"
-            response.headers["Vary"] = "Cookie"
+            response.headers["Vary"] = "Authorization"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         # "1; mode=block" ARTIK ZARARLIDIR: tarayıcıların XSS Auditor'ı
@@ -129,10 +126,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    # X-CSRF-Token: üyelik uçlarının çift-gönderim CSRF başlığı. Üretimde
-    # panel ve API aynı origin'de olduğu için preflight hiç çıkmaz; burada
-    # olması yalnızca farklı bir origin'den geliştirme yapılabilmesi içindir.
-    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(quick_check.router)
@@ -151,8 +145,6 @@ app.include_router(ssh.router)
 app.include_router(rdp.router)
 app.include_router(ip_lookup.router)
 app.include_router(hazir_yanitlar.router)
-app.include_router(uyelik.router)
-app.include_router(yonetim.router)
 
 
 @app.get("/api/health")

@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════════════════════════════════════════
-# HostCheck — Üyelik dağıtımını geri al
+# HostCheck — bir dağıtımı yedekten geri al
 #
 #   sudo bash deploy/uyelik-geri-al.sh /opt/hostcheck/uyelik-yedek-YYYYmmdd-HHMMSS
 #
 # Backend dosyalarını, veritabanını, frontend build'ini, nginx config'ini ve
 # .env'i yedekten geri yükler; ardından servisleri yeniden başlatır.
 #
-# Veritabanı geri yüklemesi ÜYELİK SONRASI AÇILAN HESAPLARI SİLER — yedek
-# anındaki duruma döner. Hazır yanıtlar da o ana döner.
+# HER İKİ YÖNDE de çalışır: yedek tarball'ı o anki backend ağacının tamamıdır,
+# yani üyeliğin açıldığı ya da KALDIRILDIĞI dağıtımın öncesine döndürür.
+# Yedeği üreten betik: `uyelik-kaldir-dagit.sh` (yolu sonunda yazar).
+#
+# Veritabanı geri yüklemesi YEDEKTEN SONRAKİ HER DEĞİŞİKLİĞİ SİLER — hazır
+# yanıt düzenlemeleri ve (varsa) üye hesapları yedek anındaki duruma döner.
 # ══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -26,6 +30,7 @@ NGINX_SITE=${NGINX_SITE:?yerel.env içinde NGINX_SITE tanımlı değil}
 
 bilgi() { printf '\n\033[1;34m▸ %s\033[0m\n' "$*"; }
 tamam() { printf '  \033[0;32m✓\033[0m %s\n' "$*"; }
+uyari() { printf '  \033[1;33m!\033[0m %s\n' "$*"; }
 hata()  { printf '  \033[0;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || hata "root olarak çalıştırın: sudo bash $0 <yedek-dizini>"
@@ -34,7 +39,7 @@ hata()  { printf '  \033[0;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 [ -f "$YEDEK/backend.tgz" ] || hata "Yedek eksik: $YEDEK/backend.tgz"
 
 printf '\n\033[1;33mDİKKAT\033[0m Bu işlem %s anındaki duruma döner.\n' "$(basename "$YEDEK")"
-printf 'Yedekten SONRA açılan üye hesapları ve hazır yanıt değişiklikleri KAYBOLUR.\n'
+printf 'Yedekten SONRAKİ tüm hazır yanıt değişiklikleri KAYBOLUR.\n'
 read -r -p "Devam edilsin mi? (evet/hayır) " yanit
 [ "$yanit" = "evet" ] || hata "iptal edildi"
 
@@ -43,12 +48,19 @@ systemctl stop "$SVC"
 tamam "$SVC durdu"
 
 bilgi "Backend dosyaları"
-# Yeni gelen üyelik dosyaları yedekte YOK; tar açmak onları silmez, o yüzden
-# elle kaldırılıyor. Kalsalardı eski main.py onları import etmeyeceği için
-# zararsız olurdu ama şema/kod karışıklığı bırakmayalım.
+# Dağıtımın EKLEDİĞİ dosyalar yedekte yoktur ve `tar x` onları silmez; elle
+# kaldırılıyor. Her iki yön de listede:
+#
+#   üyelik açılışını geri alırken  → auth_core/mailer/uyelik/yonetim + 0003
+#   üyelik kaldırışını geri alırken → 0004_uyelik_kaldir
+#
+# 0004 KRİTİK: kalırsa `head` yine 0004 olur ve servis açılışındaki
+# `run_migrations()` az önce geri yüklenen üyelik tablolarını sessizce
+# yeniden düşürür — geri alma başarılı görünür ama çalışmamıştır.
 rm -f "$DST/auth_core.py" "$DST/mailer.py" \
       "$DST/routers/uyelik.py" "$DST/routers/yonetim.py" \
-      "$DST/migrations/versions/0003_uyelik.py"
+      "$DST/migrations/versions/0003_uyelik.py" \
+      "$DST/migrations/versions/0004_uyelik_kaldir.py"
 find "$DST" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 tar xzf "$YEDEK/backend.tgz" -C /opt/hostcheck
 chown -R hostcheck:hostcheck "$DST"
@@ -60,14 +72,22 @@ if [ -f "$YEDEK/hostcheck.db" ]; then
   install -o hostcheck -g hostcheck -m 640 "$YEDEK/hostcheck.db" "$DST/hostcheck.db"
   tamam "veritabanı yedekten geri yüklendi"
 else
-  # Yedek yoksa en azından şemayı geriye al.
-  sudo -u hostcheck env -C "$DST" "$DST/venv/bin/alembic" downgrade 0002_site_hizi || true
-  tamam "şema 0002_site_hizi'ye düşürüldü"
+  # Yedekte .db yoksa şemanın hangi revizyona çekilmesi gerektiğini betik
+  # BİLEMEZ: yön, yedeğin ne zaman alındığına bağlı. Körlemesine downgrade
+  # etmek (eski davranış) yanlış yönde çalıştığında tablo siler.
+  uyari "Yedekte hostcheck.db YOK — şemaya DOKUNULMADI."
+  uyari "Gereken revizyonu elle seçin:"
+  uyari "  sudo -u hostcheck env -C $DST $DST/venv/bin/alembic history"
+  uyari "  sudo -u hostcheck env -C $DST $DST/venv/bin/alembic downgrade <revizyon>"
 fi
 
 bilgi ".env"
-[ -f "$YEDEK/.env" ] && install -o hostcheck -g hostcheck -m 600 "$YEDEK/.env" "$DST/.env" \
-  && tamam ".env geri yüklendi"
+if [ -f "$YEDEK/.env" ]; then
+  install -o hostcheck -g hostcheck -m 600 "$YEDEK/.env" "$DST/.env"
+  tamam ".env geri yüklendi"
+else
+  uyari "Yedekte .env yok — mevcut .env korundu"
+fi
 
 bilgi "Frontend"
 if [ -f "$YEDEK/web.tgz" ]; then
